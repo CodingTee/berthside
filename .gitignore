@@ -1,0 +1,29 @@
+# --- NEVER commit: evaluation material with answers / generator source ---
+sdoc-hackathon-docker/
+sdoc-hackathon-docker.zip
+sdoc-hackathon-bundle.zip
+
+# --- generated artifacts (regenerate with pipeline.py) ---
+pipeline/submission.json
+app/data/reviews.json
+
+# --- dev scratch scripts (hardcoded local paths) ---
+pipeline/debug_*.py
+
+# --- python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# --- environments & secrets ---
+.env
+.env.*
+*.key
+
+# --- editors / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
