@@ -74,3 +74,86 @@ class ReviewRecord(Base):
     corrected_category = Column(String(32), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow)
+
+
+class ShipmentRecord(Base):
+    __tablename__ = "shipments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    shipment_key = Column(String(128), unique=True, index=True, nullable=False)
+    reference_number = Column(String(128), nullable=True)
+    status = Column(String(32), default="NEEDS_REVIEW")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class DocumentRecord(Base):
+    __tablename__ = "documents"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    shipment_id = Column(Integer, index=True, nullable=False)
+    doc_type = Column(String(16), index=True, nullable=False)  # SI | BL
+    document_key = Column(String(160), index=True, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class DocumentVersionRecord(Base):
+    __tablename__ = "document_versions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    shipment_id = Column(Integer, index=True, nullable=False)
+    document_id = Column(Integer, index=True, nullable=False)
+    doc_type = Column(String(16), index=True, nullable=False)
+    filename = Column(String(512), nullable=False)
+    email_id = Column(String(64), index=True, nullable=True)
+    version_number = Column(Integer, nullable=False)
+    previous_version_id = Column(Integer, nullable=True)
+    duplicate_of_version_id = Column(Integer, nullable=True)
+    is_latest = Column(Integer, default=0)
+    document_status = Column(String(32), default="ACTIVE")
+    content_hash = Column(String(128), index=True, nullable=False)
+    normalized_hash = Column(String(128), index=True, nullable=False)
+    extracted_fields = Column(JSON, default=dict)
+    raw_text_preview = Column(Text, nullable=True)
+    received_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class IssueRecord(Base):
+    __tablename__ = "issues"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    issue_key = Column(String(160), unique=True, index=True, nullable=False)
+    shipment_id = Column(Integer, index=True, nullable=False)
+    report_id = Column(Integer, index=True, nullable=False)
+    email_id = Column(String(64), index=True, nullable=False)
+    field_name = Column(String(64), index=True, nullable=False)
+    si_value = Column(JSON, nullable=True)
+    bl_value = Column(JSON, nullable=True)
+    difference = Column(String(128), nullable=True)
+    explanation = Column(Text, nullable=False)
+    status = Column(String(32), default="OPEN")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class ResolutionRecord(Base):
+    __tablename__ = "resolutions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    issue_id = Column(Integer, unique=True, index=True, nullable=False)
+    shipment_id = Column(Integer, index=True, nullable=False)
+    report_id = Column(Integer, index=True, nullable=False)
+    field_name = Column(String(64), index=True, nullable=False)
+    original_si_value = Column(JSON, nullable=True)
+    original_bl_value = Column(JSON, nullable=True)
+    suggested_value = Column(JSON, nullable=True)
+    suggested_action = Column(String(128), nullable=False)
+    status = Column(String(32), default="SUGGESTED")
+    reviewed_at = Column(DateTime, nullable=True)
+    reviewed_by = Column(String(128), nullable=True)
+    review_comment = Column(Text, nullable=True)
+    corrected_draft_path = Column(String(512), nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)

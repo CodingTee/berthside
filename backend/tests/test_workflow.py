@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app import models  # noqa: F401  registers tables
 from app.database import Base
-from app.services import workflow
+from app.services import ai_enhancement, workflow
 
 
 # --------------------------------------------------------------------- fixture
@@ -35,6 +35,16 @@ BL_TEXT = """BILL OF LADING (DRAFT)
 SHIPPER: APRIL FAR EAST (M) SDN BHD
 To the Order of: UAB NOVAKOPA
 Notify Party: UAB NOVAKOPA
+Load Port: NANTONG, CHINA (CNNTG)
+Port of Discharge: KARACHI, PAKISTAN (PKKHI)
+Container Count: 6 x 40'HC
+Gross Weight (KG): 131,058 KG
+"""
+
+BL_TEXT_MATCHING_LATEST = """BILL OF LADING (DRAFT)
+SHIPPER: APRIL FAR EAST (M) SDN BHD
+To the Order of: EAST BRIGHT FZ-LLC
+Notify Party: EAST BRIGHT FZ-LLC
 Load Port: NANTONG, CHINA (CNNTG)
 Port of Discharge: KARACHI, PAKISTAN (PKKHI)
 Container Count: 6 x 40'HC
@@ -72,11 +82,25 @@ INBOX = {
         "body": "Please check the documents.",
         "attachments": [],
     },
+    "email_905": {
+        "email_id": "email_905", "from": "docs@co.com",
+        "subject": "REQUEST BL DRAFT - updated SDOC-900",
+        "body": "Attached are the SI and updated BL. Please check.",
+        "attachments": ["attachments/e2_SI.txt", "attachments/e2_BL.txt"],
+    },
+    "email_906": {
+        "email_id": "email_906", "from": "docs@co.com",
+        "subject": "REQUEST BL DRAFT - duplicate SDOC-900",
+        "body": "Same attachment again.",
+        "attachments": ["attachments/e2_SI.txt", "attachments/e2_BL.txt"],
+    },
 }
 
 ATTACHMENTS = {
     "attachments/e_SI.txt": SI_TEXT.encode(),
     "attachments/e_BL.txt": BL_TEXT.encode(),
+    "attachments/e2_SI.txt": SI_TEXT.encode(),
+    "attachments/e2_BL.txt": BL_TEXT_MATCHING_LATEST.encode(),
 }
 
 
@@ -184,3 +208,80 @@ def test_pipeline_failure_is_recorded_not_raised(db, monkeypatch):
     stats = workflow.retry_failed(db, statuses=["ERROR"])
     assert stats["retried"] >= 1
     assert stats["recovered"] >= 1
+
+
+def test_latest_bl_version_is_used_for_shipment_comparison(db):
+    first = workflow.process_email(db, "email_900")
+    assert first.status == "MISMATCH"
+
+    second = workflow.process_email(db, "email_905")
+    assert second.status == "OK"
+    assert second.defect_fields == []
+    assert second.extracted["latest_bl_version_id"] is not None
+
+
+def test_duplicate_document_does_not_advance_latest_version(db):
+    workflow.process_email(db, "email_905")
+    first_latest = (
+        db.query(models.DocumentVersionRecord)
+        .filter_by(doc_type="BL", is_latest=1)
+        .first()
+    )
+    workflow.process_email(db, "email_906")
+    latest = (
+        db.query(models.DocumentVersionRecord)
+        .filter_by(doc_type="BL", is_latest=1)
+        .first()
+    )
+    duplicate = (
+        db.query(models.DocumentVersionRecord)
+        .filter_by(doc_type="BL", document_status="DUPLICATE")
+        .first()
+    )
+    assert latest.id == first_latest.id
+    assert duplicate.version_number == first_latest.version_number
+    assert duplicate.is_latest == 0
+
+
+def test_mismatch_creates_resolution_record(db):
+    report = workflow.process_email(db, "email_900")
+    issue = db.query(models.IssueRecord).filter_by(report_id=report.id).first()
+    resolution = db.query(models.ResolutionRecord).filter_by(issue_id=issue.id).first()
+    assert issue.status == "SUGGESTED"
+    assert resolution.status == "PENDING_APPROVAL"
+    assert resolution.suggested_value == issue.si_value
+
+
+def test_ai_mismatch_assistance_uses_structured_issue_data(db):
+    report = workflow.process_email(db, "email_900")
+    issue = db.query(models.IssueRecord).filter_by(report_id=report.id).first()
+
+    assist = ai_enhancement.mismatch_assistance(db, issue.id)
+
+    assert assist["provider"] == "rule"
+    assert assist["confidence"] in {"HIGH", "MEDIUM", "LOW"}
+    assert str(issue.si_value) in assist["explanation"]
+    assert str(issue.bl_value) in assist["explanation"]
+    assert "authoritative" in assist["suggestion"]
+    assert "human" in assist["safety_note"].lower()
+
+
+def test_ai_correction_email_requires_human_review(db):
+    report = workflow.process_email(db, "email_900")
+    shipment_id = report.extracted["shipment_id"]
+
+    draft = ai_enhancement.correction_email_draft(db, shipment_id)
+
+    assert draft["requires_human_review"] is True
+    assert "Action Required" in draft["subject"]
+    assert "Please review and confirm" in draft["body"]
+    assert "SI:" in draft["body"]
+    assert "BL:" in draft["body"]
+
+
+def test_ai_ambiguous_interpretation_is_low_confidence():
+    out = ai_enhancement.ambiguous_interpretation("24,5OO KG", "gross_weight_kg")
+
+    assert out["interpreted_value"] == "24,500 KG"
+    assert out["confidence"] == "LOW"
+    assert out["needs_human_review"] is True

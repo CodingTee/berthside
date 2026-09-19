@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.models import EmailRecord, ReportRecord, ReviewRecord
 from app.schemas import COMPARED_FIELDS
-from app.services import ai_service, inbox_service
+from app.services import ai_service, inbox_service, versioning
 from app.services.classifier import Classification
 from app.services.comparison import compare
 
@@ -223,10 +223,10 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
         return
 
     # 3. read + extract ----------------------------------------------------
-    si_res = ai_service.extract_document("SI", si_path,
-                                         inbox_service.read_attachment(si_path))
-    bl_res = ai_service.extract_document("BL", bl_path,
-                                         inbox_service.read_attachment(bl_path))
+    si_content = inbox_service.read_attachment(si_path)
+    bl_content = inbox_service.read_attachment(bl_path)
+    si_res = ai_service.extract_document("SI", si_path, si_content)
+    bl_res = ai_service.extract_document("BL", bl_path, bl_content)
 
     # wrong_doc_type: only escalate when the document really is the wrong
     # kind — i.e. it declares the other type AND yields almost no usable
@@ -290,8 +290,22 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
         }
         return
 
-    # 4. deterministic comparison -------------------------------------------
-    outcome = compare(si_res.fields, bl_res.fields, COMPARED_FIELDS)
+    # 4. deterministic versioning + latest-version comparison ----------------
+    shipment, _si_version, _bl_version = versioning.sync_processed_documents(
+        db,
+        report=report,
+        email=email,
+        si_path=si_path,
+        bl_path=bl_path,
+        si_content=si_content,
+        bl_content=bl_content,
+        si_result=si_res,
+        bl_result=bl_res,
+    )
+    latest_outcome, latest_si, latest_bl = versioning.latest_pair_comparison(
+        db, shipment.id
+    )
+    outcome = latest_outcome or compare(si_res.fields, bl_res.fields, COMPARED_FIELDS)
 
     report.status = outcome.status
     report.has_defect = 1 if outcome.has_defect else 0
@@ -299,11 +313,16 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
     report.review_reason = outcome.review_reason
     report.field_results = outcome.field_results
     report.extracted = {
-        "si": si_res.fields,
-        "bl": bl_res.fields,
+        "si": (latest_si.extracted_fields if latest_si else si_res.fields),
+        "bl": (latest_bl.extracted_fields if latest_bl else bl_res.fields),
         "si_missing": si_res.missing,
         "bl_missing": bl_res.missing,
+        "shipment_id": shipment.id,
+        "shipment_key": shipment.shipment_key,
+        "latest_si_version_id": latest_si.id if latest_si else None,
+        "latest_bl_version_id": latest_bl.id if latest_bl else None,
     }
+    versioning.sync_issues_for_report(db, report, shipment)
 
 
 def _find_doc_attachments(email: dict) -> tuple[Optional[str], Optional[str]]:
@@ -410,6 +429,14 @@ def apply_review(db: Session, email_id: str, decision: str,
 def _upsert_email_record(db: Session, email: dict) -> None:
     email_id = email["email_id"]
     row = db.query(EmailRecord).filter_by(email_id=email_id).first()
+    received_at = email.get("received_at")
+    if isinstance(received_at, str):
+        from datetime import datetime
+        try:
+            received_at = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            received_at = None
+
     if row is None:
         db.add(EmailRecord(
             email_id=email_id,
@@ -417,5 +444,9 @@ def _upsert_email_record(db: Session, email: dict) -> None:
             subject=email.get("subject"),
             body=email.get("body"),
             attachments=email.get("attachments") or [],
+            received_at=received_at,
         ))
+        db.commit()
+    elif received_at and row.received_at is None:
+        row.received_at = received_at
         db.commit()
