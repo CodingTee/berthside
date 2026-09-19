@@ -12,7 +12,7 @@ services:
     repo: https://github.com/chaywen/averis-hackathon-2026.git
     branch: main
     dockerContext: .
-    dockerFilePath: ./backend/Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     plan: free
     region: singapore
     healthCheckPath: /health
