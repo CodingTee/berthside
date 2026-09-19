@@ -1,3 +1,10 @@
+# ============================================================
+#  ShipSync · Averis x Monash Hackathon 2026
+#  只提交源码 + 文档 + 官方数据集，其余本地产物一律不入库
+#  注意：git 只能忽略「仓库内」的路径；仓库外的目录（如桌面上的
+#  「averis-hackathon-2026 - 副本」备份、WorkBuddy 会话目录）本文件管不到。
+# ============================================================
+
 # --- NEVER commit: evaluation material with answers / generator source ---
 sdoc-hackathon-docker/
 sdoc-hackathon-docker.zip
@@ -10,23 +17,73 @@ app/data/reviews.json
 # --- dev scratch scripts (hardcoded local paths) ---
 pipeline/debug_*.py
 
+# --- 本地验证 / 调试临时产物（WorkBuddy 跑 headless 校验时产生，勿提交）---
+_cleanup_needed/
+_tmp_verify/
+/_*.py
+/_*.js
+/_*.html
+/backend/web/_*.html
+/backend/web/_*.js
+_crop_*.png
+
+# --- 前端改造过程中的本地备份（改版前的 baseline，属个人存档）---
+backend/web_baseline_backup.html
+*_baseline_backup.html
+
+# --- UI 验证截图（42 张 / 约 12MB，README 未引用）---
+# 只匹配 shot_* 命名，若要把演示图提交进 images/，换个名字（如 demo-main.png）即可
+images/shot_*.png
+
 # --- python ---
 __pycache__/
 *.py[cod]
+*.pyo
 .venv/
 venv/
+env/
 *.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# --- node / 前端构建产物 ---
+node_modules/
+dist/
+build/
+.cache/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- 本地数据库 / 运行数据 ---
+*.db
+*.sqlite
+*.sqlite3
 
 # --- environments & secrets ---
 .env
 .env.*
+!.env.example
+!**/.env.example
 *.key
+*.pem
 
 # --- editors / OS ---
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+desktop.ini
+*~
+*.swp
+*.swo
+*.bak
+*.orig
+*.rej
 
 # --- local dev scratch (never commit) ---
 .workbuddy/
@@ -35,3 +92,10 @@ process_all_result.json
 pdf_text.txt
 .git.corrupt-*/
 .tmp-reclone/
+
+# --- 通用临时文件 / 下载残留 ---
+*.tmp
+*.crdownload
+*.part
+tmp/
+temp/
