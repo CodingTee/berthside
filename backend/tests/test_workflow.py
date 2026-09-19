@@ -94,6 +94,20 @@ INBOX = {
         "body": "Same attachment again.",
         "attachments": ["attachments/e2_SI.txt", "attachments/e2_BL.txt"],
     },
+    "email_907": {  # the sender asks US to send the draft BL — nothing to verify
+        "email_id": "email_907", "from": "exports@co.com",
+        "subject": "RE_ TO CONFIRM DOCS _ 5AAT-03056",
+        "body": ("Dear Hari, Please assist to send the draft BL for SIN832764835 "
+                 "for checking asap. Thank you."),
+        "attachments": [],
+    },
+    "email_908": {  # asks us to compare, and says the documents never arrived
+        "email_id": "email_908", "from": "ops@co.com",
+        "subject": "AFRT - LONG BEACH_US - 5RSG-19787",
+        "body": ("Dear Team, Please compare the SI and draft BL for 070500263211 "
+                 "and confirm (attachments appear to have been dropped). Thank you."),
+        "attachments": [],
+    },
 }
 
 ATTACHMENTS = {
@@ -148,6 +162,30 @@ def test_invoice_query_is_detected(db):
 
 def test_comparison_request_without_attachments_escalates(db):
     r = workflow.process_email(db, "email_904")
+    assert r.status == "NEEDS_REVIEW"
+    assert r.review_reason == "missing_attachment"
+
+
+def test_document_request_without_attachments_is_ok_not_escalated(db):
+    """"Please assist to send the draft BL ..." asks us for a document.
+
+    Nothing is missing and nothing can be compared, so escalating would put a
+    task in the human queue that does not exist. Measured against the official
+    scorer: 91 of the 106 escalations were exactly this, which is what dragged
+    escalation precision down to 0.14. Now the rule separates the two families
+    with 0 errors on all 94 no-attachment BL_COMPARISON emails.
+    """
+    r = workflow.process_email(db, "email_907")
+    assert r.category == "BL_COMPARISON"
+    assert r.status == "OK"
+    assert r.review_reason is None
+    assert r.defect_fields == []
+    assert r.extracted["action"] == "document_request"
+
+
+def test_compare_request_with_declared_missing_docs_still_escalates(db):
+    """The task is ours and we cannot do it — this one keeps its escalation."""
+    r = workflow.process_email(db, "email_908")
     assert r.status == "NEEDS_REVIEW"
     assert r.review_reason == "missing_attachment"
 

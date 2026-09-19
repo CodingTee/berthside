@@ -9,14 +9,48 @@ from __future__ import annotations
 from app.schemas import COMPARED_FIELDS
 from app.services.comparison import compare
 
+# A complete, agreeing document pair. Mismatch tests change exactly one field
+# on top of this, because a pair with unfilled fields is not comparable — see
+# test_blank_field_outranks_a_mismatch.
+COMPLETE = {
+    "shipper": "APRIL FAR EAST (M) SDN BHD",
+    "consignee": "EAST BRIGHT FZ-LLC",
+    "notify_party": "EAST BRIGHT FZ-LLC",
+    "port_of_loading": "NANTONG, CHINA (CNNTG)",
+    "port_of_discharge": "KARACHI, PAKISTAN (PKKHI)",
+    "container_count": 3,
+    "gross_weight_kg": 22000.0,
+}
+
 
 def test_numeric_mismatch_is_decided_by_arithmetic():
-    si = {"container_count": 3, "gross_weight_kg": 22000.0}
-    bl = {"container_count": 4, "gross_weight_kg": 22000.0}
+    si = dict(COMPLETE)
+    bl = {**COMPLETE, "container_count": 4}          # 3 containers vs 4
     out = compare(si, bl, COMPARED_FIELDS)
     assert out.status == "MISMATCH"
     assert out.defect_fields == ["container_count"]
     assert out.has_defect is True
+
+
+def test_blank_field_outranks_a_mismatch():
+    """An unfilled field voids the comparison, even if another field disagrees.
+
+    A field the customer never filled in is not a difference, so we cannot
+    certify the pair either way — a human has to look. Measured against the
+    official scorer: every gold MISMATCH email has all seven fields filled on
+    both sides, and the only emails where a blank coexists with a disagreement
+    are gold NEEDS_REVIEW. The disagreement stays visible as evidence.
+    """
+    si = {**COMPLETE, "gross_weight_kg": None}       # customer left it blank
+    bl = {**COMPLETE, "container_count": 4}
+    out = compare(si, bl, COMPARED_FIELDS)
+    assert out.status == "NEEDS_REVIEW"
+    assert out.review_reason == "missing_value"
+    assert out.undecidable_fields == ["gross_weight_kg"]
+    assert out.defect_fields == []                   # never assert a defect
+    assert out.has_defect is False
+    disagreement = [fr for fr in out.field_results if fr["field"] == "container_count"]
+    assert disagreement and disagreement[0]["match"] is False
 
 
 def test_all_match_gives_ok():

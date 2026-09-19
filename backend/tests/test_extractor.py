@@ -190,6 +190,55 @@ def test_extraction_records_which_reader_produced_the_text():
     assert extract_fields("Shipper: ACME LTD", "SI").source == ""
 
 
+# --------------------------------------------------------------------------
+# Fields the customer left unfilled: blank / TBA / ____ placeholders
+# --------------------------------------------------------------------------
+def test_placeholder_port_is_not_a_value():
+    """"____MT" is a blank the customer never filled, not a port name.
+
+    Keeping it would compare "____MT" against "SINGAPORE (SGSIN)" and report a
+    discrepancy the customer never made; the honest answer is "undecidable".
+    """
+    r = extract_fields("Port of Loading (POL): ____MT\nPOD: TBA\n", "SI")
+    assert "port_of_loading" in r.missing
+    assert "port_of_discharge" in r.missing
+    assert r.fields.get("port_of_loading") is None
+    assert r.is_complete is False
+
+
+def test_na_and_underscore_weight_placeholders_are_not_values():
+    r = extract_fields("Port of Discharge (POD): N/A\nGross Weight (KG): _______ MTS\n", "SI")
+    assert "port_of_discharge" in r.missing
+    assert "gross_weight_kg" in r.missing
+
+
+def test_blank_label_does_not_swallow_the_next_field():
+    """A blank "CONSIGNEE:" followed by "Notify: X" means empty — not X.
+
+    Regression guard: the next-line fallback used to grab the following
+    *label* line as this field's value, silently filling a blank the customer
+    left open (real SI: email_520).
+    """
+    r = extract_fields("Shipper/Exporter: APRIL FINE PAPER TRADING\n"
+                       "CONSIGNEE: \n"
+                       "Notify: CLIFFORD PAPER INC\n", "SI")
+    assert r.fields.get("consignee") is None
+    assert "consignee" in r.missing
+    assert r.fields["notify_party"] == "CLIFFORD PAPER INC"
+
+
+def test_next_line_value_still_works_when_it_is_not_a_label():
+    """The fallback must keep working for genuine continuation lines."""
+    r = extract_fields("Port of Loading (POL)\nNHAVA SHEVA, INDIA\n", "SI")
+    assert r.fields["port_of_loading"] == "NHAVA SHEVA, INDIA"
+
+
+def test_company_name_containing_a_label_word_is_kept():
+    """A value that merely *contains* a label word is not a label line."""
+    r = extract_fields("Shipper: CONTAINER CORPORATION OF INDIA\n", "SI")
+    assert r.fields["shipper"] == "CONTAINER CORPORATION OF INDIA"
+
+
 def test_garbage_bytes_never_become_a_document():
     """A corrupt PDF must escalate, never yield a confident empty answer."""
     from app.services import ai_service

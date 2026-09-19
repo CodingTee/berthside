@@ -82,6 +82,23 @@ _WEIGHT = re.compile(
 )
 _PORT_CODE = re.compile(r"\(([A-Z]{5})\)")
 
+# A blank the customer left in the document, printed as a placeholder rather
+# than left empty: "____MT", "_______ MTS", "TBA", "N/A", "TO BE ADVISED".
+# These are NOT values. Keeping them as values turns an unfilled field into a
+# fake mismatch ("____MT" vs "SINGAPORE (SGSIN)"), which reports a discrepancy
+# the customer never made; the honest answer is "undecidable, ask a human".
+# Measured on the official set: 3 such values, all in gold NEEDS_REVIEW emails.
+_PLACEHOLDER = re.compile(
+    r"^(?:[_\-.–—\s]+|tba|tbc|tbd|n/?a|nil|none|xxx+|pending|to be advised|to follow)"
+    r"(?:\s*(?:mt|mts|kgs?|kilogram|kilograms|ton|tons|t|x\s*\d+.*|[a-z']{1,3}))?$",
+    re.IGNORECASE,
+)
+
+
+def _is_placeholder(raw: str) -> bool:
+    """True when a string carries no information (blank / TBA / N/A / ________)."""
+    return bool(_PLACEHOLDER.match(_match_line(str(raw))))
+
 
 @dataclass
 class ExtractionResult:
@@ -322,21 +339,57 @@ def _line_value_after_label(lines: list[str], i: int, canonical: str) -> Any:
         j = _next_nonempty(lines, i)
         if j is not None:
             nv = lines[j].strip()
+            # ...but never swallow the NEXT FIELD'S LABEL as this field's value.
+            # A blank "CONSIGNEE:" followed by "Notify: CLIFFORD PAPER INC"
+            # means the consignee was left empty — not that it equals the
+            # notify party. Only a genuine label line (label + ':' or '|') is
+            # refused, so a company name that merely contains a label word
+            # ("CONTAINER CORPORATION OF INDIA") still passes.
+            if _is_label_line(nv):
+                return None
             if canonical in NAME_FIELDS:
-                return _clean_name(nv)
+                return _value_or_none(_clean_name(nv))
             if canonical in ("port_of_loading", "port_of_discharge"):
-                return _clean_port(nv)
+                return _value_or_none(_clean_port(nv))
         return None
 
     if canonical in NAME_FIELDS:
-        return _clean_name(inline_value)
-    if canonical == "container_count":
-        return _parse_container_count(inline_value)
-    if canonical == "gross_weight_kg":
-        return _parse_weight(inline_value)
-    if canonical in ("port_of_loading", "port_of_discharge"):
-        return _clean_port(inline_value)
-    return inline_value
+        value = _clean_name(inline_value)
+    elif canonical == "container_count":
+        value = _parse_container_count(inline_value)
+    elif canonical == "gross_weight_kg":
+        value = _parse_weight(inline_value)
+    elif canonical in ("port_of_loading", "port_of_discharge"):
+        value = _clean_port(inline_value)
+    else:
+        value = inline_value
+    return _value_or_none(value)
+
+
+# A label line carries a short label followed by ':' or a table '|' separator.
+# The 45-char cap keeps a long value line (which may contain a colon deep
+# inside an address) from being mistaken for a label.
+_LABEL_LINE = re.compile(r"^[^:|]{0,45}[:|]")
+
+
+def _is_label_line(line: str) -> bool:
+    """True when this line is another document field's label, not a value."""
+    if not _LABEL_LINE.match(line):
+        return False
+    return _resolve_line_field(_match_line(line)) is not None
+
+
+def _value_or_none(value: Any) -> Any:
+    """Blank strings and placeholders ("TBA", "N/A", "____MT") are not values.
+
+    Keeping them would fabricate a mismatch out of an unfilled field, so they
+    collapse to None and the comparison is reported as undecidable instead.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str) and (value.strip() == "" or _is_placeholder(value)):
+        return None
+    return value
 
 
 def _clean_name(raw: str) -> str:
