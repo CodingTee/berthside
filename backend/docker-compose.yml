@@ -1,0 +1,17 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Override with your own .env — never commit real secrets.
+      ENVIRONMENT: development
+      CORS_ORIGINS: "*"
+      DATA_SOURCE: /data
+      DATABASE_URL: postgresql+psycopg2://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/postgres
+      # Local dev default: DATABASE_URL=sqlite:////data/sdoc.db
+      AI_PROVIDER: rule
+    volumes:
+      # Mount the hackathon bundle (inbox/, attachments/, sample_submission.json)
+      - ../sdoc-hackathon-bundle:/data:ro
+    restart: unless-stopped

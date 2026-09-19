@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 460" font-family="Segoe UI, Arial, sans-serif">
+  <rect width="940" height="460" fill="#ffffff"/>
+  <text x="470" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#1f2a44">SDOC — Shipping Document Verification: System Architecture</text>
+  <text x="470" y="56" text-anchor="middle" font-size="12" fill="#64748b">Averis × Monash Hackathon 2026 · P2 Backend (FastAPI) — integration owner</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#334155"/>
+    </marker>
+    <marker id="dash" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#0ea5e9"/>
+    </marker>
+  </defs>
+
+  <!-- boxes -->
+  <g stroke="#cbd5e1" stroke-width="1.5">
+    <rect x="40"  y="110" width="160" height="80" rx="10" fill="#eff6ff"/>
+    <rect x="250" y="110" width="180" height="80" rx="10" fill="#ecfeff"/>
+    <rect x="480" y="110" width="200" height="80" rx="10" fill="#f0fdf4"/>
+    <rect x="730" y="110" width="170" height="80" rx="10" fill="#fef3c7"/>
+    <rect x="250" y="300" width="180" height="80" rx="10" fill="#faf5ff"/>
+    <rect x="480" y="300" width="200" height="80" rx="10" fill="#fef2f2"/>
+    <rect x="730" y="300" width="170" height="80" rx="10" fill="#f1f5f9"/>
+  </g>
+
+  <!-- labels -->
+  <g text-anchor="middle" fill="#0f172a">
+    <text x="120" y="138" font-size="15" font-weight="700">Frontend (P1)</text>
+    <text x="120" y="160" font-size="11" fill="#475569">React / Vue UI</text>
+
+    <text x="340" y="138" font-size="15" font-weight="700">FastAPI (P2)</text>
+    <text x="340" y="160" font-size="11" fill="#475569">REST + CORS + /ui</text>
+
+    <text x="580" y="134" font-size="15" font-weight="700">Workflow Controller</text>
+    <text x="580" y="156" font-size="11" fill="#475569">classify → extract → compare</text>
+    <text x="580" y="174" font-size="11" fill="#475569">→ report → review</text>
+
+    <text x="815" y="138" font-size="15" font-weight="700">Comparison Engine</text>
+    <text x="815" y="160" font-size="11" fill="#475569">deterministic 7-field</text>
+
+    <text x="340" y="328" font-size="15" font-weight="700">AI Service (P3)</text>
+    <text x="340" y="350" font-size="11" fill="#475569">classify / extract (hybrid)</text>
+
+    <text x="580" y="328" font-size="15" font-weight="700">Human Review</text>
+    <text x="580" y="350" font-size="11" fill="#475569">NEEDS_REVIEW → confirm/correct</text>
+
+    <text x="815" y="328" font-size="15" font-weight="700">Database</text>
+    <text x="815" y="350" font-size="11" fill="#475569">Supabase Postgres</text>
+  </g>
+
+  <!-- solid flow -->
+  <g stroke="#334155" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <line x1="200" y1="150" x2="246" y2="150"/>
+    <line x1="430" y1="150" x2="476" y2="150"/>
+    <line x1="680" y1="150" x2="726" y2="150"/>
+    <line x1="815" y1="190" x2="815" y2="296"/>
+    <line x1="580" y1="190" x2="580" y2="296"/>
+  </g>
+
+  <!-- dashed AI + review -->
+  <g stroke="#0ea5e9" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#dash)">
+    <line x1="480" y1="190" x2="420" y2="244"/>   <!-- workflow -> AI -->
+    <line x1="660" y1="244" x2="720" y2="190"/>   <!-- AI -> workflow (results) -->
+    <line x1="660" y1="340" x2="720" y2="296"/>   <!-- review -> db -->
+  </g>
+  <g stroke="#0ea5e9" stroke-width="2" stroke-dasharray="6 4" fill="none" marker-end="url(#dash)">
+    <line x1="730" y1="300" x2="690" y2="190"/>   <!-- comparison -> review (escalate) -->
+  </g>
+
+  <!-- legend -->
+  <g font-size="11" fill="#475569">
+    <line x1="60" y1="420" x2="100" y2="420" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="108" y="424">data flow (sync)</text>
+    <line x1="250" y1="420" x2="290" y2="420" stroke="#0ea5e9" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#dash)"/>
+    <text x="298" y="424">AI call / human loop (async)</text>
+  </g>
+</svg>

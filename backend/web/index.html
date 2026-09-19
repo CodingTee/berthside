@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-page-node-id="E1N8lhuM0P4IhLJNpVdvFW">
+<head data-page-node-id="uVmcP1zMphEb0mNtpzUCet">
+<meta charset="UTF-8" data-page-node-id="knp6iFyhvFUNQny66RhhIg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="pTma35LW83jvATT3tAhlYt">
+<title>SDOC · Shipping Document Verification Console</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 17l4 4 9-10' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" data-page-node-id="g8Lb4H4ZcBs3BNHlWmJZ0a">
+<style>
+:root{
+  --bg:#070b14; --bg-2:#0a1120;
+  --surface:rgba(255,255,255,.025);
+  --surface-2:#0d1526; --surface-3:#121d33; --surface-hover:rgba(45,212,191,.06);
+  --border:rgba(148,163,184,.12); --border-strong:rgba(148,163,184,.22);
+  --text:#e9eef7; --muted:#8b9bb4; --muted-2:#5d6b83;
+  --accent:#2dd4bf; --accent-2:#38bdf8; --accent-3:#6366f1;
+  --grad:linear-gradient(135deg,#2dd4bf 0%,#38bdf8 52%,#6366f1 100%);
+  --ok:#34d399; --ok-bg:rgba(52,211,153,.12); --ok-bd:rgba(52,211,153,.38);
+  --warn:#fbbf24; --warn-bg:rgba(251,191,36,.12); --warn-bd:rgba(251,191,36,.40);
+  --bad:#fb7185; --bad-bg:rgba(251,113,133,.12); --bad-bd:rgba(251,113,133,.40);
+  --cat-BL_COMPARISON:#a78bfa; --cat-SI_REQUEST:#38bdf8; --cat-INVOICE_QUERY:#f472b6;
+  --cat-GENERAL:#94a3b8; --cat-SPAM:#fb7185;
+  --shadow:0 18px 50px -20px rgba(0,0,0,.65);
+  --radius:14px; --mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+[data-theme="light"]{
+  --bg:#eef2f8; --bg-2:#e6ecf5;
+  --surface:rgba(255,255,255,.65); --surface-2:#ffffff; --surface-3:#f5f8fc; --surface-hover:rgba(13,148,136,.07);
+  --border:rgba(15,23,42,.10); --border-strong:rgba(15,23,42,.18);
+  --text:#0f1b2d; --muted:#54657f; --muted-2:#8696ad;
+  --accent:#0d9488; --accent-2:#0284c7; --accent-3:#4f46e5;
+  --grad:linear-gradient(135deg,#0d9488 0%,#0284c7 52%,#4f46e5 100%);
+  --ok:#059669; --ok-bg:rgba(5,150,105,.10); --ok-bd:rgba(5,150,105,.34);
+  --warn:#d97706; --warn-bg:rgba(217,119,6,.10); --warn-bd:rgba(217,119,6,.36);
+  --bad:#e11d48; --bad-bg:rgba(225,29,72,.09); --bad-bd:rgba(225,29,72,.34);
+  --cat-BL_COMPARISON:#7c3aed; --cat-SI_REQUEST:#0284c7; --cat-INVOICE_QUERY:#db2777;
+  --cat-GENERAL:#64748b; --cat-SPAM:#e11d48;
+  --shadow:0 18px 45px -22px rgba(15,23,42,.30);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;overflow:hidden;
+  -webkit-font-smoothing:antialiased;letter-spacing:.1px}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(900px 600px at 12% -5%,rgba(45,212,191,.10),transparent 60%),
+    radial-gradient(1000px 700px at 100% 0%,rgba(99,102,241,.10),transparent 55%),
+    radial-gradient(800px 600px at 80% 110%,rgba(56,189,248,.07),transparent 60%);}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--muted-2)}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- layout ---------- */
+.app{position:relative;z-index:1;display:flex;height:100vh}
+.sidebar{width:268px;flex:0 0 268px;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--surface-2),var(--bg-2));
+  border-right:1px solid var(--border);padding:20px 18px;gap:18px;overflow-y:auto}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:18px 22px 8px}
+.workspace{flex:1;display:grid;grid-template-columns:392px 1fr;gap:18px;padding:6px 22px 22px;min-height:0}
+
+/* ---------- brand ---------- */
+.brand{display:flex;align-items:center;gap:12px}
+.brand .mark{width:42px;height:42px;border-radius:12px;background:var(--grad);
+  display:grid;place-items:center;box-shadow:0 8px 22px -8px rgba(45,212,191,.6);flex:0 0 auto}
+.brand .mark svg{width:24px;height:24px}
+.brand .name{font-weight:750;font-size:16px;letter-spacing:.4px;line-height:1.1}
+.brand .tag{font-size:10.5px;color:var(--muted);letter-spacing:1.4px;text-transform:uppercase}
+
+/* ---------- workflow stepper ---------- */
+.wf-title{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted-2);margin-bottom:2px}
+.steps{display:flex;flex-direction:column;gap:2px;position:relative}
+.step{display:flex;gap:12px;padding:9px 8px;border-radius:10px;cursor:default;transition:.2s;position:relative}
+.step .dot{width:30px;height:30px;border-radius:9px;flex:0 0 auto;display:grid;place-items:center;
+  background:var(--surface-3);border:1px solid var(--border);color:var(--muted);transition:.25s}
+.step .dot svg{width:16px;height:16px}
+.step .stxt b{display:block;font-size:12.8px;font-weight:600}
+.step .stxt span{font-size:11px;color:var(--muted);line-height:1.35}
+.step .line{position:absolute;left:22px;top:38px;width:2px;height:calc(100% - 30px);background:var(--border)}
+.step:last-child .line{display:none}
+.step.active .dot{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 6px 16px -6px rgba(45,212,191,.7)}
+.step.active .stxt b{color:var(--text)}
+.step.lit .dot{border-color:var(--accent);color:var(--accent)}
+
+/* ---------- sidebar panels ---------- */
+.panel-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.panel-box h4{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted-2);margin-bottom:10px}
+.reliability{display:flex;align-items:center;gap:12px}
+.reliability .big{font-size:26px;font-weight:750;line-height:1}
+.reliability .pulse{width:10px;height:10px;border-radius:50%;background:var(--warn);
+  box-shadow:0 0 0 0 var(--warn);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(251,191,36,.5)}70%{box-shadow:0 0 0 9px rgba(251,191,36,0)}100%{box-shadow:0 0 0 0 rgba(251,191,36,0)}}
+.legend{display:flex;flex-direction:column;gap:7px}
+.legend div{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.spacer{flex:1}
+.theme-toggle{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);cursor:pointer;
+  padding:9px 10px;border-radius:10px;border:1px solid var(--border);background:var(--surface);user-select:none}
+.theme-toggle:hover{border-color:var(--border-strong)}
+.theme-toggle svg{width:16px;height:16px}
+
+/* ---------- KPI cards ---------- */
+.kpi{background:linear-gradient(160deg,var(--surface-2),var(--bg-2));border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kpi::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;
+  background:var(--grad);opacity:.10;filter:blur(6px)}
+.kpi .lab{font-size:11px;color:var(--muted);letter-spacing:.4px;display:flex;align-items:center;gap:7px}
+.kpi .lab svg{width:14px;height:14px;color:var(--accent)}
+.kpi .num{font-size:30px;font-weight:780;margin-top:6px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:11px;color:var(--muted-2);margin-top:5px}
+.kpi.accent .num{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dist{display:flex;height:7px;border-radius:6px;overflow:hidden;margin-top:11px;background:var(--surface-3)}
+.dist span{height:100%;transition:width .6s ease}
+.dist-cap{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted-2);margin-top:6px}
+
+/* ---------- generic panel ---------- */
+.panel{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);
+  display:flex;flex-direction:column;overflow:hidden;min-height:0;box-shadow:var(--shadow)}
+.panel-head{padding:13px 14px;border-bottom:1px solid var(--border);display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.panel-head .ttl{font-size:13px;font-weight:650;display:flex;align-items:center;gap:8px}
+.panel-head .ttl svg{width:16px;height:16px;color:var(--accent)}
+.panel-head .count{margin-left:auto;font-size:11.5px;color:var(--muted);background:var(--surface-3);
+  padding:3px 9px;border-radius:20px;border:1px solid var(--border)}
+
+/* ---------- inputs ---------- */
+input[type=text],select,textarea{font-family:inherit;font-size:13px;color:var(--text);
+  background:var(--surface-3);border:1px solid var(--border);border-radius:9px;padding:8px 11px;outline:none;transition:.18s}
+input[type=text]:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,212,191,.15)}
+input::placeholder{color:var(--muted-2)}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238b9bb4' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.search{position:relative;flex:1;min-width:140px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted-2)}
+.search input{padding-left:34px;width:100%}
+
+/* ---------- inbox list ---------- */
+.list{overflow-y:auto;flex:1}
+.row{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:7px;
+  position:relative;transition:background .15s}
+.row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;transition:.2s}
+.row:hover{background:var(--surface-hover)}
+.row:hover::before{background:var(--border-strong)}
+.row.active{background:linear-gradient(90deg,var(--surface-hover),transparent)}
+.row.active::before{background:var(--grad);width:4px}
+.row .top{display:flex;align-items:center;gap:8px}
+.row .sbj{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.row .from{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .mt{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--muted-2)}
+.row .mt .id{font-family:var(--mono);font-size:10.5px}
+
+/* ---------- badges & pills ---------- */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2.5px 9px;border-radius:20px;font-size:10.5px;font-weight:650;letter-spacing:.3px;white-space:nowrap}
+.badge.cat{color:var(--c);background:color-mix(in srgb,var(--c) 16%,transparent);border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+.badge.st{color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 36%,transparent)}
+.badge.st.OK{--c:var(--ok)} .badge.st.MISMATCH{--c:var(--bad)} .badge.st.NEEDS_REVIEW{--c:var(--warn)}
+.badge.st.BL_COMPARISON{--c:var(--cat-BL_COMPARISON)} .badge.st.SI_REQUEST{--c:var(--cat-SI_REQUEST)}
+.badge.st.INVOICE_QUERY{--c:var(--cat-INVOICE_QUERY)} .badge.st.GENERAL{--c:var(--cat-GENERAL)} .badge.st.SPAM{--c:var(--cat-SPAM)}
+.badge.human{color:var(--ok);background:var(--ok-bg);border:1px dashed var(--ok-bd)}
+.dotby{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--muted-2);font-family:var(--mono)}
+.dotby svg{width:11px;height:11px}
+
+/* ---------- detail ---------- */
+.detail{overflow-y:auto;flex:1;padding:0}
+.detail-head{padding:18px 22px;border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,var(--surface-3),transparent)}
+.detail-head h2{font-size:16.5px;margin:10px 0 9px;line-height:1.4;font-weight:680}
+.kv{font-size:12.5px;color:var(--muted);margin:3px 0}
+.kv b{color:var(--text);font-weight:600}
+.verdict-line{display:flex;align-items:center;gap:9px;margin-top:11px;flex-wrap:wrap;font-size:12.5px}
+section{padding:16px 22px;border-bottom:1px solid var(--border)}
+section h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted-2);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+section h3 svg{width:14px;height:14px;color:var(--accent)}
+
+/* ---------- comparison table ---------- */
+table.cmp{width:100%;border-collapse:separate;border-spacing:0;font-size:12.8px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+table.cmp th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted-2);
+  padding:9px 12px;background:var(--surface-3);border-bottom:1px solid var(--border);font-weight:600}
+table.cmp td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+table.cmp tr:last-child td{border-bottom:none}
+tr.cmp-row.match td{background:var(--ok-bg)}
+tr.cmp-row.diff td{background:var(--bad-bg)}
+tr.cmp-row.miss td{background:var(--warn-bg)}
+td.f{font-weight:600;white-space:nowrap;color:var(--text)}
+td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:10px;letter-spacing:.4px}
+.val{font-family:var(--mono);font-size:12px;word-break:break-word;line-height:1.5}
+.val.si{color:var(--text)} .val.bl{color:var(--text)}
+tr.diff .val.si{color:var(--ok);text-decoration:line-through;text-decoration-color:var(--muted-2);opacity:.85}
+tr.diff .val.bl{color:var(--bad);font-weight:600}
+.op{color:var(--muted-2);padding:0 4px;font-weight:700}
+.vpill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:650;white-space:nowrap}
+.vpill.ok{color:var(--ok);background:var(--ok-bg);border:1px solid var(--ok-bd)}
+.vpill.bad{color:var(--bad);background:var(--bad-bg);border:1px solid var(--bad-bd)}
+.vpill.miss{color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn-bd)}
+.vpill svg{width:12px;height:12px}
+
+/* ---------- review box ---------- */
+.review-box{border-radius:12px;padding:16px;border:1px solid var(--warn-bd);background:var(--warn-bg);margin-top:4px}
+.review-box.escalated{border-color:var(--warn-bd)}
+.rb-head{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13px;margin-bottom:9px;color:var(--warn)}
+.rb-head svg{width:17px;height:17px}
+.rb-why{font-size:12.8px;line-height:1.55;color:var(--text);background:rgba(255,255,255,.04);border:1px solid var(--border);
+  border-radius:9px;padding:10px 12px;margin-bottom:12px}
+[data-theme="light"] .rb-why{background:rgba(15,23,42,.03)}
+.rb-why b{color:var(--warn)}
+.rb-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.recorded{display:flex;align-items:center;gap:10px;font-size:12.8px;background:var(--ok-bg);border:1px solid var(--ok-bd);
+  border-radius:10px;padding:11px 13px;color:var(--ok);font-weight:600}
+.recorded svg{width:16px;height:16px;flex:0 0 auto}
+
+/* ---------- buttons ---------- */
+.btn{border:1px solid var(--border);background:var(--surface-3);border-radius:9px;padding:8px 14px;font-size:12.8px;
+  cursor:pointer;color:var(--text);text-decoration:none;display:inline-flex;align-items:center;gap:7px;font-family:inherit;transition:.16s;font-weight:550}
+.btn svg{width:14px;height:14px}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--grad);border-color:transparent;color:#fff;font-weight:650;box-shadow:0 8px 20px -8px rgba(45,212,191,.6)}
+.btn.primary:hover{color:#fff;filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ---------- attachments ---------- */
+.att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:11px}
+.att{border:1px solid var(--border);border-radius:11px;background:var(--surface-3);overflow:hidden;transition:.18s}
+.att:hover{border-color:var(--border-strong)}
+.att .ah{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer}
+.att .ic{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;
+  background:var(--surface-2);border:1px solid var(--border);color:var(--accent)}
+.att .ic svg{width:16px;height:16px}
+.att .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.att .ty{font-size:9.5px;font-family:var(--mono);color:var(--muted-2);text-transform:uppercase}
+.att .ap{font-size:11px;color:var(--accent);padding:0 12px 11px;display:inline-flex;gap:12px}
+.att .ap a{color:var(--accent);text-decoration:none} .att .ap a:hover{text-decoration:underline}
+.att pre{margin:0;padding:11px 13px;font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--muted);
+  background:var(--bg-2);border-top:1px solid var(--border);max-height:240px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.att .loading{font-size:11px;color:var(--muted-2);padding:10px 13px;border-top:1px solid var(--border);font-style:italic}
+
+/* ---------- email body ---------- */
+pre.body{white-space:pre-wrap;font-size:12.4px;line-height:1.6;background:var(--bg-2);border:1px solid var(--border);
+  border-radius:10px;padding:14px 16px;max-height:300px;overflow-y:auto;color:var(--muted);font-family:var(--mono)}
+
+.empty{padding:60px 24px;text-align:center;color:var(--muted-2);display:flex;flex-direction:column;align-items:center;gap:12px}
+.empty svg{width:42px;height:42px;opacity:.5}
+.empty .big{font-size:14px;color:var(--muted);font-weight:600}
+
+.spin{width:15px;height:15px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;display:inline-block;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+.fade{animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);z-index:50;
+  background:var(--surface-3);border:1px solid var(--border-strong);color:var(--text);padding:11px 18px;border-radius:11px;
+  font-size:13px;box-shadow:var(--shadow);opacity:0;transition:.3s;display:flex;align-items:center;gap:9px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast svg{width:16px;height:16px;color:var(--ok)}
+@media(max-width:1100px){.workspace{grid-template-columns:340px 1fr}.kpi-bar{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body data-page-node-id="wzcVVSuVBtDzNxMgWcXGVQ">
+<div class="app" data-page-node-id="qazEggtcA0P6goKeGKu5rm">
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" data-page-node-id="nPrwB4Jt2IEtpnUXVOvRca">
+    <div class="brand" data-page-node-id="bpzGZd6y1i1fDOEILA6fKI">
+      <div class="mark" data-page-node-id="YaLYjFOz1SCtLFnlSIGGUz">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="YuX3xAN1XCrBDz2bUjTcx0">
+          <path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="ypKSoBOLMAIE1wA90TyYAe"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="XL5jrb44AqtcQCJn3aGKww"/>
+        </svg>
+      </div>
+      <div data-page-node-id="ZXwoYngb0oWeeFX4jvTAZz">
+        <div class="name" data-page-node-id="mOX9lK6Jzz261pm0KVCCwQ">SDOC</div>
+        <div class="tag" data-page-node-id="7SO9aCWBMWZlM6qZPXeNQF">Verification Console</div>
+      </div>
+    </div>
+
+    <div data-page-node-id="OmrnvHcXdFzmDFMHbcWVCB">
+      <div class="wf-title" data-page-node-id="Cctt2017hDQ197iHOjEmK9">Pipeline</div>
+      <div class="steps" id="steps" data-page-node-id="6JmNgsRGrTR0WPehwDx7AZ">
+        <div class="step" data-step="classify" data-page-node-id="7SKEs8PuPMblULhhXrt4lR"><div class="dot" data-page-node-id="gZrYYa1GvYHBweVNgYNtcc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="CBdB8vAWCktL7uogXzdTsv"><path d="M4 6h16M4 12h16M4 18h10" data-page-node-id="hAHYT4oLgHKVieEXIwVGYe"/></svg></div><div class="stxt" data-page-node-id="HuWBXBiVDDwX5CS7T2nDkg"><b data-page-node-id="3nrFpxEIvw0lAxKUuX5emW">Classify</b><span data-page-node-id="lmCcFT2AxSKNezw07SgkE5">Triage inbox: SI, invoice, spam…</span></div><div class="line" data-page-node-id="iQjZya6KZgGMhb5HFqtyMy"></div></div>
+        <div class="step" data-step="extract" data-page-node-id="2uuWxgf3GjGOWBhWwR95cK"><div class="dot" data-page-node-id="C8rv6QTg9tCRDBmAJ6m3QU"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="5v35TqVixpyyNx8uPrELlw"><path d="M4 7V5a1 1 0 0 1 1-1h3l2 2h7a1 1 0 0 1 1 1v3" data-page-node-id="ihHh1hWmuIEHlcRER0kkqY"/><path d="M4 7v12a1 1 0 0 0 1 1h12" data-page-node-id="nQiH8Q8xK9u5XiAwXepXAY"/></svg></div><div class="stxt" data-page-node-id="954lqmcxmeM6CU7V6DE88w"><b data-page-node-id="H0Se1wKRmeM8zMm1K6DKTA">Extract</b><span data-page-node-id="JhUeGsVgn6AwHYwtG8TEzl">Pull 7 shipment fields from SI &amp; BL</span></div><div class="line" data-page-node-id="swbiVn1JZ8Ny4mZxLKeC1D"></div></div>
+        <div class="step" data-step="compare" data-page-node-id="XBCY5f0ARmsBiE69oIMCgK"><div class="dot" data-page-node-id="rQjhHYYByoJFa6PyIR58Hh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="UCYLKWWfIZNpofjkj1Ffoe"><path d="M3 12h7M14 12h7M12 3v7M12 14v7" data-page-node-id="Mtrdl1wfrp0lnzDRzBWthh"/><circle cx="12" cy="12" r="2" data-page-node-id="MecBV5PKagmEpSUjKaUEVa"/></svg></div><div class="stxt" data-page-node-id="cwoa9n5Syjo4kxaGids2SW"><b data-page-node-id="NaQGQ8S7BucK2j6HI410jS">Compare</b><span data-page-node-id="9aLfW8s2t5RQECP1gSKTYg">Surface mismatches, SI ↔ BL</span></div><div class="line" data-page-node-id="3fAphiRfIORilcmMxJuAWg"></div></div>
+        <div class="step" data-step="escalate" data-page-node-id="1IaOpFGgb7gwbsCRqk0Qs1"><div class="dot" data-page-node-id="KqBBjilHTViJd6fh47EPzX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="BdBmjdCgA7Lh8p5a0wUsJ8"><path d="M12 3l9 16H3z" data-page-node-id="cvFdrYy33Khp0RJHLdijGv"/><path d="M12 10v4M12 17h.01" data-page-node-id="WZmVI5E3zuFm769OKbUFA9"/></svg></div><div class="stxt" data-page-node-id="vCOVII7gkbu0qChjSr9417"><b data-page-node-id="geJNeUZxLUiFG6FkQ7AhkE">Escalate</b><span data-page-node-id="BimdHyQBMMVevjyTZlU6WJ">Route ambiguity to human review</span></div></div>
+      </div>
+    </div>
+
+    <div class="panel-box" data-page-node-id="TGnqw11nrbhOZG9Nn4vgFP">
+      <h4 data-page-node-id="10jT2bZM7bWgb3T0VkmfFZ">Human-in-the-loop</h4>
+      <div class="reliability" data-page-node-id="q7FmZjqTLcB24orikAAF9P">
+        <div class="pulse" id="relPulse" data-page-node-id="J6LFWrlva5wG7vKm9ktPhw"></div>
+        <div data-page-node-id="CDbsFmXD3CB6Om0tOuL0sU">
+          <div class="big" id="relNum" data-page-node-id="2LdKmDiEC4TUywZCtOJYuu">0</div>
+          <div style="font-size:11px;color:var(--muted)" data-page-node-id="LFEh0Z5vSQbgIDCgr3q6ZR">awaiting review</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-box" data-page-node-id="0x9Ipk771UlkphWFIA8se7">
+      <h4 data-page-node-id="Bixl3xaEZBd6YYoElwSehn">Status legend</h4>
+      <div class="legend" data-page-node-id="FNycn5z0VwpTbaRjfT5DzG">
+        <div data-page-node-id="k1eqv2CvBiJ8ZKkI8ADmS5"><i style="background:var(--ok)" data-page-node-id="GR7go3LdfHqq8HAKjgfTC1"></i> OK · no mismatch</div>
+        <div data-page-node-id="LAInzWMH2kJzvSlTO4t6yj"><i style="background:var(--bad)" data-page-node-id="OQnWqEQo8JF4qbh7pgHsBd"></i> Mismatch · fields differ</div>
+        <div data-page-node-id="8iwBlfygBajmXT38njRaEx"><i style="background:var(--warn)" data-page-node-id="gsBUYBUTRMmnM3VHk4W302"></i> Needs review · uncertain</div>
+      </div>
+    </div>
+
+    <div class="spacer" data-page-node-id="8GaQGna3ShnGc9SVq9PsI6"></div>
+    <div class="theme-toggle" id="themeBtn" data-page-node-id="9BmQDBYCEx0ONKrmnWF4aA">
+      <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="3mF6O9eCCHHgWtMDU5tUpf"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" data-page-node-id="1sJffiLG8g0BIIM7HMBLQw"/></svg>
+      <span id="themeLbl" data-page-node-id="7iNDQ84u6DOwCVlZnKP2mT">Dark mode</span>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main" data-page-node-id="nJ1KdkVPiCqPLg1IYTqYls">
+    <div class="kpi-bar" id="kpis" data-page-node-id="MnDL1ijvY4PaZZpApCVFPI"></div>
+    <div class="workspace" data-page-node-id="xr4E9BDPd4SXGX5HsNUsrU">
+      <!-- INBOX -->
+      <div class="panel" data-page-node-id="RwHteb1iAdPXmvmNCdy571">
+        <div class="panel-head" data-page-node-id="UqS4lS5LeoVQXkpT2EhzMN">
+          <div class="ttl" data-page-node-id="gA2CWDli7YqEGsFsJDqZK3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="goxzBBzZogeTJc7BhPnrQv"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1" data-page-node-id="4UqgJx8OWBzQI5S0yFemIA"/></svg>Inbox</div>
+          <span class="count" id="listCount" data-page-node-id="RIraeHzLf3BTGmplwRAWgP">0</span>
+          <div class="search" style="flex-basis:100%" data-page-node-id="iDmBfLOb9wMuFxEv6tphcA"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="VIuNb0s2SVOVXZq5pluQBB"><circle cx="11" cy="11" r="7" data-page-node-id="EtFuO8wDJV0DixXmZu4VbU"/><path d="M21 21l-4.3-4.3" data-page-node-id="bvFEDelWr0IqFsxWrq1O9E"/></svg><input type="text" id="q" placeholder="Search subject, sender, id…" data-page-node-id="lsoOefcWa4BfRVtDOibjqD"></div>
+          <select id="f-cat" data-page-node-id="JEIl45AfgnDZ6egsmFuj1K"><option value="" data-page-node-id="GDBn06HYAn3gfxqh40K9CL">All categories</option></select>
+          <select id="f-status" data-page-node-id="uoNnzAOZ1W388JhvqWk7XG"><option value="" data-page-node-id="RLwW10k8RiNgZp666cFlVR">All statuses</option><option data-page-node-id="gwPvgEs2GxxwMoMP6YIxFQ">OK</option><option data-page-node-id="BsVNhJz4gxOGIbldFYi8g0">MISMATCH</option><option data-page-node-id="aj69F5OCy4tocJZzjelqL2">NEEDS_REVIEW</option></select>
+        </div>
+        <div class="list" id="list" data-page-node-id="jlaqylwBqmsp49IyneKVbs"><div class="empty" data-page-node-id="NvxZh0yloVBbHKGQYSdMAc"><span class="spin" data-page-node-id="IwXIk867GZABuDSagZYvkp"></span><span class="big" data-page-node-id="gV8jd9BVIEQ2OKjLQ0Ip5H">Loading inbox…</span></div></div>
+      </div>
+
+      <!-- DETAIL -->
+      <div class="panel" data-page-node-id="3S6LUEx0omhwFaXgjXZ2nC">
+        <div class="detail" id="detail" data-page-node-id="zJuL7QW2oaMUxhj8CSuZSa"><div class="empty" data-page-node-id="zKtBI4wD67QpLkkvCUNt1K">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="cdemDJeB44XwgvDJ5TnJGG"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1" data-page-node-id="MReMroVaPFv2otxpH2AN3h"/></svg>
+          <span class="big" data-page-node-id="zFWg5Eyv0bt8pG8nMmkPoG">Select an email to inspect</span>
+          <span data-page-node-id="HPCtvub8MbkeFlhdIFyuRA">Review the SI ↔ BL field comparison and decide.</span>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" data-page-node-id="ok7ELoHCA9aZ2RtqfcNEkH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="cGvg1ce4eVflxcIP0yceuQ"><path d="M20 6L9 17l-5-5" data-page-node-id="ZGOj9zUsEY5MnyJD6aJkTz"/></svg><span id="toastMsg" data-page-node-id="DVdx6CWuDaRUEY4F9PVQSM"></span></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const API = "";
+let state = {items:[], active:null, summary:null};
+
+const CATEGORIES = ["BL_COMPARISON","SI_REQUEST","INVOICE_QUERY","GENERAL","SPAM"];
+const FIELDS_LABEL = {shipper:"Shipper",consignee:"Consignee",notify_party:"Notify party",
+  port_of_loading:"Port of loading",port_of_discharge:"Port of discharge",
+  container_count:"Container count",gross_weight_kg:"Gross weight (kg)"};
+const ICONS = {
+  ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+  bad:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+  miss:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>',
+  file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+};
+const esc = s => (s??"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const fmt = n => (n??0).toLocaleString();
+
+function catBadge(c){const col=`var(--cat-${c})`;return `<span class="badge cat" style="--c:${col}">${c.replace("_"," ")}</span>`;}
+function stBadge(s){return `<span class="badge st ${s}">${s.replace("_"," ")}</span>`;}
+function byIcon(b){
+  if(b==="human") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> human';
+  if(b==="llm") return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.5L18 9l-4.2 1.5L12 15l-1.8-4.5L6 9l4.2-1.5z"/><path d="M18 14l.9 2.3L21 17l-2.1.7L18 20l-.9-2.3L15 17l2.1-.7z"/></svg> llm';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg> rule';
+}
+
+/* ---------- data ---------- */
+async function loadSummary(){
+  state.summary = await (await fetch(API+"/api/summary")).json();
+  renderKPIs();
+}
+async function loadList(){
+  const cat=$("#f-cat").value, st=$("#f-status").value, q=$("#q").value.trim();
+  const p=new URLSearchParams({limit:500});
+  if(cat)p.set("category",cat); if(st)p.set("status",st); if(q)p.set("q",q);
+  const data=await (await fetch(API+"/api/emails?"+p)).json();
+  state.items=data.items;
+  $("#listCount").textContent=fmt(data.total);
+  const el=$("#list");
+  if(!data.items.length){el.innerHTML='<div class="empty"><span class="big">No emails match.</span></div>';return;}
+  el.innerHTML=data.items.map((r,i)=>{
+    const active=r.email_id===state.active?"active":"";
+    const hum=r.decided_by==="human"?'<span class="badge human">HUMAN</span>':"";
+    return `<div class="row ${active}" data-i="${i}" onclick="openEmail('${esc(r.email_id)}')">
+      <div class="top"><span class="sbj">${esc(r.subject||"(no subject)")}</span>${stBadge(r.status)}</div>
+      <div class="from">${esc(r.from||"unknown sender")}</div>
+      <div class="mt">${catBadge(r.category)}<span class="id">${esc(r.email_id)}</span><span>📎 ${r.n_attachments}</span>${hum}</div>
+    </div>`;
+  }).join("");
+}
+async function openEmail(id){
+  state.active=id;
+  if(decodeURIComponent(location.hash.slice(1))!==id){history.replaceState(null,"","#"+id);}
+  document.querySelectorAll(".row").forEach(el=>el.classList.toggle("active",state.items[+el.dataset.i]?.email_id===id));
+  const d=await (await fetch(API+"/api/emails/"+id)).json();
+  renderDetail(d);
+  reflectWorkflow(d.result.status);
+}
+
+/* ---------- KPIs ---------- */
+function renderKPIs(){
+  const s=state.summary, bs=s.by_status||{};
+  const ok=bs.OK||0, mm=bs.MISMATCH||0, nr=bs.NEEDS_REVIEW||0, tot=s.total||0;
+  const pct=v=>tot?Math.round(v/tot*100):0;
+  $("#kpis").innerHTML=`
+    <div class="kpi accent"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1"/></svg>Emails processed</div><div class="num">${fmt(tot)}</div><div class="sub">across the operations inbox</div></div>
+    <div class="kpi"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Cleared · OK</div><div class="num" style="color:var(--ok)">${fmt(ok)}</div><div class="sub">${pct(ok)}% no mismatch</div></div>
+    <div class="kpi"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>Mismatches</div><div class="num" style="color:var(--bad)">${fmt(mm)}</div><div class="sub">fields differ · SI ↔ BL</div></div>
+    <div class="kpi"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>Escalated</div><div class="num" style="color:var(--warn)">${fmt(nr)}</div><div class="sub">${fmt(s.reviewed||0)} human reviews</div></div>
+    <div style="grid-column:1/-1"><div class="dist">
+      <span style="width:${pct(ok)}%;background:var(--ok)"></span>
+      <span style="width:${pct(mm)}%;background:var(--bad)"></span>
+      <span style="width:${pct(nr)}%;background:var(--warn)"></span>
+    </div><div class="dist-cap"><span style="color:var(--ok)">OK ${pct(ok)}%</span><span style="color:var(--bad)">Mismatch ${pct(mm)}%</span><span style="color:var(--warn)">Review ${pct(nr)}%</span></div></div>`;
+  $("#relNum").textContent=fmt(nr);
+  $("#relPulse").style.background = nr>0 ? "var(--warn)" : "var(--ok)";
+}
+
+/* ---------- workflow stepper ---------- */
+function reflectWorkflow(status){
+  const map={OK:["classify","extract","compare"],MISMATCH:["classify","extract","compare"],NEEDS_REVIEW:["classify","extract","compare","escalate"]};
+  const lit=map[status]||["classify"];
+  document.querySelectorAll(".step").forEach(s=>s.classList.toggle("lit",lit.includes(s.dataset.step)));
+  const last=lit[lit.length-1];
+  document.querySelectorAll(".step").forEach(s=>s.classList.toggle("active",s.dataset.step===last));
+}
+
+/* ---------- detail ---------- */
+function renderDetail(d){
+  const e=d.email, r=d.result;
+  let cmp="";
+  if(d.comparisons && d.comparisons.length){
+    const rows=d.comparisons.map(c=>{
+      const cls=c.missing?"miss":(c.match?"match":"diff");
+      const mark=c.missing?`<span class="vpill miss">${ICONS.miss} missing</span>`
+        :c.match?`<span class="vpill ok">${ICONS.ok} match</span>`
+        :`<span class="vpill bad">${ICONS.bad} differs</span>`;
+      const fld=FIELDS_LABEL[c.field]||c.field.replace(/_/g," ");
+      return `<tr class="cmp-row ${cls}"><td class="f">${fld}<small>${c.field}</small></td>
+        <td class="val si">${esc(c.si_value ?? "—")}</td><td class="op">→</td>
+        <td class="val bl">${esc(c.bl_value ?? "—")}</td><td>${mark}</td></tr>`;
+    }).join("");
+    cmp=`<section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h7M14 12h7M12 3v7M12 14v7"/><circle cx="12" cy="12" r="2"/></svg>SI → draft BL · field comparison</h3>
+      <table class="cmp"><thead><tr><th>Field</th><th>Shipping Instruction</th><th></th><th>Draft Bill of Lading</th><th>Verdict</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+  }
+  let review="";
+  if(r.status==="NEEDS_REVIEW"||r.status==="MISMATCH"||d.human_review){
+    const hr=d.human_review;
+    const reason=r.status==="NEEDS_REVIEW"?`<div class="rb-why"><b>Escalation reason:</b> ${esc(r.review_reason||"—")}</div>`:"";
+    const recorded=hr?`<div class="recorded">${ICONS.ok}<span>Reviewed: <b>${esc(hr.action)}</b>${hr.status?" → "+esc(hr.status):""}${hr.note?" · “"+esc(hr.note)+"”":""}</span></div>`:"";
+    review=`<section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>Human review</h3>
+      <div class="review-box ${r.status==='NEEDS_REVIEW'?'escalated':''}">
+        ${r.status==="NEEDS_REVIEW"?'<div class="rb-head">'+ICONS.miss+' Escalated for human review</div>':''}
+        ${reason}${recorded}
+        <div class="rb-actions" style="margin-top:${recorded||reason?'12px':'0'}">
+          <button class="btn primary" onclick="sendReview('${esc(e.email_id)}','confirm',this)">${ICONS.ok} Confirm machine verdict</button>
+          <select id="ov-status"><option value="">Override to…</option><option>OK</option><option>MISMATCH</option><option>NEEDS_REVIEW</option></select>
+          <input type="text" id="ov-note" placeholder="Reviewer note (optional)" style="flex:1;min-width:150px">
+          <button class="btn" onclick="sendReview('${esc(e.email_id)}','override',this)">Apply override</button>
+        </div>
+      </div></section>`;
+  }
+  const atts=(e.attachments||[]).map(a=>{
+    const name=a.split("/").pop(); const ext=(name.split(".").pop()||"").toLowerCase();
+    const textish=["txt","csv","md","json","log"].includes(ext);
+    return `<div class="att" data-path="${esc(a)}" data-text="${textish}">
+      <div class="ah" onclick="toggleAtt(this)"><span class="ic">${ICONS.file}</span>
+        <div style="flex:1;min-width:0"><div class="nm">${esc(name)}</div><div class="ty">${esc(ext||"file")}</div></div>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--muted-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="ap"><a href="${API}/api/attachments/${esc(a)}" target="_blank" onclick="event.stopPropagation()">Open</a></div>
+    </div>`;
+  }).join("");
+  const attSection=atts?`<section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Attachments</h3><div class="att-grid">${atts}</div></section>`:"";
+
+  const verdict = r.has_defect?`defect in ${r.defect_fields.map(f=>`<b>${esc(FIELDS_LABEL[f]||f)}</b>`).join(", ")}`
+    :(r.status==="OK"?"no mismatch detected":esc(r.review_reason||r.status));
+  const hum=r.decided_by==="human"?'<span class="badge human">HUMAN REVIEWED</span>':"";
+
+  $("#detail").innerHTML=`<div class="fade">
+    <div class="detail-head">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${catBadge(r.category)} ${stBadge(r.status)} ${hum}</div>
+      <h2>${esc(e.subject||"(no subject)")}</h2>
+      <div class="kv"><b>From:</b> ${esc(e.from||"unknown")} &nbsp;·&nbsp; <b>ID:</b> <span style="font-family:var(--mono)">${esc(e.email_id)}</span></div>
+      <div class="kv"><b>Decided by:</b> <span class="dotby">${byIcon(r.decided_by)}</span>${r.rule&&r.decided_by!=="human"?` <span style="color:var(--muted-2)">· ${esc(r.rule)}</span>`:""}</div>
+      <div class="verdict-line"><b style="color:var(--muted)">Verdict:</b> ${verdict}</div>
+    </div>
+    ${cmp}${review}${attSection}
+    <section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 7l8 5 8-5"/></svg>Email body</h3><pre class="body">${esc(e.body||"")}</pre></section>
+  </div>`;
+}
+
+/* ---------- attachment viewer ---------- */
+async function toggleAtt(head){
+  const card=head.closest(".att");
+  const ap=card.querySelector(".ap");
+  if(card.dataset.open==="1"){card.dataset.open="0";ap.innerHTML='<a href="'+API+'/api/attachments/'+card.dataset.path+'" target="_blank" onclick="event.stopPropagation()">Open</a>';return;}
+  card.dataset.open="1";
+  if(card.dataset.text==="true"){
+    ap.innerHTML='<span class="loading">Loading preview…</span>';
+    try{
+      const txt=await (await fetch(API+"/api/attachments/"+card.dataset.path)).text();
+      ap.outerHTML='<pre>'+esc(txt)+'</pre>';
+    }catch(err){ap.innerHTML='<span class="loading">Preview unavailable.</span> <a href="'+API+'/api/attachments/'+card.dataset.path+'" target="_blank">Open</a>';}
+  }else{
+    ap.innerHTML='<a href="'+API+'/api/attachments/'+card.dataset.path+'" target="_blank" onclick="event.stopPropagation()">Open file</a>';
+  }
+}
+
+/* ---------- review submit ---------- */
+async function sendReview(id,action,btn){
+  const body={action};
+  if(action==="override"){
+    body.status=$("#ov-status").value;
+    if(!body.status){toast("Pick a status to override to.");return;}
+    body.note=$("#ov-note").value;
+  }
+  if(btn)btn.disabled=true;
+  await fetch(API+"/api/emails/"+id+"/review",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  toast(action==="confirm"?"Verdict confirmed.":"Override applied.");
+  await loadSummary(); await loadList(); openEmail(id);
+}
+let toastT;
+function toast(msg){$("#toastMsg").textContent=msg;$("#toast").classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>$("#toast").classList.remove("show"),2600);}
+
+/* ---------- events & init ---------- */
+$("#f-cat").innerHTML='<option value="">All categories</option>'+CATEGORIES.map(c=>`<option value="${c}">${c.replace("_"," ")}</option>`).join("");
+let deb;$("#q").addEventListener("input",()=>{clearTimeout(deb);deb=setTimeout(loadList,250);});
+$("#f-cat").addEventListener("change",loadList);
+$("#f-status").addEventListener("change",loadList);
+document.addEventListener("keydown",e=>{
+  if(e.key==="/"&&document.activeElement!==$("#q")){e.preventDefault();$("#q").focus();}
+  if(["ArrowDown","ArrowUp"].includes(e.key)&&document.activeElement!==$("#q")){
+    const rows=[...document.querySelectorAll(".row")];if(!rows.length)return;
+    let idx=rows.findIndex(r=>r.classList.contains("active"));
+    idx=e.key==="ArrowDown"?(idx+1)%rows.length:(idx-1+rows.length)%rows.length;
+    rows[idx].scrollIntoView({block:"nearest"});openEmail(state.items[+rows[idx].dataset.i].email_id);
+  }
+});
+$("#themeBtn").addEventListener("click",()=>{
+  const cur=document.documentElement.getAttribute("data-theme");
+  const next=cur==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",next);
+  localStorage.setItem("sdoc-theme",next);
+  $("#themeLbl").textContent=next==="dark"?"Dark mode":"Light mode";
+});
+(function(){const t=localStorage.getItem("sdoc-theme")||"dark";document.documentElement.setAttribute("data-theme",t);$("#themeLbl").textContent=t==="dark"?"Dark mode":"Light mode";})();
+window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!==state.active)openEmail(h);});
+loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h)openEmail(h);});
+</script>
+</body>
+</html>

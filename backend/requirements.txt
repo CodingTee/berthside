@@ -1,0 +1,26 @@
+fastapi>=0.104
+uvicorn[standard]>=0.24
+pydantic>=2.0
+pydantic-settings>=2.0
+SQLAlchemy>=1.4
+
+# Optional: lets the rule engine read non-plain-text attachments
+# (advanced-stage PDF/Word/Excel docs). Without them those attachments are
+# reported as NEEDS_REVIEW / unreadable and can be handled by the AI service.
+openpyxl>=3.1     # .xlsx
+pypdf>=4.0        # .pdf
+python-docx>=1.1  # .docx
+
+# Advanced #1 - layout/table-aware PDF reading (2nd rung of the PDF ladder).
+# pypdf emits table cell text in a broken order; pdfplumber walks the grid and
+# re-emits "label | value" rows. Used only when pypdf recovers too few fields.
+pdfplumber>=0.11
+
+# Advanced #2 - OCR for scanned / image-only PDFs (3rd rung of the PDF ladder).
+# Pure-pip, offline, no system binaries (unlike tesseract/poppler).
+# Inactive unless OCR_ENABLED=1; when absent those documents escalate as
+# `unreadable`, which is the intended fallback.
+# NB on slim container images opencv (pulled in by rapidocr) may need libGL —
+# swap opencv-python for opencv-python-headless if the import fails.
+pypdfium2>=4.0               # renders PDF pages to images
+rapidocr-onnxruntime>=1.2    # bundled ONNX OCR models, works offline

@@ -1,0 +1,28 @@
+# -------- Python --------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# -------- secrets / env --------
+.env
+*.env
+!.env.example
+
+# -------- local runtime data --------
+*.db
+*.sqlite
+*.sqlite3
+sdoc.db
+submission.json
+process_all_result.json
+
+# -------- datasets (never commit the hackathon bundle) --------
+data/
+inbox/
+attachments/
+
+# -------- local reports --------
+stress_report.json
+_stress_sub.json
