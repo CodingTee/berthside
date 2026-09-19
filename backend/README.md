@@ -275,6 +275,38 @@ python scripts/tune_eval.py --limit 40         # quick pipeline check (do not re
 
 Tuning log and open questions: [`docs/MVP_FREEZE.md`](docs/MVP_FREEZE.md).
 
+### Where the scorer and the ground truth live
+
+Both ship only inside the organisers' Docker bundle, so they are not in this
+repo. `scripts/sdoc_paths.py` looks for them in a few conventional places
+(upward from `backend/`, then `~/Downloads/sdoc-hackathon-docker`). If yours sits
+somewhere else, say so once and every script picks it up:
+
+```bash
+export SDOC_MATERIALS=/path/to/sdoc-hackathon-docker
+```
+
+Or pass the paths explicitly per run: `--scorer <path> --ground-truth <path>`.
+
+## Diagnostics: measure a rule before changing it
+
+Comparison rules are easy to argue about and impossible to settle by intuition,
+so each open question got a measuring script instead of an opinion. All three
+only read; none of them touches source files or the database.
+
+```bash
+python scripts/diag_reliability.py    # escalation precision/recall + every false flag listed
+python scripts/diag_port_locode.py    # how often one document prints a UN/LOCODE and the other does not
+python scripts/diag_port_lenient.py   # A/B both port rules through the official scorer (~2 min, runs the inbox twice)
+```
+
+`diag_port_lenient.py` doubles as the template for any "should we relax rule X?"
+question: patch in the alternative predicate, score both variants with the real
+scorer, keep whichever wins. It restores the original function in a `finally`
+block, so the measured change never leaks into the working tree. This is how the
+decision to keep the strict name+LOCODE comparison was made, and it is why that
+rule is still the shipped one.
+
 ## P3 (AI) contract
 
 Set `AI_PROVIDER=hybrid` and point `AI_SERVICE_URL` at P3:

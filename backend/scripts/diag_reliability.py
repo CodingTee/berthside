@@ -18,15 +18,17 @@ from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))
+sys.path.insert(0, str(BACKEND_ROOT / "scripts"))
 
-MATERIALS = Path(r"C:\Users\gayso\Desktop\Hackathon Averix\materials\sdoc-hackathon-docker")
-DEFAULT_GT = MATERIALS / "data_v2" / "ground_truth.json"
+import sdoc_paths  # noqa: E402  (resolves the organisers' private files)
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--data-source", default="")
-    ap.add_argument("--ground-truth", default=str(DEFAULT_GT))
+    ap.add_argument("--ground-truth", default=sdoc_paths.default_ground_truth())
+    ap.add_argument("--scorer", default=sdoc_paths.default_scorer(),
+                    help="the organisers' score_cli.py; its sibling scoring.py is imported")
     ap.add_argument("--submission", default="", help="reuse an existing submission.json")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--show", type=int, default=40, help="how many examples to print")
@@ -36,12 +38,16 @@ def main() -> int:
         import os
         os.environ["DATA_SOURCE"] = args.data_source
 
-    # Load the organisers' scorer by file path — importing it via sys.path would
-    # shadow our own `app` package with the docker server's `app.py`.
-    import importlib.util
-    _spec = importlib.util.spec_from_file_location("sdoc_scoring", MATERIALS / "server" / "scoring.py")
-    scoring = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(scoring)
+    if not args.ground_truth:
+        print(sdoc_paths.missing_file_hint("ground_truth.json"))
+        return 1
+    if not args.scorer:
+        print(sdoc_paths.missing_file_hint("score_cli.py"))
+        return 1
+
+    # The judges' scorer is loaded by file path rather than imported, because
+    # adding its directory to sys.path would shadow our own `app` package.
+    scoring = sdoc_paths.load_official_scoring(args.scorer)
 
     truth = json.loads(Path(args.ground_truth).read_text(encoding="utf-8"))
 
