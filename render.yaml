@@ -32,7 +32,7 @@ services:
       # OCR rung for scanned PDFs. Set to 0 to skip the heavy OCR deps and
       # make builds much faster; scanned docs then escalate to human review.
       - key: OCR_ENABLED
-        value: "1"
+        value: "0"
       # SQLite works on the free tier but the disk is ephemeral: the database is
       # rebuilt from the inbox on every cold start. For a persistent DB, set
       # DATABASE_URL to a Supabase/Postgres URL (see backend/.env.example).
