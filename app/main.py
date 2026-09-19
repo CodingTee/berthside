@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sdoc import Engine  # noqa: E402
+from sdoc import ocr_assist  # noqa: E402
 from sdoc.classifier import Classifier  # noqa: E402
 
 DATA_ROOT = os.environ.get("SDOC_DATA_ROOT",
@@ -113,6 +114,16 @@ def email_detail(email_id: str):
         "comparisons": [c.__dict__ for c in r.comparisons] if r.comparisons else None,
         "human_review": engine.reviews.get(email_id),
     }
+    # Verdict-neutral OCR assist: for unreadable attachments only, give the
+    # reviewer a machine-read preview. Status / submission are never touched.
+    if r.status == "NEEDS_REVIEW" and r.review_reason == "unreadable":
+        previews = []
+        for att in email.get("attachments", []):
+            if att.lower().endswith(".pdf"):
+                info = ocr_assist.ocr_attachment(engine.data_root, att)
+                if info.get("ok"):
+                    previews.append(info)
+        detail["ocr_preview"] = previews or None
     return detail
 
 

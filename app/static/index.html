@@ -69,6 +69,12 @@ td.f{font-weight:600;white-space:nowrap}
 .review-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 select.status-sel{padding:6px 8px}
 input.note{flex:1;min-width:140px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:13px;outline:none}
+.ocr-doc{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fafcff}
+.ocr-doc-name{font-weight:600;font-size:12.5px;margin-bottom:6px}
+.ocr-doc-name .conf{font-weight:400;color:var(--muted);font-size:11px;margin-left:6px}
+.ocr-field{font-size:12.5px;padding:2px 0;font-family:Consolas,Menlo,monospace}
+.ocr-field b{font-family:"Segoe UI",sans-serif;color:var(--muted)}
+details summary{cursor:pointer;font-size:11.5px;color:var(--muted);margin-top:6px}
 .empty{padding:60px 20px;text-align:center;color:var(--muted)}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:s .7s linear infinite;vertical-align:-2px}
 @keyframes s{to{transform:rotate(360deg)}}
@@ -169,6 +175,16 @@ function renderDetail(d){
         <button class="btn" onclick="sendReview('${e.email_id}','override')">Apply override</button>
       </div></div></section>`;
   }
+  let ocr = "";
+  if(d.ocr_preview && d.ocr_preview.length){
+    const blocks = d.ocr_preview.map(p=>{
+      const rows = FIELDS.filter(f=>p.fields[f])
+        .map(f=>`<div class="ocr-field"><b>${f.replace(/_/g," ")}:</b> ${esc(p.fields[f])}</div>`).join("")
+        || '<div class="ocr-field">no fields recognized</div>';
+      return `<div class="ocr-doc"><div class="ocr-doc-name">${esc(p.rel_path.split("/").pop())}<span class="conf">OCR confidence ${(p.avg_conf*100).toFixed(0)}%</span></div>${rows}<details><summary>raw OCR text</summary><pre class="body">${esc(p.text)}</pre></details></div>`;
+    }).join("");
+    ocr = `<section><h3>Local OCR preview (verdict unchanged · for reviewer reference)</h3>${blocks}</section>`;
+  }
   $("#detail").innerHTML = `
     <div class="detail-head">
       <div>${badge(r.category)} ${badge(r.status)} ${r.decided_by==='human'?'<span class="badge b-human">HUMAN REVIEWED</span>':''}</div>
@@ -179,6 +195,7 @@ function renderDetail(d){
         &nbsp;·&nbsp; decided by <b>${r.decided_by}</b>${r.rule&&r.decided_by!=="human"?` (rule: ${esc(r.rule)})`:""}</div>
     </div>
     ${cmp}
+    ${ocr}
     ${review}
     <section><h3>Email body</h3><pre class="body">${esc(e.body)}</pre></section>`;
 }
