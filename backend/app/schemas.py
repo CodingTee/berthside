@@ -187,3 +187,164 @@ class HealthOut(BaseModel):
     ai_provider: str
     emails_cached: int = 0
     reports_stored: int = 0
+
+
+# ------------------------------------------------------------- shipments
+class DocumentVersionOut(BaseModel):
+    id: int
+    shipment_id: int
+    document_id: int
+    doc_type: str
+    filename: str
+    email_id: Optional[str] = None
+    version_number: int
+    previous_version_id: Optional[int] = None
+    duplicate_of_version_id: Optional[int] = None
+    is_latest: bool = False
+    document_status: str
+    extracted_fields: dict[str, Any] = Field(default_factory=dict)
+    received_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DocumentOut(BaseModel):
+    id: int
+    shipment_id: int
+    doc_type: str
+    document_key: str
+    versions: list[DocumentVersionOut] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShipmentSummaryOut(BaseModel):
+    id: int
+    shipment_key: str
+    reference_number: Optional[str] = None
+    status: str
+    si_latest: Optional[DocumentVersionOut] = None
+    bl_latest: Optional[DocumentVersionOut] = None
+    mismatch_count: int = 0
+    pending_count: int = 0
+    resolved_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShipmentListOut(BaseModel):
+    total: int
+    shipments: list[ShipmentSummaryOut]
+
+
+class ShipmentDetailOut(ShipmentSummaryOut):
+    documents: list[DocumentOut] = Field(default_factory=list)
+
+
+class VersionFieldDiff(BaseModel):
+    field: str
+    from_value: Any = None
+    to_value: Any = None
+    changed: bool
+
+
+class VersionDiffOut(BaseModel):
+    shipment_id: int
+    from_version_id: int
+    to_version_id: int
+    fields: list[VersionFieldDiff]
+
+
+# ------------------------------------------------------------- resolution
+class IssueOut(BaseModel):
+    id: int
+    issue_key: str
+    shipment_id: int
+    report_id: int
+    email_id: str
+    field_name: str
+    si_value: Any = None
+    bl_value: Any = None
+    difference: Optional[str] = None
+    explanation: str
+    status: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ResolutionOut(BaseModel):
+    id: int
+    issue_id: int
+    shipment_id: int
+    report_id: int
+    field_name: str
+    original_si_value: Any = None
+    original_bl_value: Any = None
+    suggested_value: Any = None
+    suggested_action: str
+    status: str
+    reviewed_at: Optional[datetime] = None
+    reviewed_by: Optional[str] = None
+    review_comment: Optional[str] = None
+    corrected_draft_path: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class IssueDetailOut(IssueOut):
+    resolution: Optional[ResolutionOut] = None
+
+
+class ResolutionReviewIn(BaseModel):
+    reviewed_by: str = "human"
+    review_comment: Optional[str] = None
+
+
+class ResolutionStatusOut(BaseModel):
+    shipment_id: int
+    status: str
+    total_issues: int
+    resolved: int
+    pending_approval: int
+    rejected: int
+    open: int
+
+
+# ------------------------------------------------------------- AI assist
+class AIMismatchAssistOut(BaseModel):
+    issue_id: int
+    field_name: str
+    provider: str
+    confidence: str
+    explanation: str
+    suggestion: str
+    safety_note: str
+    source_values: dict[str, Any] = Field(default_factory=dict)
+
+
+class AIEmailDraftOut(BaseModel):
+    shipment_id: int
+    provider: str
+    confidence: str
+    subject: str
+    body: str
+    requires_human_review: bool = True
+
+
+class AIAmbiguousInterpretationIn(BaseModel):
+    text: str
+    field_name: Optional[str] = None
+
+
+class AIAmbiguousInterpretationOut(BaseModel):
+    provider: str
+    input_text: str
+    field_name: Optional[str] = None
+    interpreted_value: Optional[str] = None
+    confidence: str
+    needs_human_review: bool = True
+    explanation: str

@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import SessionLocal, get_db, init_db
 from app.models import EmailRecord
-from app.routers import emails, frontend_compat, reports, reviews
+from app.routers import ai_assist, emails, frontend_compat, reports, reviews, shipments
 
 
 logging.basicConfig(
@@ -55,6 +55,8 @@ app.add_middleware(
 app.include_router(emails.router)
 app.include_router(reports.router)
 app.include_router(reviews.router)
+app.include_router(shipments.router)
+app.include_router(ai_assist.router)
 app.include_router(frontend_compat.router)
 
 
@@ -268,6 +270,18 @@ def meta():
             "GET  /reports/summary/stats",
             "GET  /reports/submission/json",
             "POST /reviews/{email_id}",
+            "GET  /shipments",
+            "GET  /shipments/{shipment_id}",
+            "GET  /shipments/{shipment_id}/versions",
+            "GET  /shipments/{shipment_id}/version-diff",
+            "GET  /shipments/{shipment_id}/issues",
+            "POST /issues/{issue_id}/approve",
+            "POST /issues/{issue_id}/reject",
+            "POST /shipments/{shipment_id}/generate-corrected-draft",
+            "GET  /ai/issues/{issue_id}/explain",
+            "GET  /ai/issues/{issue_id}/suggest",
+            "GET  /ai/shipments/{shipment_id}/correction-email",
+            "POST /ai/ambiguous-interpretation",
             "GET  /health",
             "GET  /ui/  (P1 frontend: Review Desk)",
             "GET  /api/summary, /api/emails, /api/emails/{id}, "
