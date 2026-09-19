@@ -1,0 +1,329 @@
+"""AI service layer — the integration point for P3.
+
+Providers
+---------
+rule    : deterministic classifier + regex extractor (default, zero deps)
+remote  : P3's AI microservice over HTTP (classify + extract endpoints)
+hybrid  : remote first, rule engine as fallback when the service is down
+
+The contract with P3 (agree this with them, then adjust `RemoteAIService`):
+
+    POST {AI_SERVICE_URL}/classify
+        {"email": {email_id, from, subject, body, attachments}}
+        -> {"category": "...", "confidence": 0.0-1.0}
+
+    POST {AI_SERVICE_URL}/extract
+        {"doc_type": "SI"|"BL", "filename": "...", "content_base64": "..."}
+        -> {"fields": {shipper: ..., consignee: ..., notify_party: ...,
+                       port_of_loading: ..., port_of_discharge: ...,
+                       container_count: ..., gross_weight_kg: ...},
+            "readable": true}
+
+Everything downstream (comparison) is deterministic regardless of provider.
+"""
+from __future__ import annotations
+
+import base64
+import json
+import logging
+import re
+import time
+from typing import Any, Optional
+from urllib.error import URLError, HTTPError
+from urllib.request import Request, urlopen
+
+from app.config import get_settings
+from app.services import extractor
+from app.services.classifier import Classification, classify as rule_classify
+
+log = logging.getLogger(__name__)
+settings = get_settings()
+
+
+# --------------------------------------------------------------------------
+def classify_email(email: dict) -> Classification:
+    provider = settings.ai_provider
+    if provider in ("remote", "hybrid"):
+        try:
+            return _remote_classify(email)
+        except Exception as exc:  # noqa: BLE001 — degrade, never crash
+            log.warning("remote classify failed (%s); provider=%s",
+                        exc, provider)
+            if provider == "remote":
+                raise
+    return rule_classify(email)
+
+
+def extract_document(doc_type: str, filename: str, content: bytes) -> extractor.ExtractionResult:
+    """Extract fields from one attachment, via AI provider or rules."""
+    provider = settings.ai_provider
+    if provider in ("remote", "hybrid"):
+        try:
+            remote = _remote_extract(doc_type, filename, content)
+            # An AI service that cannot read a PDF/Word/Excel must not make us
+            # worse than the local reader — fill whatever it missed.
+            return _merge_with_local(remote, doc_type, filename, content)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("remote extract failed for %s (%s); provider=%s",
+                        filename, exc, provider)
+            if provider == "remote":
+                raise
+    return _rule_extract(doc_type, filename, content)
+
+
+def _merge_with_local(remote: extractor.ExtractionResult, doc_type: str,
+                      filename: str, content: bytes) -> extractor.ExtractionResult:
+    """Use the AI's fields, but backfill from local parsing where it fell short.
+
+    Guarantees the hybrid path is never worse than the rule path.
+    """
+    if remote.readable and not remote.missing:
+        return remote
+
+    local = _rule_extract(doc_type, filename, content)
+    if not local.readable:
+        return remote if remote.fields else local
+
+    merged = dict(remote.fields)
+    for field, value in local.fields.items():
+        merged.setdefault(field, value)
+    remote.fields = merged
+    remote.missing = [f for f in extractor.LABELS if f not in merged]
+    remote.readable = True
+    return remote
+
+
+# ------------------------------------------------------------ rule provider
+def _rule_extract(doc_type: str, filename: str, content: bytes) -> extractor.ExtractionResult:
+    name = filename.lower()
+    if name.endswith(".txt"):
+        return extractor.extract_fields(
+            content.decode("utf-8", errors="replace"), doc_type)
+
+    # Non-plain-text attachments (xlsx/pdf/docx) — parsed when the optional
+    # reader library is installed; otherwise escalated for review, where a
+    # remote AI provider (OCR / vision) or a human handles it.
+    extracted = _try_read_binary(name, content, doc_type)
+    if extracted is not None:
+        text, source = extracted
+        if text:
+            result = extractor.extract_fields(text, doc_type)
+            # Keep the reader that produced the text: "pdf-ocr" means a human
+            # should spot-check it (OCR can misread digits), and it makes the
+            # processing path visible instead of a black box.
+            result.source = source
+            return result
+
+    result = extractor.ExtractionResult(doc_type=doc_type, readable=False)
+    result.missing = list(extractor.LABELS.keys())
+    return result
+
+
+def _yield(text: str | None, doc_type: str | None) -> int:
+    """How many of the 7 compared fields the extractor can read from `text`."""
+    if not text or not doc_type:
+        return 0
+    try:
+        return 7 - len(extractor.extract_fields(text, doc_type).missing)
+    except Exception:  # noqa: BLE001 — never let a probe break the reader
+        return 0
+
+
+def _read_pdf(content: bytes, doc_type: str | None) -> Optional[tuple[str, str]]:
+    """Read a PDF through an escalating ladder of readers.
+
+    1. **Text layer** (``pypdf``) — fast, exact, covers machine-generated PDFs.
+    2. **Layout / tables** (``pdfplumber``) — recovers PDFs whose content is
+       laid out as a *table*: pypdf emits cell text in a broken order, while
+       pdfplumber can walk the grid and re-emit ``label | value`` rows.
+    3. **Pixels** (OCR) — the only way to read a *scanned / image-only* PDF.
+
+    Each rung only runs when the previous one is missing too much (fewer than
+    4 of the 7 compared fields), and the best-scoring result wins. Every rung
+    is optional: if a library is absent or the file is corrupt, the ladder
+    returns ``None`` and the caller escalates as ``unreadable``.
+    """
+    import io
+
+    best: tuple[str, str] | None = None
+    best_score = -1
+
+    # ---- rung 1: embedded text layer -------------------------------------
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(content))
+        text = _clean_extracted(
+            "\n".join((p.extract_text() or "") for p in reader.pages))
+    except Exception as exc:  # noqa: BLE001 — corrupt/truncated file
+        log.info("pypdf could not read a PDF: %s", exc)
+        text = ""
+    if text:
+        best, best_score = (text, "pdf"), _yield(text, doc_type)
+
+    # ---- rung 2: layout-aware + table extraction -------------------------
+    if best_score < 4:
+        try:
+            import pdfplumber
+            with pdfplumber.open(io.BytesIO(content)) as pdf:
+                chunks = []
+                for page in pdf.pages:
+                    # Emit table rows first: "label | value" is exactly what
+                    # the extractor's regexes are written for.
+                    for table in (page.extract_tables() or []):
+                        for row in table:
+                            cells = [str(c).strip() for c in row
+                                     if c is not None and str(c).strip()]
+                            if cells:
+                                chunks.append(" | ".join(cells))
+                    page_text = page.extract_text() or ""
+                    if page_text:
+                        chunks.append(page_text)
+            text2 = _clean_extracted("\n".join(chunks))
+        except Exception as exc:  # noqa: BLE001 — optional dependency
+            log.info("pdfplumber could not read a PDF: %s", exc)
+            text2 = ""
+        if text2:
+            score2 = _yield(text2, doc_type)
+            if score2 > best_score:
+                best, best_score = (text2, "pdf-tables"), score2
+
+    # ---- rung 3: OCR the rendered pages ----------------------------------
+    if best_score < 4 and settings.ocr_enabled:
+        try:
+            from app.services.ocr import ocr_pdf
+            text3 = _clean_extracted(ocr_pdf(content) or "")
+        except Exception as exc:  # noqa: BLE001 — OCR is best-effort
+            log.warning("OCR failed for a PDF: %s", exc)
+            text3 = ""
+        if text3:
+            score3 = _yield(text3, doc_type)
+            if score3 > best_score:
+                best, best_score = (text3, "pdf-ocr"), score3
+
+    return best
+
+
+def _try_read_binary(filename: str, content: bytes,
+                     doc_type: str | None = None) -> Optional[tuple[str, str]]:
+    """Best-effort plain-text extraction from non-txt attachments.
+
+    Returns ``(text, source)`` where ``source`` records which reader produced
+    the text. Returns ``None`` when no reader is available or the file is
+    unreadable (e.g. a scanned/image-only PDF) — the caller then escalates the
+    case for OCR / a vision model (P3) / a human.
+
+    NOTE: layout-aware PDF *table* extraction and OCR are intentionally left to
+    P3's AI (the advanced stage). ``pypdf`` recovers running text; when a PDF is
+    image-only it yields nothing and we escalate rather than guess.
+    """
+    import io
+
+    try:
+        if filename.endswith(".xlsx"):
+            from openpyxl import load_workbook
+            wb = load_workbook(io.BytesIO(content), data_only=True)
+            lines = []
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(values_only=True):
+                    cells = [str(c) for c in row if c is not None]
+                    if cells:
+                        lines.append(" | ".join(cells))
+            return ("\n".join(lines) or None), "xlsx"
+
+        if filename.endswith(".pdf"):
+            return _read_pdf(content, doc_type)
+
+        if filename.endswith(".docx"):
+            from docx import Document
+            doc = Document(io.BytesIO(content))
+            lines = [p.text for p in doc.paragraphs]
+            for table in doc.tables:
+                for row in table.rows:
+                    cells = [c.text.strip() for c in row.cells if c.text and c.text.strip()]
+                    if cells:
+                        lines.append(" | ".join(cells))
+            text = _clean_extracted("\n".join(lines))
+            return (text or None), "docx"
+    except Exception as exc:  # noqa: BLE001 — library missing or file corrupt
+        log.info("optional reader failed for %s: %s", filename, exc)
+        return None
+    return None
+
+
+def _clean_extracted(text: str) -> str:
+    """Normalise extracted text so the regex extractor can read it reliably.
+
+    Collapses runs of whitespace (PDFs often interleave spaces between
+    characters), drops null bytes, and strips leading/trailing blank lines.
+    """
+    if not text:
+        return ""
+    text = text.replace("\x00", "")
+    text = re.sub(r"[ \t]{2,}", "  ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+# ---------------------------------------------------------- remote provider
+def _post_json(path: str, payload: dict) -> dict:
+    """Call the AI service with bounded exponential backoff.
+
+    Failures are classified so the caller can surface a *visible* reason to the
+    frontend instead of failing silently. The rule engine is always available as
+    the fallback (see `classify_email` / `extract_document`), so an AI outage is
+    a degraded mode, never a crash.
+    """
+    url = settings.ai_service_url.rstrip("/") + path
+    headers = {"Content-Type": "application/json"}
+    if settings.ai_api_key:
+        headers["Authorization"] = f"Bearer {settings.ai_api_key}"
+
+    last_exc: Optional[Exception] = None
+    for attempt in range(1 + settings.ai_max_retries):
+        try:
+            req = Request(url, data=json.dumps(payload).encode(), headers=headers)
+            with urlopen(req, timeout=settings.ai_timeout_seconds) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except HTTPError as exc:  # 4xx/5xx — retrying won't help, fail fast
+            last_exc = exc
+            log.warning("AI service HTTP %s on %s: %s", exc.code, path, exc)
+            raise ConnectionError(
+                f"AI service returned HTTP {exc.code} on {path}") from exc
+        except URLError as exc:  # network / timeout → retry with backoff
+            last_exc = exc
+            if attempt < settings.ai_max_retries:
+                backoff = 0.2 * (2 ** attempt)  # 0.2s, 0.4s, ...
+                log.warning("AI service attempt %d failed (%s); retrying in %.1fs",
+                            attempt + 1, exc, backoff)
+                time.sleep(backoff)
+            else:
+                log.warning("AI service attempt %d failed: %s", attempt + 1, exc)
+    raise ConnectionError(f"AI service unreachable after retries: {last_exc}")
+
+
+def _remote_classify(email: dict) -> Classification:
+    data = _post_json("/classify", {"email": email})
+    category = str(data.get("category", "")).upper()
+    valid = {"BL_COMPARISON", "SI_REQUEST", "INVOICE_QUERY", "GENERAL", "SPAM"}
+    if category not in valid:
+        raise ValueError(f"AI returned invalid category: {category!r}")
+    return Classification(category, float(data.get("confidence", 1.0)),
+                           "remote AI")
+
+
+def _remote_extract(doc_type: str, filename: str,
+                    content: bytes) -> extractor.ExtractionResult:
+    payload = {
+        "doc_type": doc_type,
+        "filename": filename,
+        "content_base64": base64.b64encode(content).decode("ascii"),
+    }
+    data = _post_json("/extract", payload)
+    fields: dict[str, Any] = data.get("fields") or {}
+    result = extractor.ExtractionResult(
+        doc_type=doc_type,
+        fields={k: v for k, v in fields.items() if v is not None},
+        readable=bool(data.get("readable", True)),
+    )
+    result.missing = [f for f in extractor.LABELS if f not in result.fields]
+    return result
