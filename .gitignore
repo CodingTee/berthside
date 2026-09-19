@@ -27,3 +27,11 @@ venv/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# --- local dev scratch (never commit) ---
+.workbuddy/
+*.log
+process_all_result.json
+pdf_text.txt
+.git.corrupt-*/
+.tmp-reclone/
