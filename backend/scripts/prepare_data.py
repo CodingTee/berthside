@@ -21,6 +21,11 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = BACKEND_ROOT / "data"
 
 CANDIDATES = [
+    # Baked into the image by the Dockerfile (cloud / Render build).
+    Path("/bundle"),
+    # In-repo copy: <repo>/sdoc-hackathon-bundle (only when the backend folder
+    # is checked out inside the full repository).
+    BACKEND_ROOT.parent / "sdoc-hackathon-bundle",
     Path.home() / "Downloads" / "sdoc-hackathon-docker" / "data_v2",
     Path.home() / "Downloads" / "sdoc-hackathon-bundle",
 ]

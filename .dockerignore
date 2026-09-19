@@ -1,0 +1,23 @@
+# Keep the build context small: the image only needs backend/ and
+# sdoc-hackathon-bundle/.
+.workbuddy/
+.git/
+.github/
+sdoc-hackathon-docker/
+sdoc-hackathon-docker.zip
+sdoc-hackathon-bundle.zip
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/venv/
+**/*.db
+**/*.sqlite*
+**/data/
+**/_stress_sub.json
+**/stress_report.json
+**/submission.json
+**/process_all_result.json
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example

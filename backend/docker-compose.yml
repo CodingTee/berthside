@@ -1,17 +1,16 @@
 services:
   backend:
-    build: .
+    # Build from the REPOSITORY ROOT — the image also bakes in
+    # sdoc-hackathon-bundle/ (inbox + attachments), which lives one level up.
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
     environment:
       # Override with your own .env — never commit real secrets.
       ENVIRONMENT: development
       CORS_ORIGINS: "*"
-      DATA_SOURCE: /data
-      DATABASE_URL: postgresql+psycopg2://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/postgres
-      # Local dev default: DATABASE_URL=sqlite:////data/sdoc.db
+      DATA_SOURCE: /app/data
       AI_PROVIDER: rule
-    volumes:
-      # Mount the hackathon bundle (inbox/, attachments/, sample_submission.json)
-      - ../sdoc-hackathon-bundle:/data:ro
     restart: unless-stopped
