@@ -4,13 +4,15 @@
 <meta charset="UTF-8" data-page-node-id="3mE233muXX4AWspqKJvETD">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="RgevWJ0Mot2GImjKp1L7SI">
 <title>ShipMail — Operations inbox</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 17l4 4 9-10' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" data-page-node-id="DcIg3VSDbrevPN3NfJEHl2">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='.52' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cg transform='translate(4,4)' fill='none' stroke='white' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='m3.5 7 8.5 6 8.5-6'/%3E%3C/g%3E%3C/svg%3E" data-page-node-id="DcIg3VSDbrevPN3NfJEHl2">
 <script>
 /* The theme is chosen before first paint so the mail console never flashes the
-   wrong surface. ShipMail keeps its OWN key `shipmail-theme`, so toggling here
-   never fights the Review Console's `sdoc-theme` (that cross-talk used to yank
-   this page's theme back and forth). */
-(function(){try{var t=localStorage.getItem("shipmail-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(_){}})();
+   wrong surface. ShipMail and the ShipSync console are ONE product family and
+   share ONE mode: `sdoc-theme` is the canonical key every /ui/ page reads and
+   is therefore read FIRST (a mode changed inside ShipSync while this tab was
+   closed must survive); `shipmail-theme` is kept only as this page's mirror and
+   as a fallback for a browser that predates the merge. */
+(function(){try{var t=localStorage.getItem("sdoc-theme")||localStorage.getItem("shipmail-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(_){}})();
 </script>
 <style>
 /* ==========================================================================
@@ -692,8 +694,15 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .mail-app.collapsed{--rail-w:72px}
 
 /* ---------- top bar ---------- */
+/* z-index 30, not 3, on purpose: this bar hosts the "You" card, which drops
+   down over the reading pane. backdrop-filter makes the bar a stacking
+   context, so the card's own z-index is trapped in here — the BAR must
+   out-rank the reading pane's sticky .mailbar (z-index:3) and the column
+   grips (z-index:20), or the card's top edge gets painted over the moment a
+   message is open. It still sits below the overlays (toast 50, palette 80,
+   composer 85, help 90, tip 95). */
 .topbar{display:flex;align-items:center;gap:14px;height:60px;flex:0 0 auto;padding:0 18px;
-  border-bottom:1px solid var(--border);position:relative;z-index:3;
+  border-bottom:1px solid var(--border);position:relative;z-index:30;
   background:color-mix(in srgb,var(--surface-2) 82%,transparent);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .topbar .right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto}
@@ -757,9 +766,9 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
   border:0;padding:0;font-family:inherit;transition:.16s}
 .avatar:hover{filter:brightness(1.08)}
 
-/* ---------- the "You" card (click the avatar) ---------- */
+/* ---------- the "You" card (hover or click the avatar) ---------- */
 .you-card{position:absolute;top:calc(100% + 9px);right:16px;width:min(348px,calc(100vw - 32px));
-  z-index:80;background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;
+  z-index:80;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:14px;
   box-shadow:var(--shadow);padding:14px;text-align:left}
 .you-card[hidden]{display:none}
 .you-head{display:flex;align-items:center;gap:11px;padding-bottom:12px;border-bottom:1px solid var(--border)}
@@ -847,6 +856,15 @@ body.resizing .mail-body{user-select:none}
 .navlink .ldot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
 .mbx-unread .ct{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 
+/* Rail rhythm: #mailboxes / #labels are plain wrapper divs, so the `.nav-sec{gap:10px}`
+   above only separates the wrappers — the rows INSIDE them had no gap at all, and the
+   43px cards fused into one tall block (probe measured gaps of [0,0,0,0,0,0]). Give the
+   wrappers their own column gap so the rail breathes like the Workflows nav on the
+   ShipSync rail, whose three .navlink cards are direct children of `.nav-sec{gap:8px}`.
+   Collapsed (icon-rail) mode keeps its tighter 6px from the `.mail-app.collapsed`
+   block below — that selector is (1,2,0) and out-ranks this one. */
+#mailboxes,#labels{display:flex;flex-direction:column;gap:8px}
+
 .note-src{font-size:10.3px;color:var(--muted-2);line-height:1.55;margin-top:9px}
 .note-src b{color:var(--muted);font-weight:650}
 .rail-card .legend div{font-size:10.5px}
@@ -929,7 +947,7 @@ body.resizing .mail-body{user-select:none}
 .mail-app.narrow-list .row .r1 .star{display:none}
 
 /* ---------- reading pane ---------- */
-.mailbar{display:flex;align-items:center;gap:4px;height:52px;padding:0 16px;flex:0 0 auto;
+.mailbar{display:flex;align-items:center;gap:4px;height:52px;padding:0 16px;flex:0 0 auto;min-width:0;
   border-bottom:1px solid var(--border);background:var(--bg);
   position:sticky;top:0;z-index:3}
 .mailbar .mic{width:32px;height:32px;border-radius:9px;border:0;background:transparent;color:var(--muted);
@@ -941,7 +959,7 @@ body.resizing .mail-body{user-select:none}
 .mailbar .grow{flex:1}
 .mailbar .chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:650;
   border:1px solid var(--border);border-radius:999px;padding:5px 11px;color:var(--muted);
-  white-space:nowrap;font-variant-numeric:tabular-nums}
+  min-width:0;overflow:hidden;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mailbar .chip.mono{font-family:var(--mono);font-size:10.5px;letter-spacing:.3px;color:var(--muted-2)}
 .mailbar .chip.st{color:var(--c);border-color:color-mix(in srgb,var(--c) 38%,transparent);
   background:color-mix(in srgb,var(--c) 12%,transparent)}
@@ -953,8 +971,8 @@ body.resizing .mail-body{user-select:none}
 .msg .av{width:42px;height:42px;border-radius:50%;flex:0 0 42px;display:grid;place-items:center;
   color:#fff;font-weight:700;font-size:15px;user-select:none}
 .msg .who{flex:1;min-width:0}
-.msg .who b{font-size:14.5px;font-weight:750}
-.msg .addr{color:var(--muted-2);font-size:12.5px;word-break:break-all}
+.msg .who b{font-size:14.5px;font-weight:750;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg .addr{color:var(--muted-2);font-size:12.5px;overflow-wrap:anywhere}
 .msg .who .to{color:var(--muted-2);font-size:12.5px;margin-top:3px}
 .msg .when{color:var(--muted-2);font-size:12px;white-space:nowrap;padding-top:2px;
   font-variant-numeric:tabular-nums}
@@ -1058,7 +1076,7 @@ body.resizing .mail-body{user-select:none}
   .top-search{order:9;max-width:none;flex:1 0 100%}
 }
 @media(max-width:820px){
-  .mail-app .mail-body,.mail-app.ship-off .mail-body{grid-template-columns:1fr}
+  .mail-app .mail-body,.mail-app.ship-off .mail-body,.mail-app:not(.ship-off) .mail-body{grid-template-columns:1fr}
   .mail-app .sidebar{display:none}
   .col-grip{display:none}    /* one column, nothing to divide */
   .inbox-panel{display:none}
@@ -1101,7 +1119,7 @@ body.resizing .mail-body{user-select:none}
         <span data-page-node-id="XcN2Ike5RpX2lfvxDUPjcd">ShipSync</span>
         <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="hFwFEYOajd69qAuqgFMAGq"><path d="M14 5h5v5M19 5l-8 8M18 14v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h5" data-page-node-id="moxBpDMHqGiqX1qnOASWJ9"/></svg>
       </a>
-      <button class="avatar" id="youBtn" type="button" data-tip="You" data-tip-desc="Your account, and the shipment in the open message" data-tip-pos="bottom" aria-label="You" aria-haspopup="dialog" aria-expanded="false" data-page-node-id="Qp5tHo8vxmrsod7D1niBF6">O</button>
+      <button class="avatar" id="youBtn" type="button" aria-label="You" aria-haspopup="dialog" aria-expanded="false" data-page-node-id="Qp5tHo8vxmrsod7D1niBF6">O</button>
     </div>
 
     <!-- the "You" card — who you are, plus the shipment in the open message -->
@@ -2261,7 +2279,10 @@ async function enrich(){
 function curTheme(){ return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
 function applyTheme(t){
   document.documentElement.setAttribute("data-theme", t);
-  try{ localStorage.setItem("shipmail-theme", t); }catch(_){}
+  /* Write the shared key too, so /ui/ (Review Console, Shipments, Ops) — which
+     only knows `sdoc-theme` — lands in the same mode. A same-value setItem fires
+     no storage event, so the two listeners can never ping-pong. */
+  try{ localStorage.setItem("shipmail-theme", t); localStorage.setItem("sdoc-theme", t); }catch(_){}
   const lbl = $("themeLbl"); if(lbl) lbl.textContent = t === "dark" ? "Dark mode" : "Light mode";
   const ico = $("themeIcon"); if(ico) ico.innerHTML = themeIconSvg(t);
   const btn = $("themeBtn");
@@ -2276,7 +2297,8 @@ function toggleTheme(){ applyTheme(curTheme() === "dark" ? "light" : "dark"); }
 $("themeBtn").addEventListener("click", toggleTheme);
 $("themeBtn").addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggleTheme(); } });
 window.addEventListener("storage", e => {
-  if(e.key === "shipmail-theme" && (e.newValue === "light" || e.newValue === "dark")) applyTheme(e.newValue);
+  if((e.key === "shipmail-theme" || e.key === "sdoc-theme") && (e.newValue === "light" || e.newValue === "dark"))
+    applyTheme(e.newValue);
 });
 
 const appEl = document.querySelector(".app");
@@ -2429,7 +2451,13 @@ function youCardOpen(){ const c = $("youCard"); return !!c && !c.hidden; }
 function renderYou(){
   const body = $("youBody");
   if(!body) return;
-  const it = activeItem();
+  /* The card always has a subject. With a message open it is that message;
+     with nothing open it falls back to the newest conversation in the current
+     list — the row at the top, the one the user would click first — so
+     pointing at "You" is never a dead end that shows a sentence where the
+     shipment and the action block belong. The hint below survives only for a
+     genuinely empty view (a filter with no matches, an empty mailbox). */
+  const it = activeItem() || visibleItems()[0] || null;
   if(!it){
     body.innerHTML = '<div class="you-empty">No message is open. Pick one in the inbox and its shipment — status, sender and documents — turns up here.</div>';
     return;
@@ -2456,20 +2484,49 @@ function renderYou(){
     '</section>';
 }
 function openYou(){
+  cancelYouClose();
   renderYou();
   $("youCard").hidden = false;
   const b = $("youBtn"); if(b) b.setAttribute("aria-expanded", "true");
 }
 function closeYou(){
+  youPinned = false;
   const c = $("youCard");
   if(!c || c.hidden) return;
   c.hidden = true;
   const b = $("youBtn"); if(b) b.setAttribute("aria-expanded", "false");
 }
-function toggleYou(){ youCardOpen() ? closeYou() : openYou(); }
+function toggleYou(){ if(youCardOpen()) closeYou(); else { youPinned = true; openYou(); } }
+
+/* The card is a peek, not a click-only dialog: pointing at the avatar shows the
+   real card straight away — the old text bubble only *described* it — and moving
+   the pointer onto the card keeps it open, so click-to-pin survives as a way to
+   leave it up while you reach for the buttons. */
+let youPinned = false, youCloseT = null;
+function cancelYouClose(){ if(youCloseT){ clearTimeout(youCloseT); youCloseT = null; } }
+function scheduleYouClose(){
+  cancelYouClose();
+  if(youPinned) return;
+  youCloseT = setTimeout(() => { youCloseT = null; if(!youPinned) closeYou(); }, 260);
+}
 (function(){
-  const btn = $("youBtn");
-  if(btn) btn.addEventListener("click", e => { e.stopPropagation(); toggleYou(); });
+  const btn = $("youBtn"), card = $("youCard");
+  if(btn){
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      if(!youCardOpen()){ youPinned = true; openYou(); return; }
+      if(!youPinned){ youPinned = true; return; }   /* hover peek -> click pins it */
+      closeYou();
+    });
+    btn.addEventListener("mouseenter", openYou);
+    btn.addEventListener("mouseleave", scheduleYouClose);
+    btn.addEventListener("focus", openYou);
+    btn.addEventListener("blur", scheduleYouClose);
+  }
+  if(card){
+    card.addEventListener("mouseenter", cancelYouClose);
+    card.addEventListener("mouseleave", scheduleYouClose);
+  }
   document.addEventListener("click", e => {
     if(!youCardOpen()) return;
     if(e.target.closest && e.target.closest("#youCard, #youBtn")) return;
@@ -2908,7 +2965,7 @@ Object.assign(window, {
 
 /* ------------------------------------------------------------------ go */
 (function(){
-  applyTheme(localStorage.getItem("shipmail-theme") || "dark");
+  applyTheme(localStorage.getItem("sdoc-theme") || localStorage.getItem("shipmail-theme") || "dark");
   setRail(localStorage.getItem("sdoc-rail") === "1");
   setFocus(localStorage.getItem("sdoc-focus") === "1");
   renderFocusIcons(); renderShipToggle();
