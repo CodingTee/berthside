@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark" data-page-node-id="kNWb4SU4CHA8Dv9QMVGXT1">
-<head data-page-node-id="ic4zKkZ90yw1KHUmgFmJTE">
-<meta charset="UTF-8" data-page-node-id="3mE233muXX4AWspqKJvETD">
-<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="RgevWJ0Mot2GImjKp1L7SI">
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ShipMail — Operations inbox</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 17l4 4 9-10' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" data-page-node-id="DcIg3VSDbrevPN3NfJEHl2">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 17l4 4 9-10' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <script>
 /* The theme is chosen before first paint so the mail console never flashes the
-   wrong surface. ShipMail keeps its OWN key `shipmail-theme`, so toggling here
-   never fights the Review Console's `sdoc-theme` (that cross-talk used to yank
-   this page's theme back and forth). */
-(function(){try{var t=localStorage.getItem("shipmail-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(_){}})();
+   wrong surface. `sdoc-theme` is the SAME key /ui/ uses, so the two stay in sync. */
+(function(){try{var t=localStorage.getItem("sdoc-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(_){}})();
 </script>
 <style>
 /* ==========================================================================
@@ -1063,198 +1061,198 @@ body.resizing .mail-body{user-select:none}
 </style>
 </head>
 
-<body data-page-node-id="B76HDFxFtrsu4wPySVF7CA">
-<div class="app mail-app ship-off" data-page-node-id="Zc2tvNR3j8RCg8HRBYxdUU">
+<body>
+<div class="app mail-app ship-off">
 
   <!-- ===================== TOP BAR ===================== -->
-  <div class="topbar" data-page-node-id="gkA8GODfAiWgQkyaYGQX16">
-    <div class="logo" data-page-node-id="A1gi2MnApOkEBPO6D9u6RQ">
-      <span class="lmark" data-tip="ShipMail" data-tip-desc="The operations inbox for shipping-document mail — read it here, verify it in ShipSync" data-tip-pos="bottom" data-page-node-id="gfGIvgzBDenX4Cy1Pg6e1O">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="nwdl59dBBKB7Ndt4JnIWws">
-          <rect x="2.5" y="5" width="19" height="14" rx="2.5" data-page-node-id="gHgjHfIb7lpGtlrF1XIioT"/><path d="m3.5 7 8.5 6 8.5-6" data-page-node-id="fyIQRz7YoxjpJ3rPFZOXC4"/>
+  <div class="topbar">
+    <div class="logo">
+      <span class="lmark" data-tip="ShipMail" data-tip-desc="The operations inbox for shipping-document mail — read it here, verify it in ShipSync" data-tip-pos="bottom">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>
         </svg>
       </span>
-      <b data-page-node-id="DAcf3Pe4KfspzG81qkc46K">ShipMail</b>
-      <span class="ltag" data-tip="Simulated mailbox" data-tip-desc="Everything on this page is a bundled demo bundle — no real mailbox is connected" data-tip-pos="bottom" data-page-node-id="Ds8aehZQxCqXoT3DVELWjE">demo</span>
+      <b>ShipMail</b>
+      <span class="ltag" data-tip="Simulated mailbox" data-tip-desc="Everything on this page is a bundled demo bundle — no real mailbox is connected" data-tip-pos="bottom">demo</span>
     </div>
 
-    <div class="top-search" id="topSearch" data-page-node-id="HHtQTKVodqtqZDQBoq48AX">
-      <svg class="ts-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="LDJk0HCYzXUbm8cFtm11ec"><circle cx="11" cy="11" r="7" data-page-node-id="Af3e2iFkIgp8fy6ImxR6F6"/><path d="M21 21l-4.3-4.3" data-page-node-id="7zaahw2EXOYB80mVDRhLS9"/></svg>
-      <input id="q" type="text" placeholder="Search mail" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Search mail" data-page-node-id="tQwTsBCsMlm9zyXEn2v3fw">
-      <button class="ts-kbd" id="qPalette" type="button" data-tip="Commands &amp; search" data-tip-desc="Open the command palette — filters, mail actions and quick jumps" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Open the command palette" data-page-node-id="VDPL83RoSPMUk2apQTrRyx"><span class="ts-key" data-page-node-id="Ww4UqEBrmQYBzI8mzF0sN6">Ctrl K</span></button>
+    <div class="top-search" id="topSearch">
+      <svg class="ts-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="q" type="text" placeholder="Search mail" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Search mail">
+      <button class="ts-kbd" id="qPalette" type="button" data-tip="Commands &amp; search" data-tip-desc="Open the command palette — filters, mail actions and quick jumps" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Open the command palette"><span class="ts-key">Ctrl K</span></button>
     </div>
 
-    <div class="right" data-page-node-id="B3ZaKSteieWzZqmSofyQCS">
-      <button class="icon-btn" id="collapseBtn" type="button" data-tip="Collapse sidebar" data-tip-desc="Shrink the mail rail to an icon strip, or bring it back" data-tip-kbd="[" data-tip-pos="bottom" aria-label="Collapse sidebar" data-page-node-id="zXYVhDg1nm7UrJZRxgDo0m">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="CqzEq2IKVfiOm5Y2wP9B19"><path d="M3 5h18M3 12h12M3 19h18" data-page-node-id="Cd7Nv4WYd1IR9kPFvel9Qd"/></svg>
+    <div class="right">
+      <button class="icon-btn" id="collapseBtn" type="button" data-tip="Collapse sidebar" data-tip-desc="Shrink the mail rail to an icon strip, or bring it back" data-tip-kbd="[" data-tip-pos="bottom" aria-label="Collapse sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h12M3 19h18"/></svg>
       </button>
-      <span class="conn-chip" id="connChip" data-tip="Mail source" data-tip-desc="Where this inbox comes from — the bundled demo bundle, or a real Gmail mailbox" data-tip-pos="bottom" data-page-node-id="YvearCCxlOXEmfsxOVL1e7"><i class="dot" data-page-node-id="L470NSEj7K4zPwLMbIc6Sm"></i><span id="connTxt" data-page-node-id="afMfaB10bSnwKy8hBZF0jI">Simulated</span></span>
-      <button class="icon-btn" id="themeBtn" type="button" data-tip="Toggle theme" data-tip-desc="Switch between dark and light mode" data-tip-kbd="T" data-tip-pos="bottom" aria-label="Toggle theme" data-page-node-id="BBJilOxBoJIMMaBD4IoUyC">
-        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="DNaU7UUJ7ebMX5ZI7oKimU"></svg>
+      <span class="conn-chip" id="connChip" data-tip="Mail source" data-tip-desc="Where this inbox comes from — the bundled demo bundle, or a real Gmail mailbox" data-tip-pos="bottom"><i class="dot"></i><span id="connTxt">Simulated</span></span>
+      <button class="icon-btn" id="themeBtn" type="button" data-tip="Toggle theme" data-tip-desc="Switch between dark and light mode" data-tip-kbd="T" data-tip-pos="bottom" aria-label="Toggle theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
       </button>
-      <a class="ss-launch" href="/ui/" target="_blank" rel="noopener" data-tip="Open ShipSync" data-tip-desc="The verification console — opens in a new tab, ShipMail stays right here" data-tip-pos="bottom" aria-label="Open ShipSync in a new tab" data-page-node-id="L03Tv9nXihPfQNdAzawHrs">
-        <span class="mark" data-page-node-id="DLQTAVECtkLCpT5auIo8js"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="Ts5PAPFXZDQ8OH5LJMwDux"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="12ZHWDY3thw8zP7DAlmBLl"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="SYqAu5kymBBTsjCPgAvUFd"/></svg></span>
-        <span data-page-node-id="XcN2Ike5RpX2lfvxDUPjcd">ShipSync</span>
-        <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="hFwFEYOajd69qAuqgFMAGq"><path d="M14 5h5v5M19 5l-8 8M18 14v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h5" data-page-node-id="moxBpDMHqGiqX1qnOASWJ9"/></svg>
+      <a class="ss-launch" href="/ui/" target="_blank" rel="noopener" data-tip="Open ShipSync" data-tip-desc="The verification console — opens in a new tab, ShipMail stays right here" data-tip-pos="bottom" aria-label="Open ShipSync in a new tab">
+        <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>
+        <span>ShipSync</span>
+        <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M18 14v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h5"/></svg>
       </a>
-      <button class="avatar" id="youBtn" type="button" data-tip="You" data-tip-desc="Your account, and the shipment in the open message" data-tip-pos="bottom" aria-label="You" aria-haspopup="dialog" aria-expanded="false" data-page-node-id="Qp5tHo8vxmrsod7D1niBF6">O</button>
+      <button class="avatar" id="youBtn" type="button" data-tip="You" data-tip-desc="Your account, and the shipment in the open message" data-tip-pos="bottom" aria-label="You" aria-haspopup="dialog" aria-expanded="false">O</button>
     </div>
 
     <!-- the "You" card — who you are, plus the shipment in the open message -->
-    <div class="you-card" id="youCard" hidden role="dialog" aria-label="You" data-page-node-id="yEsfIPqw6GltfCBVEknUVE">
-      <div class="you-head" data-page-node-id="oMfpkoLnUktkL58TX961H5">
-        <span class="you-av" data-page-node-id="GAMYnBEUYydibMsdY66szX">O</span>
-        <div class="you-id" data-page-node-id="c1TLVUESwBlkvyYHCoTXTy"><b data-page-node-id="zlOrH6NTpX114uwwn3DRCE">You</b><span data-page-node-id="hXEhVUe9xA7wi5HMIAhmAv">Signed in as Operations — this demo has no real account behind it.</span></div>
+    <div class="you-card" id="youCard" hidden role="dialog" aria-label="You">
+      <div class="you-head">
+        <span class="you-av">O</span>
+        <div class="you-id"><b>You</b><span>Signed in as Operations — this demo has no real account behind it.</span></div>
       </div>
-      <div class="you-body" id="youBody" data-page-node-id="Uzsl6Qf5BCon27ZSX5fi8i"></div>
+      <div class="you-body" id="youBody"></div>
     </div>
   </div>
 
   <!-- ===================== BODY: rail | list | reading pane | verdict ===================== -->
-  <div class="mail-body" data-page-node-id="6yulZucVBkhTa9AKEfECb1">
+  <div class="mail-body">
 
     <!-- RAIL -->
-    <aside class="sidebar" data-page-node-id="cvps9qaMLezIx45Aa6Fu8k">
-      <button class="compose-btn" id="composeBtn" type="button" data-tip="Compose" data-tip-desc="Write a new message — Send files it in Sent, Save draft in Drafts" data-tip-kbd="C" data-tip-pos="right" data-page-node-id="5r6iNzDZNuwAs7QWB09SI4">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="QCZ2e9OU5HduGA4u5duwcM"><path d="M12 5v14M5 12h14" data-page-node-id="EwIcunlinf4DYHKwnkLibB"/></svg>
-        <span data-page-node-id="cJPgUoG2gASGEkk8hveGdh">Compose</span>
+    <aside class="sidebar">
+      <button class="compose-btn" id="composeBtn" type="button" data-tip="Compose" data-tip-desc="Write a new message — Send files it in Sent, Save draft in Drafts" data-tip-kbd="C" data-tip-pos="right">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Compose</span>
       </button>
 
-      <div class="nav-sec" data-page-node-id="V1PqPBFNwexPKR0WRLwPlJ">
-        <div id="mailboxes" data-page-node-id="RGpYEPZ1hIB5WGZnIchm10"></div>
+      <div class="nav-sec">
+        <div id="mailboxes"></div>
       </div>
 
-      <div class="nav-sec" data-page-node-id="7Pl7tUzYKHTmWUTdiycqH7">
-        <div class="wf-title" data-page-node-id="Sf42p1SAY3GPvOQ96ahHUi">Labels</div>
-        <div id="labels" data-page-node-id="xt0B5Vscq7dWoOIfEaomBQ"></div>
+      <div class="nav-sec">
+        <div class="wf-title">Labels</div>
+        <div id="labels"></div>
       </div>
 
-      <div class="spacer" data-page-node-id="JwDybGFIOFhKA4SsqDSA8i"></div>
+      <div class="spacer"></div>
 
-      <div class="panel-box rail-card" data-page-node-id="9aGaHPEAycFC7TOJ37B9My">
-        <h4 data-page-node-id="z69hEVBb7WGnFHxfE9s4Dx">Mail source</h4>
-        <div class="legend" data-page-node-id="APE7NbDnF7Zo5fdAWB8I37">
-          <div id="simRow" data-page-node-id="7Uu4CFzbTvjgJdChh5HEd2"><i style="background:var(--ok)" data-page-node-id="vBrSG1VjOqwkzNYAb83Oef"></i> Simulated inbox</div>
-          <div id="gmailRow" data-page-node-id="Db1MCSEY3ZZDil3HQTw5p5"><i style="background:var(--muted-2)" data-page-node-id="t0sgWIR3zEu7coy6etaBk8"></i> Real Gmail</div>
+      <div class="panel-box rail-card">
+        <h4>Mail source</h4>
+        <div class="legend">
+          <div id="simRow"><i style="background:var(--ok)"></i> Simulated inbox</div>
+          <div id="gmailRow"><i style="background:var(--muted-2)"></i> Real Gmail</div>
         </div>
-        <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap" data-page-node-id="v9tn80Ka1qWSfBktPcHAKS">
-          <button class="btn sm" id="gmailConnect" type="button" hidden data-page-node-id="1SvHx00mJVcL7m4UfAkzNn">Connect Gmail</button>
-          <button class="btn sm" id="gmailSync" type="button" hidden data-page-node-id="CM1gXJLrt0uNvz5y6BeviJ">Sync now</button>
+        <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap">
+          <button class="btn sm" id="gmailConnect" type="button" hidden>Connect Gmail</button>
+          <button class="btn sm" id="gmailSync" type="button" hidden>Sync now</button>
         </div>
-        <div id="gmailNote" class="note-src" data-page-node-id="eWpQ6uZ7M7UMvjCh81mQhk"></div>
+        <div id="gmailNote" class="note-src"></div>
       </div>
     </aside>
 
     <!-- CONVERSATION LIST -->
-    <div class="panel inbox-panel" data-page-node-id="8TiJEVL9wEDjFQ6XYI9a6t">
-      <div class="listbar" data-page-node-id="5z8HufOwaI6r7RbICGftu6">
-        <span class="lb-title" id="boxTitle" data-page-node-id="H85LX9LzjXK8VgTIegRvOV">Inbox</span>
-        <div class="lb-filters" data-page-node-id="20PyGkBc2tdHonlycsikeb">
-          <select id="f-status" data-tip="Filter by verdict" data-tip-desc="Show only messages with this ShipSync status" data-tip-pos="bottom" aria-label="Filter by status" data-page-node-id="reY0WfPpGA7ojhFry0QkFw"></select>
-          <select id="f-kind" data-tip="Filter by attachment" data-tip-desc="Show only messages carrying these documents" data-tip-pos="bottom" aria-label="Filter by attachment" data-page-node-id="e6ATq8QHAa47HF99krAwZW">
-            <option value="" data-page-node-id="7nyXwP4zaHy9pdFppyNPHS">Any file</option>
-            <option value="SI" data-page-node-id="dB77S706v4stsrOwFVcBIy">SI only</option>
-            <option value="BL" data-page-node-id="8zVwRCTSPgt8JGlWfsSuPJ">BL only</option>
-            <option value="BOTH" data-page-node-id="7mjGaNIpum5kKCZMP0FdFe">SI + BL</option>
-            <option value="NONE" data-page-node-id="LhDTuMnbijWvZZ9U43CzP1">No files</option>
+    <div class="panel inbox-panel">
+      <div class="listbar">
+        <span class="lb-title" id="boxTitle">Inbox</span>
+        <div class="lb-filters">
+          <select id="f-status" data-tip="Filter by verdict" data-tip-desc="Show only messages with this ShipSync status" data-tip-pos="bottom" aria-label="Filter by status"></select>
+          <select id="f-kind" data-tip="Filter by attachment" data-tip-desc="Show only messages carrying these documents" data-tip-pos="bottom" aria-label="Filter by attachment">
+            <option value="">Any file</option>
+            <option value="SI">SI only</option>
+            <option value="BL">BL only</option>
+            <option value="BOTH">SI + BL</option>
+            <option value="NONE">No files</option>
           </select>
         </div>
-        <span class="lb-count" id="listCount" data-page-node-id="Hypr9cIAkxOXpBE3b9Aj4l">0 conversations</span>
+        <span class="lb-count" id="listCount">0 conversations</span>
       </div>
-      <div class="list" id="list" data-page-node-id="rLMpC4XGqVsKTtAFgJDHrR"></div>
+      <div class="list" id="list"></div>
     </div>
 
     <!-- READING PANE -->
-    <div class="panel detail-panel" id="mailPanel" data-page-node-id="q9BqiAubklFEfvx7l1TEJB">
-      <div class="detail" id="mail" data-page-node-id="36DFRSKdxS0y5GBPm5sLJI"></div>
+    <div class="panel detail-panel" id="mailPanel">
+      <div class="detail" id="mail"></div>
     </div>
 
     <!-- SHIPSYNC VERDICT -->
-    <div class="panel ship-panel" data-page-node-id="Sb165OuUbrdJEmbkRadFqd">
-      <div class="sp-head" data-page-node-id="RSNPrUcfx8Q7BHA0JYytqR">
-        <div class="mark" data-page-node-id="qsPGfIELlAWR9ZaqasdbZ6">
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="2CH1QiKuAQ1vk1I3F4svxw"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="OUnRWNzb7gTBoTvsqKG1rJ"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="MiADNVNnulEMc9a0Y3dVc5"/></svg>
+    <div class="panel ship-panel">
+      <div class="sp-head">
+        <div class="mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>
         </div>
-        <div data-page-node-id="ollNQJITgWgpXml5ZUUSDe">
-          <div class="nm" data-page-node-id="AfgHDvZaC2sW0R7YBYGRed">ShipSync</div>
-          <div class="sb" id="sideSub" data-page-node-id="lJEjcXtxgMzURhOt3YkL95">Verdict · stored result</div>
+        <div>
+          <div class="nm">ShipSync</div>
+          <div class="sb" id="sideSub">Verdict · stored result</div>
         </div>
-        <span class="badge st" id="sideBadge" style="--c:var(--muted-2);margin-left:auto" data-page-node-id="BBihSOHSbnr7ZRuDpxl7hW">—</span>
+        <span class="badge st" id="sideBadge" style="--c:var(--muted-2);margin-left:auto">—</span>
       </div>
-      <div class="sp-body" id="side" data-page-node-id="1WLXnvN62xbwFqU42dujQ3"></div>
+      <div class="sp-body" id="side"></div>
     </div>
 
     <!-- the two live dividers: list | reading pane, reading pane | verdict -->
     <div class="col-grip grip-list" id="gripList" role="separator" aria-orientation="vertical"
-         aria-label="Resize the conversation list" aria-controls="list" tabindex="0" data-page-node-id="Octye4DJQPHAVwxaL7qG30"><span class="col-badge" data-page-node-id="mA9q039tGJ4W85r0YWRCPx">Inbox</span></div>
+         aria-label="Resize the conversation list" aria-controls="list" tabindex="0"><span class="col-badge">Inbox</span></div>
     <div class="col-grip grip-ship" id="gripShip" role="separator" aria-orientation="vertical"
-         aria-label="Resize the ShipSync verdict panel" aria-controls="side" tabindex="0" data-page-node-id="9c4XFxanMIDDq99MpnezG8"><span class="col-badge" data-page-node-id="TfDMUKAlvTF9WLV5wsAchT">Verdict</span></div>
+         aria-label="Resize the ShipSync verdict panel" aria-controls="side" tabindex="0"><span class="col-badge">Verdict</span></div>
   </div>
 </div>
 
 <!-- ===================== COMMAND PALETTE ===================== -->
-<div class="palette" id="palette" hidden data-page-node-id="7tfiVgMw9ABnatSEofMjAN">
-  <div class="palette-card" role="dialog" aria-label="Command palette" data-page-node-id="YclWCXJ0crSeQ8EvyfyQe5">
-    <div class="palette-input" data-page-node-id="ohiAHa3wCU74QrBaCmRTw0">
-      <div class="pal-field" id="palField" data-page-node-id="32YM5Fn2a8fiMdn5DHS0Xi">
-        <svg class="pf-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="V6LECgzSmJ0GeBoGBJKVj8"><circle cx="11" cy="11" r="7" data-page-node-id="AJ1rVqd1s1llM0vgvCGEWf"/><path d="M21 21l-4.3-4.3" data-page-node-id="KaMPZmQJbww6aoJUsLOp9j"/></svg>
-        <input type="text" id="palQ" placeholder="Search mail, commands, or a status (e.g. mismatch)…" autocomplete="off" spellcheck="false" autocapitalize="off" data-page-node-id="qDTedkOet6OA84tVjVhRAH">
-        <button type="button" class="pal-clear" id="palClear" aria-label="Clear search" tabindex="-1" data-page-node-id="RD7zIVFCYx8cXCCazCyT5O"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" data-page-node-id="hZKFHdPWnpDHZvGaaGp0xo"><path d="M6 6l12 12M18 6L6 18" data-page-node-id="8NnNO1B5s8J1qPLhFDbsKB"/></svg></button>
-        <span class="palette-kbd" data-page-node-id="ciUjpQfXvAq0EYWKEnnOqz">esc</span>
+<div class="palette" id="palette" hidden>
+  <div class="palette-card" role="dialog" aria-label="Command palette">
+    <div class="palette-input">
+      <div class="pal-field" id="palField">
+        <svg class="pf-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="palQ" placeholder="Search mail, commands, or a status (e.g. mismatch)…" autocomplete="off" spellcheck="false" autocapitalize="off">
+        <button type="button" class="pal-clear" id="palClear" aria-label="Clear search" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <span class="palette-kbd">esc</span>
       </div>
     </div>
-    <div class="palette-list" id="palList" data-page-node-id="0vPA7mQQfto7B4A6mFvPtI"></div>
-    <div class="palette-hint" data-page-node-id="5MURUhDufrSDMqz61ZcaaQ"><span data-page-node-id="SPZIWs5k4lYQndNlzOFIWu"><b data-page-node-id="tHVyLHqo0XUOweu2cTRvTS">↑↓</b> navigate</span><span data-page-node-id="gPlhVfs9fXFwESEYifszTP"><b data-page-node-id="gPGYJSWMMyk3btyJzMXKPj">↵</b> select</span><span data-page-node-id="i0xrvBMa1XH67bEo6CyMfV"><b data-page-node-id="HiVeoNjQ1jwLUupatGRwy6">esc</b> close</span><span data-page-node-id="qTgDREqm2IQIRcXfc3AAoH"><b id="palToggle" data-page-node-id="AkkV2jhVdZgB8ewIVrsjHP">Ctrl K</b> toggle</span><span data-page-node-id="LVDlzAlJFqDrciiX1LH5Dz"><b data-page-node-id="eQIPDbR0GWRW7uM85QJP9E">?</b> shortcuts</span></div>
+    <div class="palette-list" id="palList"></div>
+    <div class="palette-hint"><span><b>↑↓</b> navigate</span><span><b>↵</b> select</span><span><b>esc</b> close</span><span><b id="palToggle">Ctrl K</b> toggle</span><span><b>?</b> shortcuts</span></div>
   </div>
 </div>
 
 <!-- ===================== COMPOSER ===================== -->
-<div class="composer" id="composer" hidden data-page-node-id="hQQ0WLEHzGZ1V9t5jMlI6W">
-  <div class="composer-card" role="dialog" aria-label="Compose message" data-page-node-id="VAYZ2NPJqCi1NA5GZTyEae">
-    <div class="composer-head" data-page-node-id="mviXxuAv8hUcSO7Y9YFixF">
-      <div class="ttl" data-page-node-id="yMDK3VD3qd3i5GnI68C78z">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="tnvq2uEM9tWBktpqDZnF3s"><path d="M12 5v14M5 12h14" data-page-node-id="AwoEkBts3vKQkoZQgYTywD"/></svg>
-        <span id="cmpTitle" data-page-node-id="0tIneeRuksinuf54AAM27g">New message</span>
+<div class="composer" id="composer" hidden>
+  <div class="composer-card" role="dialog" aria-label="Compose message">
+    <div class="composer-head">
+      <div class="ttl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        <span id="cmpTitle">New message</span>
       </div>
-      <button class="x" id="cmpClose" type="button" aria-label="Close composer" data-page-node-id="xyFRmnBoOlHevVpX2HTakC">&#10005;</button>
+      <button class="x" id="cmpClose" type="button" aria-label="Close composer">&#10005;</button>
     </div>
-    <div class="composer-body" data-page-node-id="pYRpeCKHaDiI3uAQ3p1wih">
-      <div class="presets" id="cmpPresets" data-page-node-id="AFdrb9UEMSOhvOQhlaAFmr">
-        <button class="preset" type="button" data-preset="request-si" data-page-node-id="cPe5I2WlWlG0JN6oVwuoMf">Request SI</button>
-        <button class="preset" type="button" data-preset="request-bl" data-page-node-id="b68XDcM71EOLijkpaNLlMV">Request BL</button>
-        <button class="preset" type="button" data-preset="chase" data-page-node-id="IGA87jSVkkPTq4Hoj3fYvr">Chase the customer</button>
-        <button class="preset" type="button" data-preset="blank" data-page-node-id="OhV80MeW16NxVK1dvKly5V">Blank</button>
+    <div class="composer-body">
+      <div class="presets" id="cmpPresets">
+        <button class="preset" type="button" data-preset="request-si">Request SI</button>
+        <button class="preset" type="button" data-preset="request-bl">Request BL</button>
+        <button class="preset" type="button" data-preset="chase">Chase the customer</button>
+        <button class="preset" type="button" data-preset="blank">Blank</button>
       </div>
-      <label class="cf" data-page-node-id="Oc1DsKBzikQNU9JC9Sr56S"><span data-page-node-id="6iZAe1rSEgFRgiEyHn6DbR">To</span><input type="text" id="cmpTo" placeholder="name@company.com" autocomplete="off" spellcheck="false" data-page-node-id="Ciev0AoV6aXTSYZAc2Zibt"></label>
-      <label class="cf" data-page-node-id="SzBSLqn6rypgr1IzQ5ntJe"><span data-page-node-id="DYjUpakKRWInSWk7qLhYey">Subject</span><input type="text" id="cmpSubj" placeholder="Subject" autocomplete="off" data-page-node-id="H7eHiJkf1jCI8BTWngmBL8"></label>
-      <label class="cf" data-page-node-id="QvOA3y7qreChxYhx6whA5y"><span data-page-node-id="LDWtQewvvson2KiMX1MqZm">Message</span><textarea id="cmpBody" spellcheck="false" placeholder="Write your message…"></textarea></label>
-      <div class="cf-hint" id="cmpHint" data-page-node-id="QgoFoafGxRfjVazl3Ez3vB"></div>
+      <label class="cf"><span>To</span><input type="text" id="cmpTo" placeholder="name@company.com" autocomplete="off" spellcheck="false"></label>
+      <label class="cf"><span>Subject</span><input type="text" id="cmpSubj" placeholder="Subject" autocomplete="off"></label>
+      <label class="cf"><span>Message</span><textarea id="cmpBody" spellcheck="false" placeholder="Write your message…"></textarea></label>
+      <div class="cf-hint" id="cmpHint"></div>
     </div>
-    <div class="composer-foot" data-page-node-id="AEbHl8lXEd7XYWG70gYxST">
-      <button class="btn primary" id="cmpSend" type="button" data-page-node-id="ATOWC0qIFSJei1kDQvLGTm">Send</button>
-      <button class="btn sm" id="cmpDraft" type="button" data-page-node-id="3B0wHZY6DOMXIloRrHcNJs">Save draft</button>
-      <span class="grow" data-page-node-id="cbgA6yfnB2HPTWXdUQjy3V"></span>
-      <button class="btn ghost" id="cmpCancel" type="button" data-page-node-id="p9JoQZ4l1sqjTbHKM3JHQn">Cancel</button>
+    <div class="composer-foot">
+      <button class="btn primary" id="cmpSend" type="button">Send</button>
+      <button class="btn sm" id="cmpDraft" type="button">Save draft</button>
+      <span class="grow"></span>
+      <button class="btn ghost" id="cmpCancel" type="button">Cancel</button>
     </div>
   </div>
 </div>
 
-<div class="tip" id="tip" role="tooltip" data-page-node-id="S4qh0ne3OcjM6JN5OHYWJv"></div>
+<div class="tip" id="tip" role="tooltip"></div>
 
-<div class="help" id="help" hidden data-page-node-id="7fuHxRA72HiDkrglS5eQkP">
-  <div class="help-card" role="dialog" aria-label="Keyboard shortcuts" data-page-node-id="xKPowJqT3gJVugr14NxGH3">
-    <div class="help-head" data-page-node-id="RrWQ8XWClJkM7DsWY0FvGe">
-      <div class="ttl" data-page-node-id="z6k7mOCAtsd3RjqiMkqdFG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="hCUeWEoDRbz1H7gS4tSm7t"><rect x="2" y="6" width="20" height="12" rx="2" data-page-node-id="HTupZmVvyzoEmazLrIpq3i"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10" data-page-node-id="vkJZCADE6D8vxRJNnsDpLL"/></svg>Keyboard Shortcuts</div>
-      <button class="x" id="helpClose" type="button" aria-label="Close shortcuts" data-page-node-id="bT9azBrxRPftbBM6fa3CYc">&#10005;</button>
+<div class="help" id="help" hidden>
+  <div class="help-card" role="dialog" aria-label="Keyboard shortcuts">
+    <div class="help-head">
+      <div class="ttl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>Keyboard Shortcuts</div>
+      <button class="x" id="helpClose" type="button" aria-label="Close shortcuts">&#10005;</button>
     </div>
-    <div class="help-body" id="helpRows" data-page-node-id="QEVEUKMNNQPBcj5D7DEK3d"></div>
-    <div class="help-foot" data-page-node-id="HUScmg2R0Ub1GGduZgesli">Shortcuts work anywhere on this page, except while you are typing in a field. Processing is never automatic — the two ShipSync buttons in the verdict panel are the only things that ever run the pipeline.</div>
+    <div class="help-body" id="helpRows"></div>
+    <div class="help-foot">Shortcuts work anywhere on this page, except while you are typing in a field. Processing is never automatic — the two ShipSync buttons in the verdict panel are the only things that ever run the pipeline.</div>
   </div>
 </div>
 
-<div class="toast" id="toast" role="status" aria-live="polite" data-page-node-id="nOsevsHtdMZQtDzjC8zATw">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="1Lcp5QSrCgzCvoEC3eatfk"><path d="M20 6L9 17l-5-5" data-page-node-id="t3fqdPi5MBixjn1IKpIlf4"/></svg>
-  <span id="toastMsg" data-page-node-id="ImVgbo238GGNLpRHbbATqo"></span>
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+  <span id="toastMsg"></span>
 </div>
 
 <script>
@@ -2189,7 +2187,7 @@ async function enrich(){
 function curTheme(){ return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
 function applyTheme(t){
   document.documentElement.setAttribute("data-theme", t);
-  try{ localStorage.setItem("shipmail-theme", t); }catch(_){}
+  try{ localStorage.setItem("sdoc-theme", t); }catch(_){}
   const lbl = $("themeLbl"); if(lbl) lbl.textContent = t === "dark" ? "Dark mode" : "Light mode";
   const ico = $("themeIcon"); if(ico) ico.innerHTML = themeIconSvg(t);
   const btn = $("themeBtn");
@@ -2204,7 +2202,7 @@ function toggleTheme(){ applyTheme(curTheme() === "dark" ? "light" : "dark"); }
 $("themeBtn").addEventListener("click", toggleTheme);
 $("themeBtn").addEventListener("keydown", e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); toggleTheme(); } });
 window.addEventListener("storage", e => {
-  if(e.key === "shipmail-theme" && (e.newValue === "light" || e.newValue === "dark")) applyTheme(e.newValue);
+  if(e.key === "sdoc-theme" && (e.newValue === "light" || e.newValue === "dark")) applyTheme(e.newValue);
 });
 
 const appEl = document.querySelector(".app");
@@ -2832,7 +2830,7 @@ Object.assign(window, {
 
 /* ------------------------------------------------------------------ go */
 (function(){
-  applyTheme(localStorage.getItem("shipmail-theme") || "dark");
+  applyTheme(localStorage.getItem("sdoc-theme") || "dark");
   setRail(localStorage.getItem("sdoc-rail") === "1");
   setFocus(localStorage.getItem("sdoc-focus") === "1");
   renderFocusIcons(); renderShipToggle();
