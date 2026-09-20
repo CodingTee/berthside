@@ -71,6 +71,7 @@ pnpm-debug.log*
 !**/.env.example
 *.key
 *.pem
+backend/secrets/
 
 # --- editors / OS ---
 .idea/

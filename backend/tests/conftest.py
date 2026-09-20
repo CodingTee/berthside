@@ -73,3 +73,15 @@ def isolated_state(tmp_path, monkeypatch):
         fastapi_app.dependency_overrides.pop(get_db, None)
         get_settings.cache_clear()
         engine.dispose()
+
+
+@pytest.fixture()
+def db_session():
+    """Direct DB session for tests that exercise service-layer code."""
+    import app.database as database
+
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

@@ -32,6 +32,14 @@ COMPARED_FIELDS = [
     "gross_weight_kg",
 ]
 
+# Informational fields surfaced in the verification view (ETD / ETA). They are
+# compared and shown to the operator but do NOT drive the scored verdict, so a
+# shipment that omits them is never falsely escalated to MISMATCH/NEEDS_REVIEW.
+INFO_COMPARED_FIELDS = [
+    "etd",
+    "eta",
+]
+
 
 # ------------------------------------------------------------------ emails
 class EmailOut(BaseModel):
@@ -70,7 +78,7 @@ class FieldResult(BaseModel):
     field: str
     si_value: Any = None
     bl_value: Any = None
-    match: Optional[bool] = None  # None = could not decide
+    match: Optional[bool | str] = None  # True / False / "POSSIBLE" (OCR slip)
 
 
 class ReportOut(BaseModel):
@@ -359,25 +367,39 @@ class AttachmentPayload(BaseModel):
 
 class EmailAnalyzeRequest(BaseModel):
     email_id: Optional[str] = None
+    shipment_id: Optional[str] = None
     sender: str = Field(alias="from")
     subject: str
     body: str
     attachments: list[AttachmentPayload] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    # Dedup identity for real Gmail (see requirement: track email_id /
+    # message_id / thread_id so the same email is never processed twice).
+    message_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    source: Optional[str] = None
+    # Only explicit re-processing (user pressed "Re-process", or a missing
+    # document has since arrived) may bypass the result cache.
+    force: bool = False
 
     model_config = ConfigDict(populate_by_name=True)
 
 
 class EmailAnalyzeResponse(BaseModel):
     email_id: str
+    shipment_id: Optional[str] = None
     category: str
     confidence: float
     classification_reason: Optional[str] = None
     status: str
     has_defect: bool = False
     defect_fields: list[str] = Field(default_factory=list)
+    possible_fields: list[str] = Field(default_factory=list)
     field_results: list[FieldResult] = Field(default_factory=list)
     review_reason: Optional[str] = None
     suggested_action: str
+    missing_documents: list[str] = Field(default_factory=list)
+    action: Optional[dict[str, Any]] = None
     security_alerts: list[str] = Field(default_factory=list)
     processing_ms: float = 0.0
 
@@ -385,4 +407,44 @@ class EmailAnalyzeResponse(BaseModel):
 class EmailIngestResponse(EmailAnalyzeResponse):
     persisted: bool = True
     review_desk_url: Optional[str] = None
+
+
+class ApiHealthOut(BaseModel):
+    status: str = "ok"
+    service: str = "ShipSync API"
+    core: Optional[str] = None
+    results_cached: int = 0
+    processing_enabled: bool = True
+
+
+class ProcessDocumentSummary(BaseModel):
+    type: str
+    filename: Optional[str] = None
+    status: str
+    version: Optional[str] = None
+
+
+class EmailProcessResponse(EmailAnalyzeResponse):
+    documents: list[ProcessDocumentSummary] = Field(default_factory=list)
+    extracted_fields: dict[str, Any] = Field(default_factory=dict)
+    verification: dict[str, Any] = Field(default_factory=dict)
+    actions: list[dict[str, Any]] = Field(default_factory=list)
+    # Cache bookkeeping so a UI can prove it did not re-run the pipeline.
+    cached: bool = False
+    cache_key: Optional[str] = None
+    processed_at: Optional[str] = None
+    attempts: int = 1
+
+
+class MockDocumentRequest(BaseModel):
+    shipment_id: str
+    document_type: str
+
+
+class MockDocumentResponse(BaseModel):
+    found: bool
+    shipment_id: str
+    document_type: str
+    attachment: Optional[AttachmentPayload] = None
+    message: str
 

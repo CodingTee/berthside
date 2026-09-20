@@ -287,3 +287,135 @@ def test_ingest_cannot_escape_the_ingest_directory(client, tmp_path):
     assert not (tmp_path / "escape").exists()
     assert not (tmp_path.parent / "escape").exists()
     print("PASS: traversal was contained inside INGEST_DIR.")
+
+
+def test_api_health_contract(client):
+    res = client.get("/api/health")
+    assert res.status_code == 200, res.text
+    body = res.json()
+    # Base contract the integration docs promise…
+    assert body["status"] == "ok"
+    assert body["service"] == "ShipSync API"
+    # …plus the result-cache bookkeeping (process-once-store-reuse).
+    assert body["core"] == "existing-shipsync-core"
+    assert isinstance(body["results_cached"], int)
+
+
+def test_process_returns_structured_missing_bl_action(client):
+    res = client.post("/api/process", json={
+        "email_id": "GMAIL-001",
+        "shipment_id": "SHP-001",
+        "from": "customer@example.com",
+        "subject": "SHP-001 please compare SI and BL",
+        "body": "Please compare the SI and BL for SHP-001. BL appears to have been dropped.",
+        "attachments": [
+            {"filename": "Shipping_Instruction_SHP-001.txt", "content_text": SAMPLE_SI_TEXT},
+        ],
+    })
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["shipment_id"] == "SHP-001"
+    assert data["status"] == "NEEDS_REVIEW"
+    assert data["missing_documents"] == ["BL"]
+    assert data["action"]["type"] == "request_document"
+    assert data["actions"][0]["document"] == "BL"
+    assert any(doc["status"] == "missing" and doc["type"] == "BL" for doc in data["documents"])
+
+
+def test_mock_customer_db_document_can_be_reprocessed(client):
+    doc_res = client.post("/api/mock-customer-db/request-document", json={
+        "shipment_id": "SHP-001",
+        "document_type": "BL",
+    })
+    assert doc_res.status_code == 200, doc_res.text
+    doc = doc_res.json()
+    assert doc["found"] is True
+    assert doc["attachment"]["filename"].endswith(".txt")
+
+    process_res = client.post("/api/process", json={
+        "email_id": "GMAIL-001-RERUN",
+        "shipment_id": "SHP-001",
+        "from": "customer@example.com",
+        "subject": "SHP-001 please compare SI and BL",
+        "body": "Please compare the SI and BL for SHP-001.",
+        "attachments": [
+            {"filename": "Shipping_Instruction_SHP-001.txt", "content_text": SAMPLE_SI_TEXT},
+            doc["attachment"],
+        ],
+    })
+    assert process_res.status_code == 200, process_res.text
+    data = process_res.json()
+    assert data["status"] == "MISMATCH"
+    assert "container_count" in data["defect_fields"]
+    assert data["verification"]["field_results"]
+
+
+# --------------------------------------------------------------------------
+# Process-once / store-reuse guarantees (Render traffic reduction).
+# --------------------------------------------------------------------------
+def _process_payload(**overrides):
+    payload = {
+        "email_id": "CACHE-001",
+        "message_id": "MSG-CACHE-001",
+        "thread_id": "THREAD-CACHE",
+        "shipment_id": "SHP-CACHE",
+        "from": "customer@example.com",
+        "subject": "CACHE please compare SI and BL",
+        "body": "Please compare the SI and BL. BL appears to have been dropped.",
+        "attachments": [
+            {"filename": "Order_883921_SI.txt", "content_text": SAMPLE_SI_TEXT},
+        ],
+        "source": "test",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_same_email_is_processed_exactly_once(client):
+    first = client.post("/api/process", json=_process_payload())
+    assert first.status_code == 200, first.text
+    assert first.json()["cached"] is False
+
+    second = client.post("/api/process", json=_process_payload())
+    assert second.status_code == 200, second.text
+    body = second.json()
+    # The stored result is returned untouched — no duplicate processing,
+    # no duplicate shipment, no second OCR/extraction/verification run.
+    assert body["cached"] is True
+    assert body["status"] == first.json()["status"]
+    assert body["attempts"] == 1
+
+
+def test_force_is_the_only_way_to_reprocess(client):
+    client.post("/api/process", json=_process_payload())
+    forced = client.post("/api/process", json=_process_payload(force=True))
+    assert forced.status_code == 200, forced.text
+    assert forced.json()["cached"] is False
+    assert forced.json()["attempts"] == 2
+
+
+def test_changed_content_legitimately_reprocesses(client):
+    client.post("/api/process", json=_process_payload())
+    changed = _process_payload(attachments=[
+        {"filename": "Order_883921_SI.txt", "content_text": SAMPLE_SI_TEXT},
+        {"filename": "Draft_BL_773910.txt", "content_text": SAMPLE_BL_MISMATCH_TEXT},
+    ])
+    res = client.post("/api/process", json=changed)
+    assert res.status_code == 200, res.text
+    assert res.json()["cached"] is False
+    assert res.json()["status"] == "MISMATCH"
+
+
+def test_reading_a_result_never_processes(client):
+    missing = client.get("/api/results/CACHE-404")
+    assert missing.status_code == 404
+
+    client.post("/api/process", json=_process_payload())
+    for key in ("CACHE-001", "MSG-CACHE-001"):
+        res = client.get(f"/api/results/{key}")
+        assert res.status_code == 200, res.text
+        assert res.json()["cached"] is True
+
+    listed = client.get("/api/results")
+    assert listed.status_code == 200, listed.text
+    assert any(r["email_id"] == "CACHE-001" for r in listed.json())

@@ -27,3 +27,9 @@ pdfplumber>=0.11
 # swap opencv-python for opencv-python-headless if the import fails.
 pypdfium2>=4.0               # renders PDF pages to images
 rapidocr-onnxruntime>=1.2    # bundled ONNX OCR models, works offline
+
+# Real Gmail integration (OAuth + Gmail API). Secrets/tokens are configured via
+# environment variables and should never be committed.
+google-api-python-client>=2.0
+google-auth>=2.0
+google-auth-oauthlib>=1.0

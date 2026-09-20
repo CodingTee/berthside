@@ -157,3 +157,63 @@ class ResolutionRecord(Base):
     corrected_draft_path = Column(String(512), nullable=True)
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class ProcessResultRecord(Base):
+    """Cache of one processing result per email / message / thread.
+
+    This table is the "process once, store the result, reuse the result" rule
+    made concrete: ``POST /api/process`` writes here, and both the ShipMail
+    side panel and the Dashboard read from here. Nothing is
+    re-classified, re-OCR'd, re-extracted or re-verified just because a UI was
+    opened, refreshed, or switched between emails.
+
+    It is deliberately kept separate from ``reports`` so ShipMail /
+    real-Gmail traffic never pollutes the scored hackathon corpus.
+    """
+
+    __tablename__ = "process_results"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    # Identity of what was processed — email_id / message_id / thread_id are
+    # all indexed so any of them can serve as the dedup key.
+    cache_key = Column(String(160), unique=True, index=True, nullable=False)
+    email_id = Column(String(128), index=True, nullable=True)
+    message_id = Column(String(160), index=True, nullable=True)
+    thread_id = Column(String(160), index=True, nullable=True)
+    shipment_id = Column(String(64), index=True, nullable=True)
+    source = Column(String(32), default="shipmail")
+    # Fingerprint of the inputs. If the email or its attachments actually
+    # change, reprocessing is legitimate and the entry is refreshed instead
+    # of being blindly reused.
+    content_hash = Column(String(64), index=True, nullable=True)
+
+    # Per-document fingerprints {doc_type: sha1} for this run. Counting the
+    # distinct fingerprints seen for a (shipment, doc_type) pair is what gives
+    # the side panel its "Shipping Instruction v3" version numbers.
+    doc_fingerprints = Column(JSON, default=dict)
+
+    # Stored processing result — exactly the JSON the API returned.
+    result = Column(JSON, nullable=False)
+    attempts = Column(Integer, default=0)
+    processing_ms = Column(Float, nullable=True)
+
+    processed_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class GmailMessageRecord(Base):
+    __tablename__ = "gmail_messages"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    gmail_message_id = Column(String(128), unique=True, index=True, nullable=False)
+    thread_id = Column(String(128), index=True, nullable=True)
+    history_id = Column(String(128), nullable=True)
+    email_id = Column(String(128), unique=True, index=True, nullable=False)
+    sender = Column(String(255), nullable=True)
+    subject = Column(String(512), nullable=True)
+    processed_at = Column(DateTime, nullable=True)
+    processing_status = Column(String(32), default="PENDING")
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)

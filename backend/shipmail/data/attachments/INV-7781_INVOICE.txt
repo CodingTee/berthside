@@ -1,0 +1,10 @@
+COMMERCIAL INVOICE
+Invoice No.: INV-7781
+Shipper: ACME TRADING LTD
+Consignee: GLOBAL BUYER INC
+Port of Loading: SHANGHAI, CHINA (CNSHA)
+Port of Discharge: PORT KLANG, MALAYSIA (MYPKG)
+Total Containers: 2 x 40HC
+Gross Weight: 24,800 KG
+Invoice Value: USD 48,600.00
+Local Charges: THC, documentation fee, seal fee

@@ -59,6 +59,27 @@ class Settings(BaseSettings):
             path = BACKEND_ROOT / path
         return str(path.resolve())
 
+    # -- Gmail integration -------------------------------------------------
+    # Dedicated demo mailbox. This is an address, not a password; OAuth tokens
+    # and client secrets stay outside git and are read from the paths below.
+    gmail_demo_account: str = "averis.demo@gmail.com"
+    gmail_credentials_file: str = "secrets/google_oauth_client.json"
+    gmail_token_file: str = "secrets/gmail_token.json"
+    gmail_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/gmail/oauth-callback"
+    gmail_query: str = "in:inbox has:attachment"
+    gmail_max_results: int = 10
+    gmail_polling_enabled: bool = False
+    gmail_poll_interval_seconds: int = 60
+
+    @field_validator("gmail_credentials_file", "gmail_token_file")
+    @classmethod
+    def _anchor_secret_file(cls, value: str) -> str:
+        """Anchor relative credential/token file paths to BACKEND_ROOT."""
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = BACKEND_ROOT / path
+        return str(path.resolve())
+
     # -- database ----------------------------------------------------------
     # Local dev default: SQLite file next to the backend root.
     # Production (Supabase / any Postgres):

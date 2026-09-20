@@ -268,6 +268,7 @@ class EmailVerdict:
     review_reason: Optional[str] = None
     has_defect: bool = False
     defect_fields: list[str] = field(default_factory=list)
+    possible_fields: list[str] = field(default_factory=list)
     field_results: list[dict] = field(default_factory=list)
     extracted: dict = field(default_factory=dict)
     pair: Optional[ComparedPair] = None

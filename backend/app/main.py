@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import asyncio
 from datetime import datetime
 from pathlib import Path
 
@@ -22,7 +23,17 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import SessionLocal, get_db, init_db
 from app.models import EmailRecord
-from app.routers import ai_assist, emails, frontend_compat, ingest, reports, reviews, shipments
+from app.routers import (
+    ai_assist,
+    emails,
+    frontend_compat,
+    gmail,
+    ingest,
+    integration,
+    reports,
+    reviews,
+    shipments,
+)
 
 
 logging.basicConfig(
@@ -31,6 +42,7 @@ logging.basicConfig(
 )
 
 settings = get_settings()
+gmail_poll_task = None
 
 app = FastAPI(
     title=settings.app_name,
@@ -58,12 +70,18 @@ app.include_router(reviews.router)
 app.include_router(shipments.router)
 app.include_router(ai_assist.router)
 app.include_router(ingest.router)
+app.include_router(integration.router)
+app.include_router(gmail.router)
 app.include_router(frontend_compat.router)
 
 
 
-# Frontend (P1) UI — Review Desk, served from /ui/
+# Frontends served by this single backend (no extra Render service):
+#   /ui/       -> ShipSync Dashboard / Operations Console (existing web app)
+#   /shipmail/ -> ShipMail inbox (simulated mail client) + ShipSync side panel
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+SHIPMAIL_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "frontend"
+SHIPMAIL_DATA_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "data"
 
 if WEB_DIR.is_dir():
     from fastapi.staticfiles import StaticFiles
@@ -72,6 +90,27 @@ if WEB_DIR.is_dir():
         "/ui",
         StaticFiles(directory=str(WEB_DIR), html=True),
         name="ui",
+    )
+
+if SHIPMAIL_DATA_DIR.is_dir():
+    from fastapi.staticfiles import StaticFiles
+
+    # Static demo inbox (emails.json / shipments.json / attachments). Served as
+    # plain files: opening the inbox costs no database or pipeline work.
+    # Mounted BEFORE /shipmail so the more specific prefix wins.
+    app.mount(
+        "/shipmail/data",
+        StaticFiles(directory=str(SHIPMAIL_DATA_DIR)),
+        name="shipmail-data",
+    )
+
+if SHIPMAIL_DIR.is_dir():
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount(
+        "/shipmail",
+        StaticFiles(directory=str(SHIPMAIL_DIR), html=True),
+        name="shipmail",
     )
 
 
@@ -248,12 +287,42 @@ def on_startup() -> None:
         "Heavy inbox processing skipped during startup."
     )
 
+    global gmail_poll_task
+    if settings.gmail_polling_enabled:
+        gmail_poll_task = asyncio.create_task(_gmail_poll_loop())
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    global gmail_poll_task
+    if gmail_poll_task:
+        gmail_poll_task.cancel()
+        try:
+            await gmail_poll_task
+        except asyncio.CancelledError:
+            pass
+
+
+async def _gmail_poll_loop() -> None:
+    """Optional background poller for the dedicated Gmail demo account."""
+    from app.integrations.gmail import sync as gmail_sync
+
+    while True:
+        db = SessionLocal()
+        try:
+            gmail_sync.poll_and_process(db, limit=settings.gmail_max_results)
+        except Exception as exc:  # noqa: BLE001
+            logging.warning("Gmail polling failed: %s", exc)
+        finally:
+            db.close()
+        await asyncio.sleep(max(settings.gmail_poll_interval_seconds, 10))
+
 
 @app.get("/", tags=["meta"])
 def root():
     from fastapi.responses import RedirectResponse
 
-    return RedirectResponse(url="/ui/")
+    return RedirectResponse(url="/shipmail/")
 
 
 @app.get("/meta", tags=["meta"])
@@ -280,12 +349,23 @@ def meta():
             "POST /issues/{issue_id}/approve",
             "POST /issues/{issue_id}/reject",
             "POST /shipments/{shipment_id}/generate-corrected-draft",
+            "GET  /api/health",
+            "POST /api/process",
+            "GET  /api/results           (stored results — never reprocesses)",
+            "GET  /api/results/{key}     (email_id | message_id | cache_key)",
+            "POST /api/mock-customer-db/request-document",
+            "POST /api/v1/analyze",
+            "POST /api/v1/ingest",
+            "GET  /api/gmail/status",
+            "GET  /api/gmail/connect",
+            "POST /api/gmail/poll",
             "GET  /ai/issues/{issue_id}/explain",
             "GET  /ai/issues/{issue_id}/suggest",
             "GET  /ai/shipments/{shipment_id}/correction-email",
             "POST /ai/ambiguous-interpretation",
             "GET  /health",
             "GET  /ui/  (P1 frontend: Review Desk)",
+            "GET  /shipmail/  (ShipMail inbox + ShipSync side panel)",
             "GET  /api/summary, /api/emails, /api/emails/{id}, "
             "/api/emails/{id}/review, /api/review-queue, "
             "/api/attachments/{path}",
