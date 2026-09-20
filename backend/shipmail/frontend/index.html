@@ -180,6 +180,10 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .legend{display:flex;flex-direction:column;gap:4px}
 .legend div{display:flex;align-items:center;gap:7px;font-size:10.3px;color:var(--muted);line-height:1.5}
 .legend i{width:8px;height:8px;border-radius:2.5px;display:inline-block;flex:0 0 auto}
+.legend div[role="button"]{cursor:pointer;border-radius:6px;padding:3px 5px;margin:0 -5px;transition:color .12s}
+.legend div[role="button"]:hover{color:var(--text)}
+.legend div.active{color:var(--text);font-weight:650}
+.legend div.active i{box-shadow:0 0 0 2px var(--border-strong)}
 .spacer{flex:1}
 .theme-toggle{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);cursor:pointer;
   padding:9px 10px;border-radius:10px;border:1px solid var(--border);background:var(--surface);user-select:none}
@@ -1134,8 +1138,8 @@ body.resizing .mail-body{user-select:none}
       <div class="panel-box rail-card" data-page-node-id="9aGaHPEAycFC7TOJ37B9My">
         <h4 data-page-node-id="z69hEVBb7WGnFHxfE9s4Dx">Mail source</h4>
         <div class="legend" data-page-node-id="APE7NbDnF7Zo5fdAWB8I37">
-          <div id="simRow" data-page-node-id="7Uu4CFzbTvjgJdChh5HEd2"><i style="background:var(--ok)" data-page-node-id="vBrSG1VjOqwkzNYAb83Oef"></i> Simulated inbox</div>
-          <div id="gmailRow" data-page-node-id="Db1MCSEY3ZZDil3HQTw5p5"><i style="background:var(--muted-2)" data-page-node-id="t0sgWIR3zEu7coy6etaBk8"></i> Real Gmail</div>
+          <div id="simRow" role="button" tabindex="0" data-page-node-id="7Uu4CFzbTvjgJdChh5HEd2"><i style="background:var(--ok)" data-page-node-id="vBrSG1VjOqwkzNYAb83Oef"></i> Simulated inbox</div>
+          <div id="gmailRow" role="button" tabindex="0" data-page-node-id="Db1MCSEY3ZZDil3HQTw5p5"><i style="background:var(--muted-2)" data-page-node-id="t0sgWIR3zEu7coy6etaBk8"></i> Real Gmail</div>
         </div>
         <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap" data-page-node-id="v9tn80Ka1qWSfBktPcHAKS">
           <button class="btn sm" id="gmailConnect" type="button" hidden data-page-node-id="1SvHx00mJVcL7m4UfAkzNn">Connect Gmail</button>
@@ -1351,7 +1355,8 @@ function saveOutbox(){ writeLS(LS_OUTBOX, OUTBOX); }
 const state = {
   emails: [], ships: {}, by: null,
   box: "inbox", label: null, q: "", status: "", kind: "",
-  activeId: null, shipTouched: false, lastAct: null
+  activeId: null, shipTouched: false, lastAct: null,
+  source: "sim"      /* "sim" (bundled demo) | "real" (live Gmail mailbox) */
 };
 const attText = Object.create(null);
 const results = Object.create(null);      /* email_id → stored /api/process result */
@@ -2104,6 +2109,72 @@ function clearFilters(){
 }
 function reloadMail(){ boot(true); }
 
+/* ------------------------------------------------------------ mail source
+   The two rows in the "Mail source" card switch which mailbox the list shows:
+   the bundled demo bundle, or the live Gmail mailbox already pulled by the
+   sync job (read-only GET /api/gmail/messages — never triggers a poll). */
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtWhen(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return "";
+  return `${MON[d.getMonth()]} ${d.getDate()}, ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+function docKind(name){
+  const n = (name || "").toUpperCase();
+  if(/_SI[._\s]|SHIPPING[\s_-]?INSTRUCTION/.test(n)) return "SI";
+  if(/_BL[._\s]|BILL[\s_-]?OF[\s_-]?LADING/.test(n)) return "BL";
+  if(/INVOICE|INV[._-]?\d/.test(n)) return "INVOICE";
+  return "";
+}
+function sourceRowHighlight(){
+  const sim = $("simRow"), g = $("gmailRow");
+  if(sim) sim.classList.toggle("active", state.source === "sim");
+  if(g)   g.classList.toggle("active", state.source === "real");
+}
+async function loadRealMailbox(){
+  try{
+    const r = await fetch(API + "/api/gmail/messages?limit=100");
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    const items = d.items || [];
+    state.emails = items.map(m => ({
+      id: m.email_id,
+      from: m.sender || "",
+      from_name: (m.sender || "").replace(/<[^>]*>/g, "").trim() || "unknown sender",
+      subject: m.subject || "(no subject)",
+      body: m.body || "",
+      snippet: m.snippet || "",
+      received: fmtWhen(m.processed_at),
+      attachments: (m.attachments || []).map(n => ({filename: n, name: n, kind: docKind(n)})),
+      shipment_id: m.shipment_id || "",
+      starred: false, unread: false
+    }));
+    /* The row verdict (status/category) is read from state.by in rowOfMail; map
+       the live messages straight in so the list speaks the same language. */
+    state.by = {};
+    items.forEach(m => { state.by[m.email_id] = { email_id: m.email_id, status: m.status, category: m.category }; });
+    state.ships = {};
+  }catch(e){
+    toast("Could not load the real Gmail mailbox — " + (e && e.message ? e.message : ""));
+    state.emails = [];
+  }
+}
+async function switchSource(src){
+  if(src === state.source) return;
+  state.source = src;
+  state.activeId = null;
+  state.box = "inbox"; state.label = null; state.q = ""; state.status = ""; state.kind = "";
+  if(src === "real"){
+    await loadRealMailbox();
+    sourceRowHighlight();
+    renderKPIs(); renderRail(); renderList(); renderEmptyDetail();
+  } else {
+    await boot(true);
+    sourceRowHighlight();
+  }
+}
+
 /* ---------------------------------------------------------------- Gmail */
 async function refreshGmailStatus(){
   try{
@@ -2170,6 +2241,7 @@ async function boot(refresh){
   else { state.activeId = null; renderEmptyDetail(); renderList(); }
   enrich();
   refreshGmailStatus();
+  sourceRowHighlight();
 }
 /* One read-only call, purely so rows / KPIs / filters can show the STORED
    verdict. Failure is not fatal — the console just shows mail without verdicts. */
@@ -2819,6 +2891,10 @@ $("cmpPresets").addEventListener("click", e => {
 $("composer").addEventListener("click", e => { if(e.target.id === "composer") closeComposer(); });
 $("gmailConnect").addEventListener("click", connectGmail);
 $("gmailSync").addEventListener("click", syncGmail);
+$("simRow").addEventListener("click", () => switchSource("sim"));
+$("gmailRow").addEventListener("click", () => switchSource("real"));
+$("simRow").addEventListener("keydown", e => { if(e.key === "Enter") switchSource("sim"); });
+$("gmailRow").addEventListener("keydown", e => { if(e.key === "Enter") switchSource("real"); });
 window.addEventListener("hashchange", () => {
   const h = decodeURIComponent(location.hash.slice(1));
   if(h && h !== state.activeId && allItems().some(i => i.id === h)) openMailById(h);
