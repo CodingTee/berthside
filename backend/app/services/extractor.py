@@ -320,7 +320,7 @@ _MONTHS = {m: i for i, m in enumerate(
      "NOV", "DEC"], 1)}
 _MONTHS.update({m: i for i, m in enumerate(
     ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST",
-     "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"], 1)}
+     "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"], 1)})
 
 
 def _parse_date(raw: Any) -> Optional[str]:
