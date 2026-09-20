@@ -36,7 +36,7 @@
   --bg:#eef2f8; --bg-2:#e6ecf5;
   --surface:rgba(255,255,255,.65); --surface-2:#ffffff; --surface-3:#f5f8fc; --surface-hover:rgba(13,148,136,.07);
   --border:rgba(15,23,42,.10); --border-strong:rgba(15,23,42,.18);
-  --text:#0f1b2d; --muted:#54657f; --muted-2:#8696ad;
+  --text:#0f1b2d; --muted:#54657f; --muted-2:#5e6d82;
   --accent:#0d9488; --accent-2:#0284c7; --accent-3:#4f46e5;
   --grad:linear-gradient(135deg,#0d9488 0%,#0284c7 52%,#4f46e5 100%);
   --grad-btn:linear-gradient(135deg,#0f766e 0%,#0e7490 50%,#4338ca 100%);
@@ -64,7 +64,8 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 /* ---------- sidebar ---------- */
 .sidebar{width:268px;flex:0 0 268px;display:flex;flex-direction:column;
   background:linear-gradient(180deg,var(--surface-2),var(--bg-2));
-  border-right:1px solid var(--border);padding:18px 16px;gap:16px;overflow-y:auto;overflow-x:hidden;
+  border-right:1px solid var(--border);padding:18px 16px;gap:13px;overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:none;-ms-overflow-style:none;
   transition:width .3s cubic-bezier(.4,0,.2,1),flex-basis .3s cubic-bezier(.4,0,.2,1),
     padding .3s cubic-bezier(.4,0,.2,1),gap .3s cubic-bezier(.4,0,.2,1)}
 .brand{display:flex;align-items:center;gap:10px}
@@ -144,6 +145,15 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .pal-field input::placeholder{color:var(--muted-2)}
 .palette-kbd{flex:0 0 auto;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.6px;
   color:var(--muted-2);border:1px solid var(--border);border-radius:6px;padding:3px 6px}
+/* Pinned frequent filters — the same recipe as the Review Console palette. */
+.pal-pins{display:flex;gap:8px;flex-wrap:wrap;padding:2px 12px 8px}
+.pal-pin{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface-3);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+.pal-pin:hover,.pal-pin.active{border-color:var(--accent);color:var(--accent);background:var(--surface-hover)}
+.pal-pin .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.pal-pin-c{font-size:10.5px;color:var(--muted-2);font-family:var(--mono);background:var(--surface-2);border-radius:999px;padding:1px 7px;margin-left:2px}
+.pal-pin-k{font-family:var(--mono);font-size:9.5px;font-weight:600;color:var(--muted-2);border-left:1px solid var(--border);margin-left:2px;padding-left:7px}
+.pal-hint{margin:0 12px 10px;padding:9px 12px;border:1px dashed var(--border);border-radius:10px;font-size:12px;line-height:1.55;color:var(--muted-2);background:var(--surface-2)}
+.pal-hint b{color:var(--text);font-weight:600}
 .palette-list{max-height:52vh;overflow-y:auto;padding:6px}
 .pal-group{font-size:10px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--muted-2);padding:10px 12px 4px}
 .palette-list>.pal-group:first-child{padding-top:4px}
@@ -168,12 +178,36 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .main{flex:1;display:flex;flex-direction:column;min-width:0}
 .topbar{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);
   background:linear-gradient(180deg,var(--surface-2),transparent);flex:0 0 auto}
-.crumbs{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);flex:0 0 auto;white-space:nowrap}
 .crumbs b{color:var(--text);font-weight:650}
 .crumbs a{color:var(--accent);text-decoration:none}
 .crumbs a:hover{text-decoration:underline}
-.topbar .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.topbar .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex:0 0 auto}
+/* .btn was shrinkable and had no nowrap, so below ~1240px the labels wrapped and the
+   bar grew 56 -> 85px tall. */
+.topbar .btn,.topbar .search-btn{white-space:nowrap;flex:0 0 auto}
 .content{flex:1;overflow-y:auto;padding:18px 20px 28px}
+/* Dashboard only: the KPI strip, the panel title bar and the filter chips are the
+   context you navigate by, so they stay pinned and only the rows scroll under
+   them. Without this, arrow-keying down the list scrolls the whole page and the
+   numbers you are reading scroll off screen. */
+.content.dash-mode{display:flex;flex-direction:column;overflow:hidden;padding-bottom:14px}
+.content.dash-mode .kpi-bar,.content.dash-mode .panel-head,.content.dash-mode .dash-tools{flex:0 0 auto}
+.content.dash-mode .panel{display:flex;flex-direction:column;flex:1;min-height:0;margin-bottom:0}
+.dash-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain}
+.dash-scroll table.list thead th{z-index:2}
+/* Fixed layout is what makes the dashboard rows uniform. With auto layout the mono
+   file-name columns absorbed every width shortage by wrapping, so rows ranged from
+   54px to 99px and the list looked ragged. Pin the five column widths and let the
+   names ellipsise instead (the full value sits in the cell title). */
+.dash-scroll table.list{table-layout:fixed}
+.dash-scroll table.list th:nth-child(1),.dash-scroll table.list td:nth-child(1){width:22%}
+.dash-scroll table.list th:nth-child(2),.dash-scroll table.list td:nth-child(2){width:14%}
+.dash-scroll table.list th:nth-child(3),.dash-scroll table.list td:nth-child(3){width:14%}
+.dash-scroll table.list th:nth-child(4),.dash-scroll table.list td:nth-child(4){width:32%}
+.dash-scroll table.list th:nth-child(5),.dash-scroll table.list td:nth-child(5){width:18%}
+.dash-scroll table.list td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dash-scroll table.list td>div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ---------- kpi ---------- */
 .kpi-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
@@ -203,6 +237,12 @@ table.list td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-a
 table.list tbody tr{cursor:pointer;transition:.15s}
 table.list tbody tr:hover{background:var(--surface-hover)}
 table.list tbody tr:last-child td{border-bottom:0}
+/* Keyboard / click selection — the arrow keys need something visible to move,
+   so the highlight mirrors the inbox rows on the Review Console. */
+table.list tbody tr.sel{background:color-mix(in srgb,var(--accent) 11%,transparent)}
+table.list tbody tr.sel:hover{background:color-mix(in srgb,var(--accent) 17%,transparent)}
+table.list tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+table.list tbody tr.sel .key{color:var(--accent)}
 .key{font-weight:650;font-family:var(--mono);font-size:12px;color:var(--text)}
 .sub{font-size:11px;color:var(--muted)}
 .mono{font-family:var(--mono);font-size:12px}
@@ -230,7 +270,14 @@ table.list tbody tr:last-child td{border-bottom:0}
 .small{font-size:11.5px}
 .flex{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media(max-width:1000px){.grid2{grid-template-columns:1fr}.kpi-bar{grid-template-columns:repeat(2,1fr)}}
+/* One designed focus ring for every control; :where() keeps specificity at 0 so
+   hand-tuned rings (.grip, .search-btn, .att .lnk) still win where they exist. */
+:where(.btn,.chip,.navlink,.subnav a,.pal-pin,.palette-item,.theme-toggle,a):focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr}
+  /* Compact the KPI cards instead of stacking them to 2x2. */
+  .kpi-bar{gap:8px}.kpi{padding:9px 11px}.kpi .num{font-size:20px}.kpi .lbl{font-size:10.2px}}
+@media(max-width:780px){.kpi-bar{grid-template-columns:repeat(2,1fr)}}
 .kv{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--border)}
 .kv:last-child{border-bottom:0}
 .kv .k{color:var(--muted);font-size:12px}
@@ -399,7 +446,8 @@ table.list tbody tr:last-child td{border-bottom:0}
 .help-foot{padding:10px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted-2)}
 
 /* ---------- dashboard tools (filter + sort) ---------- */
-.dash-tools{display:flex;gap:18px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--border);background:var(--surface-2)}
+.dash-tools{display:flex;gap:18px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--border);background:transparent}
+.dt-hint{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted-2);white-space:nowrap}
 .dt-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .dt-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted-2);font-weight:700;margin-right:2px}
 .chip{font:inherit;font-size:11.5px;font-weight:600;color:var(--muted);background:var(--surface);
@@ -412,14 +460,30 @@ table.list tbody tr:last-child td{border-bottom:0}
 .dash-head .updated{font-size:11px;color:var(--muted-2);font-family:var(--mono)}
 .list th[data-sort]:hover{color:var(--accent);background:var(--surface-hover)}
 
-/* ---------- detail in-page anchor nav ---------- */
-.subnav{position:sticky;top:0;z-index:6;display:flex;gap:6px;flex-wrap:wrap;padding:10px 16px;
-  background:color-mix(in srgb,var(--bg-2) 88%,transparent);backdrop-filter:blur(6px);
-  border-bottom:1px solid var(--border);margin-bottom:14px}
+/* ---------- detail section nav (lives inside the topbar) ----------
+   Mounted next to the breadcrumb instead of inside the scroll container, so it can
+   never overlap the first panel, and no sticky band can let content ghost through. */
+.subnav{display:flex;align-items:center;gap:4px;margin-left:4px;padding-left:12px;
+  border-left:1px solid var(--border);min-width:0;overflow-x:auto;overflow-y:hidden;
+  scrollbar-width:none}
+.subnav[hidden]{display:none}
+.subnav::-webkit-scrollbar{display:none}
 .subnav a{font-size:11.5px;font-weight:600;color:var(--muted);text-decoration:none;
-  padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);transition:.14s}
-.subnav a:hover{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
-.panel{scroll-margin-top:58px}
+  padding:4px 11px;border-radius:999px;border:1px solid transparent;white-space:nowrap;transition:.14s}
+.subnav a:hover{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 42%,transparent);
+  background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.subnav a.on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+  background:color-mix(in srgb,var(--accent) 15%,transparent)}
+/* Below ~1280px crumbs + 5 anchors + 2 buttons cannot share one line. Previously the
+   anchors silently clipped (Resolution cut mid-word, AI invisible) with the scrollbar
+   hidden, so there was no affordance at all. Drop the nav to a second row instead:
+   same continuous surface, nothing hidden. */
+@media(max-width:1280px){
+  .topbar{flex-wrap:wrap;row-gap:9px}
+  .subnav{order:3;flex:1 0 100%;margin-left:0;padding-left:0;padding-top:9px;
+    border-left:0;border-top:1px solid var(--border)}
+}
+.panel{scroll-margin-top:16px}
 
 /* ---------- buttons: ghost + small ---------- */
 .btn.ghost{background:transparent;color:var(--muted)}
@@ -472,13 +536,15 @@ table.list tbody tr:last-child td{border-bottom:0}
 }
 .help-sec{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted-2);font-weight:700;margin:14px 0 5px;padding-bottom:5px;border-bottom:1px solid var(--border)}
 .help-sec:first-child{margin-top:0}
+/* The sidebar may still scroll on very short windows, but it never shows a track. */
+.sidebar::-webkit-scrollbar{width:0;height:0;display:none}
 </style>
 </head>
 <body data-page-node-id="9L2FQGRjyMmpgUKd2BMYtK">
 <div class="app" id="app" data-page-node-id="YzqbhovjZ82l0756JHYKlg">
   <aside class="sidebar" data-page-node-id="LEFuRBjNRVvb0FbG6c7Woa">
     <div class="brand" data-page-node-id="foeAWV0E0btNWXKZBIPZyK">
-      <div class="mark" data-page-node-id="MGogQlXlWMcyrptdaMg79P"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="KqZGHmAK7CQoGPWJXZfelU"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="drv8diwM2K1gq7Am5LBtY3"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="A3Sy64JATQlrqxm7iOrJeL"/></svg></div>
+      <div class="mark" data-tip="ShipSync" data-tip-desc="AI-assisted shipping document verification — every SI ↔ BL pair is extracted, compared, and signed off by a human" data-tip-pos="right" data-page-node-id="MGogQlXlWMcyrptdaMg79P"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="KqZGHmAK7CQoGPWJXZfelU"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="drv8diwM2K1gq7Am5LBtY3"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="A3Sy64JATQlrqxm7iOrJeL"/></svg></div>
       <div class="brand-txt" data-page-node-id="6ipFQTF86Q958OiCcuIGqR">
         <div class="name" data-page-node-id="CWGSiRO8rxyhpCrbgRs8HE">ShipSync</div>
         <div class="tag" data-page-node-id="pyGqG8jSN5MMq60Uzq5ZN8">Verification Console</div>
@@ -513,6 +579,7 @@ table.list tbody tr:last-child td{border-bottom:0}
   <div class="main" data-page-node-id="TnXQXfZiN1RLg55hKesa90">
     <div class="topbar" data-page-node-id="8nb0gJgQswS3M0CMqyygnQ">
       <div class="crumbs" id="crumbs" data-page-node-id="wAlXiwtNeUBXGpGOyRSmHn"></div>
+      <nav class="subnav" id="subnav" hidden aria-label="Sections on this shipment"></nav>
       <div class="right" data-page-node-id="BU5jXLCOtFASt5lDFJl4K8">
         <button class="btn" id="searchBtn" type="button" data-tip="Search shipments" data-tip-desc="Find a shipment by key, reference number or filename" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Search shipments" data-page-node-id="srchBtn0n1">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="srchIcn0n1"><circle cx="11" cy="11" r="7" data-page-node-id="srchC0n1"/><path d="M21 21l-4.3-4.3" data-page-node-id="srchL0n1"/></svg>
@@ -567,7 +634,7 @@ const FIELDS = [
 const FMAP = Object.fromEntries(FIELDS.map(f => [f[0], f[1]]));
 const RESOLVE_STATES = ["VERIFIED","NEEDS_REVIEW","IN_PROGRESS","PENDING_APPROVAL","RESOLVED"];
 
-let state = { shipments: [], current: null, versions: [], issues: [], status: null, diff: null, draft: null };
+let state = { shipments: [], current: null, versions: [], issues: [], status: null, diff: null, draft: null, dashSel: 0 };
 const view = document.getElementById("view");
 
 /* ---------- helpers ---------- */
@@ -617,29 +684,87 @@ function fmtTime(d){ try{ return d.toLocaleTimeString([], {hour:"2-digit",minute
 /* One table drives the chip shortcut, the hover bubble and the `?` cheat-sheet
    so the three can never disagree. Plain letters pick a Verification state,
    Shift+letter picks a Resolution state — two independent axes, two groups. */
-const SHIFTK="\u21e7";
+/* Platform-aware modifier label — the same convention MODK already uses for the
+   search key: a Windows user reads "Shift", a Mac user reads the ⇧ glyph. The
+   bare "⇧" was unreadable for anyone not raised on Mac keycaps, so the word wins.
+   SHIFT_TIP appends the "|" the tooltip and cheat-sheet renderers split on, so the
+   modifier and the letter become two separate keycaps — exactly how the Search
+   button already draws [Ctrl][K]. */
+const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent||"");
+const MODK=IS_MAC?"\u2318":"Ctrl";
+const SHIFTK=IS_MAC?"\u21e7":"Shift";
+const SHIFT_TIP=SHIFTK+"|";
+/* One-keycap form ("Shift+A") for the palette rows and the pinned filter chips,
+   which render a single badge — a second keycap would double their width. */
+const kbdOne=s=>String(s||"").replace("|","+");
 /* Dashboard filter shortcuts. Plain letter = Verification axis, Shift+letter =
    Resolution axis. The chip tooltip, the `?` cheat-sheet and the keydown handler all
    read from here, so they can never disagree. */
 const FILTER_KEYS = {
   ver: {
     all:    ["A", "Verification filter", "Show every shipment regardless of SI<->BL agreement"],
-    ok:     ["O", "Verification filter", "Show only shipments whose SI and BL already agree"],
-    review: ["M", "Verification filter", "Show only shipments with a detected mismatch"]
+    ok:     ["V", "Verification filter", "Show only shipments whose SI and BL already agree"],
+    review: ["N", "Verification filter", "Show only shipments with a detected mismatch"]
   },
   res: {
-    all:        [SHIFTK+"A", "Resolution filter", "Ignore the resolution state (show everything)"],
-    clear:      [SHIFTK+"C", "Resolution filter", "Show shipments with no open issues"],
-    unresolved: [SHIFTK+"U", "Resolution filter", "Show issues detected but not yet actioned"],
-    pending:    [SHIFTK+"P", "Resolution filter", "Show suggestions waiting for your decision"],
-    resolved:   [SHIFTK+"R", "Resolution filter", "Show shipments where every issue is resolved"]
+    all:        [SHIFT_TIP+"A", "Resolution filter", "Ignore the resolution state (show everything)"],
+    clear:      [SHIFT_TIP+"C", "Resolution filter", "Show shipments with no open issues"],
+    unresolved: [SHIFT_TIP+"U", "Resolution filter", "Show issues detected but not yet actioned"],
+    pending:    [SHIFT_TIP+"P", "Resolution filter", "Show suggestions waiting for your decision"],
+    resolved:   [SHIFT_TIP+"R", "Resolution filter", "Show shipments where every issue is resolved"]
   }
 };
+/* Human label + dot colour per filter. Drives both the searchable "Filters"
+   group and the pinned "Your frequent filters" row. */
+const FILTER_LABEL = {
+  "ver:all":       ["Any verification", "var(--muted-2)"],
+  "ver:ok":        ["Verified",         "var(--ok)"],
+  "ver:review":    ["Needs review",     "var(--warn)"],
+  "res:all":       ["Any resolution",   "var(--muted-2)"],
+  "res:clear":     ["Clear",            "var(--ok)"],
+  "res:unresolved":["Unresolved",       "var(--bad)"],
+  "res:pending":   ["Pending",          "var(--warn)"],
+  "res:resolved":  ["Resolved",         "var(--ok)"]
+};
+/* Free-text triggers, so a filter can be found by word and not just by name. */
+const FILTER_ALIASES = {
+  "ver:ok":        ["verified","verify","ok","agree","match","clean","pass"],
+  "ver:review":    ["review","mismatch","mismatches","needs","flag","issue","problem","differ"],
+  "res:clear":     ["clear","no issues","nothing open","clean"],
+  "res:unresolved":["unresolved","open","todo","outstanding"],
+  "res:pending":   ["pending","approval","waiting","suggest"],
+  "res:resolved":  ["resolved","done","closed","complete","handled"]
+};
+/* Which filters you actually reach for — the same pinning idea as the Review
+   Console's status chips, so both palettes learn from real use. */
+const FREQ_KEY="sdoc_ship_filter_freq";
+function filterFreq(){try{return JSON.parse(localStorage.getItem(FREQ_KEY)||"{}");}catch(_){return {};}}
+function recordFilterUse(grp,val){
+  const m=filterFreq(), k=grp+":"+val;
+  m[k]=(m[k]||0)+1;
+  try{localStorage.setItem(FREQ_KEY,JSON.stringify(m));}catch(_){}
+}
+function topFilters(n){
+  return Object.keys(filterFreq())
+    .filter(k=>FILTER_LABEL[k])
+    .sort((a,b)=>filterFreq()[b]-filterFreq()[a])
+    .slice(0,n)
+    .map(k=>({key:k,count:filterFreq()[k]}));
+}
+/* Recently opened shipments, so the palette can offer real recents like the
+   Review Console does for emails. */
+const SHIP_RECENT_KEY="sdoc_ship_recent_v1";
+function recentShipIds(){try{return JSON.parse(localStorage.getItem(SHIP_RECENT_KEY)||"[]");}catch(_){return [];}}
+function recordRecentShip(id){
+  let a=recentShipIds().filter(x=>x!==id);
+  a.unshift(id); a=a.slice(0,6);
+  try{localStorage.setItem(SHIP_RECENT_KEY,JSON.stringify(a));}catch(_){}
+}
 /* Shortcut metadata for action buttons, keyed by data-act: [key, title, desc]. */
 const ACT_KEYS = {
   "compare":      ["C",      "Compare versions",     "Run the deterministic 7-field comparison of the two selected versions"],
   "swap":         ["S",      "Swap sides",           "Exchange the From and To versions"],
-  "suggest":      [SHIFTK+"S", "Suggest correction",  "Generate a deterministic correction for the first open issue"],
+  "suggest":      [SHIFT_TIP+"S", "Suggest correction",  "Generate a deterministic correction for the first open issue"],
   "approve":      ["A",      "Approve correction",   "Accept the suggested correction for the first open issue"],
   "reject":       ["X",      "Reject correction",    "Reject the suggested correction for the first open issue"],
   "draft":        ["D",      "Generate draft",       "Build the working BL draft from the approved resolutions"],
@@ -656,7 +781,11 @@ function actAttrs(act){
 function setDashFilter(grp, val){
   state.dashFilter = state.dashFilter || {ver:"all", res:"all"};
   state.dashFilter[grp]=val;
-  paintDashboard();
+  recordFilterUse(grp,val);
+  state.dashSel=0;
+  /* Called from the palette this may run while a shipment is open — hand back to
+     the router instead of painting the dashboard underneath the detail view. */
+  if(state.current) go("#/"); else paintDashboard();
 }
 /* Click a rendered action button (so keyboard and mouse share one code path).
    Returns false when the control is absent or disabled, e.g. the draft button
@@ -708,7 +837,9 @@ function icon(name){
     swap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4"/></svg>',
     chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
     rail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h12M3 19h18"/></svg>',
-    refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>'
+    refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>',
+    clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.3 2"/></svg>',
+    filter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8.4V20l-4-2.2v-4.4z"/></svg>'
   };
   return I[name]||"";
 }
@@ -728,6 +859,7 @@ function route(){
     const id = parseInt(h.slice(4),10);
     if(id>0){ openShipment(id); return; }
   }
+  state.dashSel = 0;
   renderDashboard();
 }
 window.addEventListener("hashchange", route);
@@ -745,7 +877,9 @@ async function renderDashboard(){
 }
 function paintDashboard(){
   const s = state.shipments;
+  view.classList.remove("dash-mode");   /* loading / empty states scroll normally */
   state.current = null;   /* leaving detail view — keeps the palette's context commands accurate */
+  clearSubnav();
   document.getElementById("crumbs").innerHTML = '<b>Shipments</b>';
   if(s.length===0){
     view.innerHTML =
@@ -789,27 +923,36 @@ function paintDashboard(){
   /* Each chip carries its own shortcut + hover bubble, sourced from FILTER_KEYS. */
   const chip=(grp,val,label)=>{
     const meta=FILTER_KEYS[grp][val]||["",""];
+    const axis=(grp==="ver"?"Verification":"Resolution");
     return '<button class="chip'+(state.dashFilter[grp]===val?" on":"")+'" data-act="f'+grp+'" data-val="'+val+'"'+
-      ' data-tip="Show '+esc(label.toLowerCase())+'" data-tip-desc="'+esc(meta[1])+'"'+
-      ' data-tip-kbd="'+esc(meta[0])+'" data-tip-pos="bottom" aria-label="Filter: '+esc(label)+'">'+
+      ' data-tip="'+esc(axis)+" \u00b7 "+esc(label)+'" data-tip-desc="'+esc(meta[2]||meta[1])+'"'+
+      ' data-tip-kbd="'+esc(meta[0])+'" data-tip-pos="bottom" aria-label="Filter: '+esc(axis)+" "+esc(label)+'">'+
       esc(label)+'</button>';
   };
 
-  let rows="";
+  /* Clamp the keyboard highlight to the rows that survived the filter, so the
+     arrow keys can never point at a row that is no longer on screen. */
+  state.dashSel = rowsArr.length ? Math.max(0, Math.min(state.dashSel|0, rowsArr.length-1)) : -1;
+  const selIdx = state.dashSel;
+
+  let rows="", ri=0;
   for(const sh of rowsArr){
     const si=sh.si_latest, bl=sh.bl_latest;
     const ver = sh.status || "VERIFIED";
     const res = resolutionState(sh);
     const rt  = routeOf(si,bl);
-    rows += '<tr data-id="'+sh.id+'">'+
-      '<td><div class="key">'+esc(sh.shipment_key)+'</div><div class="sub">'+esc(rt||(sh.reference_number||"no ref"))+'</div></td>'+
-      '<td class="mono">'+esc(fmtFile(si?si.filename:null))+'</td>'+
-      '<td class="mono">'+esc(fmtFile(bl?bl.filename:null))+'</td>'+
-      '<td>'+statusPill(ver)+' <span class="muted small">'+(sh.mismatch_count>0? sh.mismatch_count+" mismatch"+(sh.mismatch_count>1?"es":""):"OK")+'</span></td>'+
-      '<td>'+pill(res.label,res.kind)+' <span class="muted small">'+esc(res.sub||"no issues")+'</span></td>'+
+    rows += '<tr data-id="'+sh.id+'"'+(ri++===selIdx?' class="sel"':'')+'>'+
+      '<td title="'+esc(sh.shipment_key)+(rt?' \u00b7 '+esc(rt):'')+'"><div class="key">'+esc(sh.shipment_key)+'</div><div class="sub">'+esc(rt||(sh.reference_number||"no ref"))+'</div></td>'+
+      '<td class="mono" title="'+esc(si?si.filename:"")+'">'+esc(fmtFile(si?si.filename:null))+'</td>'+
+      '<td class="mono" title="'+esc(bl?bl.filename:"")+'">'+esc(fmtFile(bl?bl.filename:null))+'</td>'+
+      (()=>{const vtxt=ver+' \u00b7 '+(sh.mismatch_count>0? sh.mismatch_count+" mismatch"+(sh.mismatch_count>1?"es":""):"OK");
+        const rtxt=res.label+' \u00b7 '+(res.sub||"no issues");
+        return '<td title="'+esc(vtxt)+'">'+statusPill(ver)+' <span class="muted small">'+esc(sh.mismatch_count>0? sh.mismatch_count+" mismatch"+(sh.mismatch_count>1?"es":""):"OK")+'</span></td>'+
+      '<td title="'+esc(rtxt)+'">'+pill(res.label,res.kind)+' <span class="muted small">'+esc(res.sub||"no issues")+'</span></td>';})()+
       '</tr>';
   }
 
+  view.classList.add("dash-mode");
   view.innerHTML =
     '<div class="kpi-bar">'+
       kpi(total,"Shipments","accent")+
@@ -817,15 +960,17 @@ function paintDashboard(){
       kpi(pending,"Pending resolution")+
       kpi(resolved,"Resolved")+
     '</div>'+
-    '<div class="dash-tools">'+
-      '<div class="dt-group"><span class="dt-label">Verification</span>'+chip("ver","all","All")+chip("ver","ok","Verified")+chip("ver","review","Needs review")+'</div>'+
-      '<div class="dt-group"><span class="dt-label">Resolution</span>'+chip("res","all","All")+chip("res","clear","Clear")+chip("res","unresolved","Unresolved")+chip("res","pending","Pending")+chip("res","resolved","Resolved")+'</div>'+
-    '</div>'+
     '<div class="panel"><div class="panel-head"><div class="ttl">'+icon("ship")+'Shipment Dashboard</div>'+
       '<div class="dash-head"><span class="count">'+rowsArr.length+' / '+total+' shipments</span>'+
+      '<div class="dt-hint" data-tip="Move through the list" data-tip-desc="Arrow keys move the row highlight, Enter opens the shipment" data-tip-pos="bottom"><b class="hk">\u2191</b><b class="hk">\u2193</b>select<b class="hk">Enter</b>open</div>'+
       '<span class="updated" id="dashUpdated"></span>'+
       '<button class="btn ghost sm" data-act="refresh-dash" aria-label="Refresh shipments"'+actAttrs("refresh-dash")+'>'+icon("refresh")+'Refresh</button></div>'+
       '</div>'+
+      '<div class="dash-tools">'+
+        '<div class="dt-group"><span class="dt-label">Verification</span>'+chip("ver","all","All")+chip("ver","ok","Verified")+chip("ver","review","Needs review")+'</div>'+
+        '<div class="dt-group"><span class="dt-label">Resolution</span>'+chip("res","all","All")+chip("res","clear","Clear")+chip("res","unresolved","Unresolved")+chip("res","pending","Pending")+chip("res","resolved","Resolved")+'</div>'+
+      '</div>'+
+      '<div class="dash-scroll" id="dashScroll">'+
       '<table class="list"><thead><tr>'+
         '<th data-sort="key" style="cursor:pointer">Shipment'+sm("key")+'</th>'+
         '<th>Latest SI</th><th>Latest BL</th>'+
@@ -833,13 +978,14 @@ function paintDashboard(){
         '<th data-sort="res" style="cursor:pointer">Resolution'+sm("res")+'</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table>'+
       (rowsArr.length===0?'<div class="muted small" style="padding:14px 16px">No shipments match the current filters.</div>':'')+
+      '</div>'+
     '</div>';
 
   const uEl=document.getElementById("dashUpdated");
   if(uEl) uEl.textContent = "Updated "+fmtTime(state.dashUpdated);
 
-  view.querySelectorAll("tbody tr").forEach(tr=>{
-    tr.addEventListener("click",()=>{ location.hash = "#/s/"+tr.dataset.id; });
+  view.querySelectorAll("tbody tr").forEach((tr,i)=>{
+    tr.addEventListener("click",()=>{ state.dashSel=i; location.hash = "#/s/"+tr.dataset.id; });
   });
 }
 function kpi(num,label,accent){
@@ -848,6 +994,7 @@ function kpi(num,label,accent){
 
 /* ---------- shipment detail ---------- */
 async function openShipment(id){
+  view.classList.remove("dash-mode");
   view.innerHTML = emptyCard("Loading shipment #"+id+"…","",icon("layers"));
   try{
     const [det, iss, st] = await Promise.all([
@@ -856,6 +1003,7 @@ async function openShipment(id){
       api("/shipments/"+id+"/resolution-status").catch(()=>({status:"UNKNOWN",total_issues:0,resolved:0,pending_approval:0,rejected:0}))
     ]);
     state.current = det;
+    recordRecentShip(det.id);
     state.versions = (det.documents||[]).flatMap(d=>d.versions||[]);
     state.issues = iss||[];
     state.status = st;
@@ -918,7 +1066,72 @@ function swapCompare(){
   compareVersions();
 }
 
+/* ---------- topbar section nav ------------------------------------------
+   Titles mirror each panel's own heading so the tab and the panel can never drift. */
+const subnavEl = document.getElementById("subnav");
+function clearSubnav(){ if(subnavEl){ subnavEl.hidden = true; subnavEl.innerHTML = ""; } }
+function setSubnav(items){
+  if(!subnavEl) return;
+  subnavEl.innerHTML = items.map(it =>
+    '<a href="#'+it[0]+'" data-sec="'+it[0]+'" title="'+esc(it[2])+'">'+esc(it[1])+'</a>').join("");
+  subnavEl.hidden = false;
+  requestAnimationFrame(scrollSpy);
+}
+/* Scroll the panel to the top of #view itself. Computing the offset is predictable —
+   scrollIntoView on a nested scroller depends on ancestor overflow and can land
+   anywhere, and the offset stays correct while a smooth scroll is in flight. */
+function goSection(id){
+  const el = document.getElementById(id); if(!el) return false;
+  const box = document.getElementById("view"); if(!box) return false;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top
+              + box.scrollTop - 8;
+  box.scrollTo({top: Math.max(0, top), behavior: reduce ? "auto" : "smooth"});
+  subnavEl && subnavEl.querySelectorAll("a").forEach(a =>
+    a.classList.toggle("on", a.dataset.sec === id));
+  return false;
+}
+/* Park the highlighted row inside the dashboard's own scroller. `block:"nearest"`
+   scrollIntoView will happily tuck the row underneath the sticky <thead>, so the
+   offsets are computed explicitly - the same approach as goSection(). */
+function keepRowVisible(row){
+  const box = document.getElementById("dashScroll");
+  if(!box){ row.scrollIntoView({block:"nearest"}); return; }
+  const head = box.querySelector("thead");
+  const headH = head ? head.getBoundingClientRect().height : 0;
+  const rb = row.getBoundingClientRect(), cb = box.getBoundingClientRect();
+  const top = rb.top - cb.top + box.scrollTop;
+  const bot = rb.bottom - cb.top + box.scrollTop;
+  if(rb.top < cb.top + headH) box.scrollTo({top: Math.max(0, top - headH - 6), behavior:"auto"});
+  else if(rb.bottom > cb.bottom) box.scrollTo({top: bot - box.clientHeight + 6, behavior:"auto"});
+}
+/* Highlight whichever section is currently at the top of the scroll container. */
+function scrollSpy(){
+  if(!subnavEl || subnavEl.hidden) return;
+  const box = document.getElementById("view"); if(!box) return;
+  const top = box.getBoundingClientRect().top;
+  const links = subnavEl.querySelectorAll("a");
+  let best = null;
+  links.forEach(a => {
+    const sec = document.getElementById(a.dataset.sec);
+    if(sec && sec.getBoundingClientRect().top - top <= 28) best = a;
+  });
+  /* Nothing crossed the line yet → the first section is the one you are looking at. */
+  if(!best && links.length) best = links[0];
+  links.forEach(a => a.classList.toggle("on", a === best));
+}
+if(subnavEl){
+  subnavEl.addEventListener("click", e => {
+    const a = e.target.closest("a[data-sec]"); if(!a) return;
+    e.preventDefault(); goSection(a.dataset.sec);
+  });
+  const box = document.getElementById("view");
+  if(box) box.addEventListener("scroll", scrollSpy, {passive:true});
+  window.addEventListener("resize", scrollSpy);
+}
+
 function renderDetail(){
+  view.classList.remove("dash-mode");
   const sh = state.current;
   document.getElementById("crumbs").innerHTML =
     '<a href="#/" data-tip="Shipment Dashboard" data-tip-desc="Back to the shipment list" data-tip-kbd="G" data-tip-pos="bottom">Shipments</a>'+
@@ -961,7 +1174,7 @@ function renderDetail(){
     return h;
   }
   const versionHistory =
-    '<div class="panel"><div class="panel-head"><div class="ttl">'+icon("layers")+'Document Version History</div></div>'+
+    '<div class="panel" id="sec-history"><div class="panel-head"><div class="ttl">'+icon("layers")+'Document Version History</div></div>'+
       '<div class="panel-body grid2">'+
         '<div><div class="wf-title" style="margin-bottom:8px">SI</div>'+verList("SI")+'</div>'+
         '<div><div class="wf-title" style="margin-bottom:8px">BL</div>'+verList("BL")+'</div>'+
@@ -986,7 +1199,7 @@ function renderDetail(){
   const defFrom = siL? siL.id : (state.versions[0]&&state.versions[0].id||"");
   const defTo = blL? blL.id : (state.versions[state.versions.length-1]&&state.versions[state.versions.length-1].id||"");
   const diffPanel =
-    '<div class="panel"><div class="panel-head"><div class="ttl">'+icon("compare")+'Version Diff</div>'+
+    '<div class="panel" id="sec-diff"><div class="panel-head"><div class="ttl">'+icon("compare")+'Version Diff</div>'+
       '<span class="count">deterministic</span></div>'+
       '<div class="panel-body">'+
         '<div class="cmpbar">'+
@@ -1043,16 +1256,16 @@ function renderDetail(){
         '<div class="ai-note">AI assistance can improve explanation wording. It is never the source of truth and never approves or overwrites a document.</div>'+
       '</div></div>';
 
-  const subnav =
-    '<div class="subnav">'+
-      '<a href="#sec-history" onclick="var el=document.getElementById(\'sec-history\');if(el)el.scrollIntoView({behavior:matchMedia(\'(prefers-reduced-motion: reduce)\').matches?\'auto\':\'smooth\',block:\'start\'});return false;">History</a>'+
-      '<a href="#sec-diff" onclick="var el=document.getElementById(\'sec-diff\');if(el)el.scrollIntoView({behavior:matchMedia(\'(prefers-reduced-motion: reduce)\').matches?\'auto\':\'smooth\',block:\'start\'});return false;">Diff</a>'+
-      '<a href="#sec-verification" onclick="var el=document.getElementById(\'sec-verification\');if(el)el.scrollIntoView({behavior:matchMedia(\'(prefers-reduced-motion: reduce)\').matches?\'auto\':\'smooth\',block:\'start\'});return false;">Verification</a>'+
-      '<a href="#sec-resolution" onclick="var el=document.getElementById(\'sec-resolution\');if(el)el.scrollIntoView({behavior:matchMedia(\'(prefers-reduced-motion: reduce)\').matches?\'auto\':\'smooth\',block:\'start\'});return false;">Resolution</a>'+
-      '<a href="#sec-ai" onclick="var el=document.getElementById(\'sec-ai\');if(el)el.scrollIntoView({behavior:matchMedia(\'(prefers-reduced-motion: reduce)\').matches?\'auto\':\'smooth\',block:\'start\'});return false;">AI</a>'+
-    '</div>';
-
-  view.innerHTML = subnav+header+versionHistory+diffPanel+verification+resolutionCenter+resolutionStatus+aiPlaceholder;
+  /* The section nav is rendered into the topbar (#subnav), NOT into #view — it sits
+     outside the scroll container so it never overlaps the panel underneath. */
+  view.innerHTML = header+versionHistory+diffPanel+verification+resolutionCenter+resolutionStatus+aiPlaceholder;
+  setSubnav([
+    ["sec-history",      "History",      "Document Version History"],
+    ["sec-diff",         "Diff",         "Version Diff"],
+    ["sec-verification", "Verification", "Latest Verification"],
+    ["sec-resolution",   "Resolution",   "Resolution Center"],
+    ["sec-ai",           "AI",           "AI Assistance"]
+  ]);
 
   // defaults + auto compare
   const fs=document.getElementById("fromSel"), ts=document.getElementById("toSel");
@@ -1189,6 +1402,7 @@ view.addEventListener("click", e=>{
   if(th){
     const k=th.dataset.sort;
     if(state.dashSort.key===k) state.dashSort.dir*=-1; else state.dashSort={key:k,dir:1};
+    state.dashSel=0;
     paintDashboard();
     return;
   }
@@ -1271,7 +1485,15 @@ const appEl=document.getElementById("app");
 function setRail(v){
   appEl.classList.toggle("collapsed", !!v);
   const b=document.getElementById("collapseBtn");
-  if(b) b.title=(v?"Expand":"Collapse")+" sidebar ( [ )";
+  if(b){
+    b.title=(v?"Expand":"Collapse")+" sidebar ( [ )";
+    b.setAttribute("aria-label",(v?"Expand":"Collapse")+" sidebar");
+    /* The hover bubble is derived from the same state as the button itself. */
+    b.setAttribute("data-tip",(v?"Expand":"Collapse")+" sidebar");
+    b.setAttribute("data-tip-desc", v
+      ? "Bring the full sidebar back"
+      : "Shrink the sidebar to an icon rail");
+  }
   try{ localStorage.setItem("sdoc-rail", v?"1":"0"); }catch(_){}
 }
 let railAnimT=null;
@@ -1288,9 +1510,8 @@ document.getElementById("collapseBtn").addEventListener("click",toggleRail);
 
 /* ---------- shortcut registry ---------- */
 /* Single source of truth. The hover tooltips, the `?` cheat-sheet and the
-   palette badges are all derived from these tables so they cannot drift apart. */
-const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent||"");
-const MODK=IS_MAC?"\u2318":"Ctrl";
+   palette badges are all derived from these tables so they cannot drift apart.
+   IS_MAC / MODK live up top with SHIFTK, because the filter chips need them. */
 const NAV = {
   console:   {href:"/ui/",           key:"1", label:"Review Console",
               desc:"Email-centric console — process the inbox and review SI \u2194 BL mismatches"},
@@ -1307,13 +1528,16 @@ const SHORTCUTS = [
   {keys:["B"], label:NAV.back.label,      desc:NAV.back.desc},
   {keys:["G"], label:"Dashboard", desc:"Jump back to the shipment list"},
   {keys:["T"], label:"Toggle theme", desc:"Switch between dark and light mode"},
-  {keys:["["], label:"Collapse sidebar", desc:"Expand or collapse the sidebar into an icon rail"},
+  {keys:["[","]"], label:"Collapse sidebar", desc:"Expand or collapse the sidebar into an icon rail"},
   {keys:["?"], label:"This panel", desc:"Show or hide this shortcut list"},
   {keys:["Esc"], label:"Close · back", desc:"Close a panel, or return to the dashboard"},
+  {section:"Dashboard list"},
+  {keys:["\u2191","\u2193"], label:"Select shipment", desc:"Move the row highlight up and down the list"},
+  {keys:["Enter"], label:"Open shipment", desc:"Open the detail view of the highlighted shipment"},
   {section:"Dashboard filters"},
-  {keys:["A"], label:"Verification: all", desc:"Show every shipment"},
-  {keys:["O"], label:"Verification: OK", desc:"Show only shipments whose SI and BL agree"},
-  {keys:["M"], label:"Verification: mismatch", desc:"Show only shipments with a detected mismatch"},
+  {keys:["A"], label:"Verification: All", desc:"Show every shipment"},
+  {keys:["V"], label:"Verification: Verified", desc:"Show only shipments whose SI and BL agree"},
+  {keys:["N"], label:"Verification: Needs review", desc:"Show only shipments with a detected mismatch"},
   {keys:[SHIFTK,"A"], label:"Resolution: all", desc:"Ignore the resolution state"},
   {keys:[SHIFTK,"C"], label:"Resolution: clear", desc:"Show shipments with no open issues"},
   {keys:[SHIFTK,"U"], label:"Resolution: unresolved", desc:"Show issues not yet actioned"},
@@ -1361,22 +1585,64 @@ let palItems=[], palIdx=0;
 function go(hash){
   if(location.hash===hash) route(); else location.hash=hash;
 }
-function palShipItems(q){
-  const all=state.shipments||[];
-  const list = q ? all.filter(sh=>{
-    const hay=[sh.shipment_key, sh.reference_number, "shipment "+sh.id, sh.status,
-      sh.si_latest&&sh.si_latest.filename, sh.bl_latest&&sh.bl_latest.filename]
-      .filter(Boolean).join(" ").toLowerCase();
-    return hay.indexOf(q)>=0;
-  }) : all;
-  return list.slice(0, q?40:12).map(sh=>({
-    ico:icon("ship"),
-    title:sh.shipment_key||("Shipment #"+sh.id),
-    meta:"#"+sh.id+" · "+((sh.si_latest&&sh.si_latest.filename)||"no SI")+" → "+
-      ((sh.bl_latest&&sh.bl_latest.filename)||"no BL")+" · "+(sh.status||"VERIFIED")+
+function shipItem(sh, recent){
+  return {
+    ico: recent?icon("clock"):icon("ship"),
+    recent: !!recent,
+    title: sh.shipment_key||("Shipment #"+sh.id),
+    meta:"#"+sh.id+" · "+(fmtFile(sh.si_latest&&sh.si_latest.filename))+" → "+
+      (fmtFile(sh.bl_latest&&sh.bl_latest.filename))+" · "+(sh.status||"VERIFIED")+
       (sh.mismatch_count>0?(" · "+sh.mismatch_count+" mismatch"+(sh.mismatch_count>1?"es":"")):" · OK"),
     run:()=>{ go("#/s/"+sh.id); }
-  }));
+  };
+}
+function palShipItems(q){
+  const all=state.shipments||[];
+  if(q){
+    return all.filter(sh=>{
+      const hay=[sh.shipment_key, sh.reference_number, "shipment "+sh.id, sh.status,
+        sh.si_latest&&sh.si_latest.filename, sh.bl_latest&&sh.bl_latest.filename]
+        .filter(Boolean).join(" ").toLowerCase();
+      return hay.indexOf(q)>=0;
+    }).slice(0,40).map(sh=>shipItem(sh,false));
+  }
+  /* Empty query: recently opened shipments float to the top, the rest fills up to 12. */
+  const seen={}, out=[];
+  recentShipIds().forEach(id=>{
+    const sh=all.find(x=>x.id===id);
+    if(sh && !seen[sh.id]){ seen[sh.id]=1; out.push(shipItem(sh,true)); }
+  });
+  for(const sh of all){
+    if(out.length>=12) break;
+    if(!seen[sh.id]){ seen[sh.id]=1; out.push(shipItem(sh,false)); }
+  }
+  return out;
+}
+/* Filters are searchable by name and by word, so "pending" or "needs review" finds
+   the right dashboard view without knowing what the chip is called. */
+function palFilterItems(q){
+  return Object.keys(FILTER_LABEL).filter(k=>{
+    const parts=k.split(":"), m=FILTER_LABEL[k], al=FILTER_ALIASES[k]||[];
+    return ("filter "+m[0]+" "+parts[0]+" "+parts[1]+" "+al.join(" ")).toLowerCase().indexOf(q)>=0;
+  }).map(k=>{
+    const parts=k.split(":"), m=FILTER_LABEL[k], fk=FILTER_KEYS[parts[0]][parts[1]];
+    return {
+      ico:icon("filter"),
+      title:"Filter · "+m[0],
+      meta:"Show only these shipments on the dashboard",
+      kbd:kbdOne(fk[0]),
+      run:()=>{ setDashFilter(parts[0],parts[1]); }
+    };
+  });
+}
+/* The pinned row: your three most-used filters, with a usage count and their key. */
+function palPins(){
+  return topFilters(3).map(p=>{
+    const parts=p.key.split(":"), m=FILTER_LABEL[p.key];
+    const fk=FILTER_KEYS[parts[0]]&&FILTER_KEYS[parts[0]][parts[1]];
+    return { dot:m[1], label:m[0], count:p.count, kbd:fk?kbdOne(fk[0]):"",
+      run:()=>{ setDashFilter(parts[0],parts[1]); } };
+  });
 }
 function palCmds(){
   const c=[
@@ -1398,23 +1664,55 @@ function palCmds(){
 }
 function palRender(){
   const q=palQ.value.trim().toLowerCase();
-  /* Actions first, matching the Review Console palette order (commands, then results). */
+  /* Pinned filters sit above everything — same section, order and look as the Review
+     Console palette, so the two searches read as one product. */
+  const pins = q ? [] : palPins();
+  /* Group order mirrors the Review Console palette: pins, then what you touched
+     last, then commands, then results — so recents never hide below the fold. */
   const groups=[];
+  const found=palShipItems(q);
+  if(!q){
+    const rec=found.filter(x=>x.recent);
+    if(rec.length) groups.push({label:"Recent", items:rec});
+  }
   const cmds=palCmds().filter(x=> !q || (x.title+" "+x.meta).toLowerCase().indexOf(q)>=0);
   if(cmds.length) groups.push({label:"Actions", items:cmds});
-  const ships=palShipItems(q);
-  if(ships.length) groups.push({label:q?"Shipments":"Recent shipments", items:ships});
-  palItems=groups.reduce((a,g)=>a.concat(g.items), []);
+  if(q){
+    const fl=palFilterItems(q);
+    if(fl.length) groups.push({label:"Filters", items:fl});
+    if(found.length) groups.push({label:"Shipments", items:found});
+  }else{
+    const rest=found.filter(x=>!x.recent);
+    if(rest.length) groups.push({label:"Shipments", items:rest});
+  }
+  /* Pins are keyboard-reachable too, so they are part of palItems even though they
+     render as chips rather than rows. */
+  palItems=pins.reduce((a,p)=>a.concat([p]), groups.reduce((a,g)=>a.concat(g.items), []));
   if(palIdx>palItems.length-1) palIdx=palItems.length-1;
   if(palIdx<0) palIdx=0;
   if(!palItems.length){
     const none=!(state.shipments&&state.shipments.length);
     palList.innerHTML='<div class="pal-empty">'+(none
       ? 'No shipments loaded yet.<br>Process inbox emails in the Review Console to create them.'
-      : 'No shipment or action matches \u201C'+esc(palQ.value)+'\u201D<br>Try a shipment key, reference number, or filename.')+'</div>';
+      : 'No shipment, filter or action matches \u201C'+esc(palQ.value)+'\u201D<br>Try a shipment key, a reference number, a filename, or a filter like pending.')+'</div>';
     return;
   }
   let html="", i=-1;
+  if(pins.length){
+    html+='<div class="pal-group">Your frequent filters</div><div class="pal-pins">';
+    for(const p of pins){
+      i++;
+      html+='<button type="button" class="pal-pin'+(i===palIdx?" active":"")+'" data-i="'+i+'">'+
+        '<span class="dot" style="background:'+p.dot+'"></span>'+esc(p.label)+
+        '<span class="pal-pin-c">'+p.count+'</span>'+
+        (p.kbd?'<span class="pal-pin-k">'+esc(p.kbd)+'</span>':'')+
+        '</button>';
+    }
+    html+='</div>';
+  }else if(!q){
+    html+='<div class="pal-group">Your frequent filters</div>'+
+      '<div class="pal-hint">Filter the dashboard by verification or resolution — <b>the ones you use most get pinned here</b>. Or type <b>needs review</b>, <b>pending</b> or <b>unresolved</b>.</div>';
+  }
   for(const g of groups){
     html+='<div class="pal-group">'+g.label+'</div>';
     for(const it of g.items){
@@ -1429,13 +1727,13 @@ function palRender(){
   palScroll();
 }
 function palScroll(){
-  const act=palList.querySelector(".palette-item.active");
+  const act=palList.querySelector("[data-i].active");
   if(act&&act.scrollIntoView) act.scrollIntoView({block:"nearest"});
 }
 function palMove(d){
   if(!palItems.length) return;
   palIdx=(palIdx+d+palItems.length)%palItems.length;
-  palList.querySelectorAll(".palette-item").forEach(el=>{ el.classList.toggle("active", +el.dataset.i===palIdx); });
+  palList.querySelectorAll("[data-i]").forEach(el=>{ el.classList.toggle("active", +el.dataset.i===palIdx); });
   palScroll();
 }
 function palRun(){
@@ -1466,15 +1764,15 @@ function palClose(){
 
 palQ.addEventListener("input",()=>{ palIdx=0; palRender(); });
 palList.addEventListener("click",e=>{
-  const el=e.target.closest(".palette-item");
+  const el=e.target.closest(".palette-item,.pal-pin");
   if(!el) return;
   palIdx=+el.dataset.i; palRun();
 });
 palList.addEventListener("mousemove",e=>{
-  const el=e.target.closest(".palette-item");
+  const el=e.target.closest(".palette-item,.pal-pin");
   if(!el||+el.dataset.i===palIdx) return;
   palIdx=+el.dataset.i;
-  palList.querySelectorAll(".palette-item").forEach(x=>x.classList.toggle("active", x===el));
+  palList.querySelectorAll("[data-i]").forEach(x=>x.classList.toggle("active", x===el));
 });
 palEl.addEventListener("mousedown",e=>{ if(e.target===palEl) palClose(); });
 document.getElementById("searchBtn").addEventListener("click",palOpen);
@@ -1505,7 +1803,11 @@ document.getElementById("searchBtn").addEventListener("click",palOpen);
   function open(el){
     if(cur===el) return;
     if(!palEl.hidden || !helpEl.hidden) return;
+    /* A screen reader never sees the hover card, so tie the element to the live
+       tooltip via aria-describedby (it fires on focusin too). */
+    if(cur) cur.removeAttribute("aria-describedby");
     cur=el;
+    el.setAttribute("aria-describedby","tip");
     const keys=(el.dataset.tipKbd||"").split("|").filter(Boolean);
     tip.innerHTML='<div class="tip-t">'+esc(el.dataset.tip)+'</div>'+
       (el.dataset.tipDesc?'<div class="tip-d">'+esc(el.dataset.tipDesc)+'</div>':'')+
@@ -1513,7 +1815,7 @@ document.getElementById("searchBtn").addEventListener("click",palOpen);
     tip.classList.add("show");
     place(el);
   }
-  function close(){ cur=null; tip.classList.remove("show"); }
+  function close(){ if(cur) cur.removeAttribute("aria-describedby"); cur=null; tip.classList.remove("show"); }
   document.addEventListener("mouseover", function(e){
     const el=e.target.closest && e.target.closest("[data-tip]");
     if(el) open(el);
@@ -1562,14 +1864,61 @@ document.addEventListener("keydown",e=>{
   }
   if(isTyping(e.target)) return;
   const k=e.key;
+
+  /* ---- Global shortcuts -------------------------------------------------
+     These MUST sit above the view-specific blocks. The dashboard block below
+     has no catch-all, so a key it does not consume falls through to here; but
+     anything placed after it would be unreachable anyway. Keeping the globals
+     first is what makes `[`, `T`, `?` and `Esc` work on the dashboard too.
+     `]` and the full-width brackets are accepted as aliases so the rail still
+     toggles when a CJK input mode rewrites the key. */
+  if(k==="t"||k==="T"){ e.preventDefault(); toggleTheme(); return; }
+  if(k==="["||k==="]"||k==="\u3010"||k==="\u3011"||k==="\uff3b"||k==="\uff3d"){
+    e.preventDefault(); toggleRail(); return;
+  }
+  if(k==="?"){ e.preventDefault(); openHelp(); return; }
+  if(k==="Escape"){ if(state.current){ e.preventDefault(); goDashboard(); } return; }
+
   if(k==="1"){ e.preventDefault(); navTo(NAV.console.href); return; }
   if(k==="2"){ e.preventDefault(); goShipments(); return; }
   if(k==="b"||k==="B"){ e.preventDefault(); navTo(NAV.back.href); return; }
   if(k==="g"||k==="G"){ e.preventDefault(); goDashboard(); return; }
 
-  /* ---- Dashboard only: filter chips + refresh ---- */
-  if(!state.current){
-    const fv={a:"all",o:"ok",m:"review"}, fr={c:"clear",u:"unresolved",p:"pending"};
+  /* ---- Detail view: resolution actions + compare / swap ---- */
+  if(state.current){
+    /* Shift combos first. Shift+S reports e.key==="S", so the plain "S = swap"
+       check must exclude shift or it would shadow "Shift+S = suggest". */
+    if(e.shiftKey && (k==="s"||k==="S")){ e.preventDefault(); pressAct("suggest"); return; }
+    if(!e.shiftKey && (k==="c"||k==="C") && document.getElementById("fromSel")){ e.preventDefault(); pressAct("compare"); return; }
+    if(!e.shiftKey && (k==="s"||k==="S") && document.getElementById("fromSel")){ e.preventDefault(); swapCompare(); return; }
+    if(k==="a"||k==="A"){ e.preventDefault(); pressAct("approve"); return; }
+    if(k==="x"||k==="X"){ e.preventDefault(); pressAct("reject"); return; }
+    if(k==="d"||k==="D"){ e.preventDefault(); pressAct("draft"); return; }
+    return;
+  }
+
+  /* ---- Dashboard view: row navigation, filter chips + refresh ---- */
+  {
+    /* ↑/↓ walk the row highlight and keep it in view; Enter opens it. This is the
+       list counterpart of the inbox arrows, so both consoles behave the same way. */
+    if(k==="ArrowDown"||k==="ArrowUp"){
+      const rows=[...view.querySelectorAll("table.list tbody tr")];
+      if(rows.length){
+        e.preventDefault();
+        let i=rows.findIndex(r=>r.classList.contains("sel"));
+        if(i<0) i = k==="ArrowDown" ? -1 : 0;
+        i = k==="ArrowDown" ? (i+1)%rows.length : (i-1+rows.length)%rows.length;
+        state.dashSel=i;
+        rows.forEach((r,n)=>r.classList.toggle("sel",n===i));
+        keepRowVisible(rows[i]);
+      }
+      return;
+    }
+    if(k==="Enter"){
+      const row=view.querySelector("table.list tbody tr.sel");
+      if(row){ e.preventDefault(); state.dashSel=[...view.querySelectorAll("table.list tbody tr")].indexOf(row); location.hash="#/s/"+row.dataset.id; return; }
+    }
+    const fv={a:"all",v:"ok",n:"review"}, fr={c:"clear",u:"unresolved",p:"pending"};
     const lk=(k||"").toLowerCase();
     if(e.shiftKey){
       if(lk==="a"){ e.preventDefault(); setDashFilter("res","all"); return; }
@@ -1579,23 +1928,7 @@ document.addEventListener("keydown",e=>{
     }
     if(fv[lk]){ e.preventDefault(); setDashFilter("ver",fv[lk]); return; }
     if(k==="r"||k==="R"){ e.preventDefault(); pressAct("refresh-dash"); return; }
-    return;
   }
-
-  /* ---- Detail only: resolution actions + compare/swap ---- */
-  if(state.current){
-    if((k==="c"||k==="C") && document.getElementById("fromSel")){ e.preventDefault(); pressAct("compare"); return; }
-    if((k==="s"||k==="S") && document.getElementById("fromSel")){ e.preventDefault(); swapCompare(); return; }
-    if(e.shiftKey && (k==="s"||k==="S")){ e.preventDefault(); pressAct("suggest"); return; }
-    if(k==="a"||k==="A"){ e.preventDefault(); pressAct("approve"); return; }
-    if(k==="x"||k==="X"){ e.preventDefault(); pressAct("reject"); return; }
-    if(k==="d"||k==="D"){ e.preventDefault(); pressAct("draft"); return; }
-  }
-
-  if(k==="t"||k==="T"){ e.preventDefault(); toggleTheme(); return; }
-  if(k==="["){ e.preventDefault(); toggleRail(); return; }
-  if(k==="?"){ e.preventDefault(); openHelp(); return; }
-  if(k==="Escape"){ if(state.current){ e.preventDefault(); goDashboard(); } return; }
 });
 
 /* theme toggle is a div — make it behave like a button when focused */
