@@ -50,6 +50,13 @@ RUN python scripts/prepare_data.py
 # inbox eventually contains.
 RUN python scripts/precompute_reports.py
 
+# Materialise the curated multi-shipment demo dataset (SHP-001 … SHP-006).
+# `--spawn` drives the real routes (it starts and stops a private server), so the
+# shipments, document versions and verification results are baked into the same
+# database the pre-computed corpus lives in and the shipment API is populated on
+# first boot instead of on first click.
+RUN python scripts/load_demo_shipments.py --spawn
+
 # The source bundle is no longer needed after the dataset
 # has been copied into /app/data and reports have been generated.
 RUN rm -rf /bundle

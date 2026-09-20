@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import base64
 import re
+from datetime import datetime, timezone
 from email.header import decode_header
+from email.utils import parsedate_to_datetime
 from typing import Callable
 
 from app.schemas import AttachmentPayload, EmailAnalyzeRequest
@@ -37,8 +39,47 @@ def parse_message(
             "gmail_message_id": gmail_id,
             "thread_id": message.get("threadId"),
             "history_id": message.get("historyId"),
+            # When the mail was received. Version chronology is built on this,
+            # so it travels with the payload: without it the only ordering signal
+            # left is the order Gmail happened to return messages in.
+            "received": _received_iso(message, headers),
         },
     )
+
+
+def _received_iso(message: dict, headers: dict[str, str]) -> str | None:
+    """Received timestamp as an ISO-8601 string, or ``None``.
+
+    The ``Date`` header is the mail's own claim and is preferred. Gmail's
+    ``internalDate`` (epoch milliseconds, set by the server) is the fallback for
+    a missing or malformed header.
+
+    Never raises. A bad header must not stop an email from being ingested, and a
+    mail with no usable timestamp is processed exactly as before — just without
+    chronology, so the caller falls back to registration order.
+    """
+    raw = headers.get("date")
+    if raw:
+        try:
+            parsed = parsedate_to_datetime(raw)
+        except (TypeError, ValueError):
+            parsed = None
+        if parsed is not None:
+            if parsed.tzinfo is None:
+                # A Date header without a zone is read as UTC rather than local
+                # time: guessing the sender's zone would silently shift every
+                # version in the shipment.
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc).isoformat()
+
+    internal = message.get("internalDate")
+    try:
+        if internal is not None:
+            return datetime.fromtimestamp(
+                int(internal) / 1000.0, tz=timezone.utc).isoformat()
+    except (TypeError, ValueError, OSError):
+        pass
+    return None
 
 
 def _headers(message: dict) -> dict[str, str]:

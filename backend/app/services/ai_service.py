@@ -291,6 +291,47 @@ def _try_read_binary(filename: str, content: bytes,
                 log.info("xlrd failed for %s: %s", filename, exc)
                 return None
 
+        if filename.endswith(".csv"):
+            # Spreadsheet exports carry one label per cell, exactly like .xlsx.
+            # Joining cells with " | " reuses the separator the extractor
+            # already accepts, so no extraction rule has to change.
+            import csv as _csv
+
+            try:
+                raw = content.decode("utf-8-sig", errors="replace")
+            except Exception:  # noqa: BLE001 - fall back to a byte-safe codec
+                raw = content.decode("latin-1", errors="replace")
+            rows: list[str] = []
+            try:
+                for row in _csv.reader(io.StringIO(raw)):
+                    cells = [c.strip() for c in row if c and c.strip()]
+                    if cells:
+                        rows.append(" | ".join(cells))
+            except Exception as exc:  # noqa: BLE001 - malformed CSV
+                log.info("csv reader failed for %s: %s", filename, exc)
+                return None
+            joined = _clean_extracted("\n".join(rows))
+            return (joined or None), "csv"
+
+        if filename.endswith(".xml"):
+            # Tag names are the labels ("<Shipper>ACME</Shipper>"), so the
+            # element tree maps straight onto the extractor's label|value form.
+            import xml.etree.ElementTree as ET
+
+            try:
+                root = ET.fromstring(content.decode("utf-8", errors="replace"))
+            except Exception as exc:  # noqa: BLE001 - not well-formed XML
+                log.info("xml parse failed for %s: %s", filename, exc)
+                return None
+            lines: list[str] = []
+            for node in root.iter():
+                tag = (node.tag or "").split("}")[-1].strip()
+                value = " ".join((node.text or "").split()).strip()
+                if tag and value:
+                    lines.append(f"{_xml_tag_to_label(tag)} | {value}")
+            joined = _clean_extracted("\n".join(lines))
+            return (joined or None), "xml"
+
         if filename.endswith(".pdf"):
             return _read_pdf(content, doc_type)
 
@@ -361,6 +402,42 @@ def _try_read_binary(filename: str, content: bytes,
         return None
     return None
 
+
+
+def document_text(filename: str, content: bytes) -> tuple[Optional[str], str]:
+    """Best-effort plain text for any attachment the readers can open.
+
+    Separate from :func:`extract_document` because some documents are stored
+    without being compared (a commercial invoice, for example). It returns
+    ``(text, source)``; ``source`` is ``unreadable`` when no reader could open
+    the file, which the caller must surface rather than paper over.
+    """
+    name = (filename or "").lower()
+    if name.endswith(".txt"):
+        return content.decode("utf-8", errors="replace"), "txt"
+    got = _try_read_binary(name, content, None)
+    if got and got[0]:
+        return got[0], got[1]
+    return None, "unreadable"
+
+
+def _xml_tag_to_label(tag: str) -> str:
+    """Turn a camel-case XML tag into words the extractor recognises.
+
+    XML element names cannot contain spaces, so a shipping-document schema has
+    to spell its labels ``<PortOfLoading>``. The extractor's label rules are
+    written against how those labels are *printed* — "Port of Loading" — so
+    without this the tag never matches and every field silently reads as null.
+
+    Only word boundaries are inserted; nothing is renamed or guessed, so a tag
+    that already matches (``<Shipper>``) is passed through unchanged.
+    """
+    import re as _re
+
+    spaced = _re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", tag)
+    spaced = _re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", spaced)
+    spaced = spaced.replace("_", " ")
+    return _re.sub(r"\s+", " ", spaced).strip()
 
 
 def _clean_extracted(text: str) -> str:

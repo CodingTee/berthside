@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -25,6 +25,7 @@ from app.models import (
     utcnow,
 )
 from app.schemas import COMPARED_FIELDS
+from app.services import identifiers
 from app.services.comparison import compare
 from app.services.extractor import normalize
 
@@ -47,7 +48,14 @@ def sync_processed_documents(
     bl_result,
 ) -> tuple[ShipmentRecord, DocumentVersionRecord, DocumentVersionRecord]:
     """Register SI/BL documents and return the shipment plus created versions."""
-    shipment_key, reference = identify_shipment(email, si_result.fields, bl_result.fields)
+    # The documents' own reference and identifying numbers decide the shipment
+    # when the covering mail does not state a reference.
+    document = identifiers.merge(
+        identifiers.from_text(si_result.raw_text),
+        identifiers.from_text(bl_result.raw_text),
+    )
+    shipment_key, reference = identify_shipment(
+        email, si_result.fields, bl_result.fields, document)
     shipment = _get_or_create_shipment(db, shipment_key, reference)
     si_version = register_document_version(
         db, shipment, "SI", si_path, email, si_content, si_result.fields,
@@ -61,22 +69,74 @@ def sync_processed_documents(
     return shipment, si_version, bl_version
 
 
+def register_standalone_document(
+    db: Session,
+    *,
+    email: dict,
+    doc_type: str,
+    path: str,
+    content: bytes,
+    extracted_fields: dict[str, Any],
+    raw_text: str,
+) -> ShipmentRecord:
+    """File a single document that arrived without its counterpart.
+
+    A shipment whose BL never turns up is still a shipment. Treating the pair
+    as the unit of existence would mean the half that DID arrive is left
+    unfiled, so the missing-document check has nothing to report against and
+    the silence is indistinguishable from "no shipment here".
+    """
+    shipment_key, reference = identify_shipment(
+        email,
+        extracted_fields if doc_type == "SI" else {},
+        extracted_fields if doc_type == "BL" else {},
+        identifiers.from_text(raw_text),
+    )
+    shipment = _get_or_create_shipment(db, shipment_key, reference)
+    register_document_version(
+        db, shipment, doc_type, path, email, content,
+        extracted_fields, raw_text,
+    )
+    db.flush()
+    return shipment
+
+
 def identify_shipment(
     email: dict,
     si_fields: dict[str, Any],
     bl_fields: dict[str, Any],
+    document: Optional["identifiers.DocumentIdentifiers"] = None,
 ) -> tuple[str, Optional[str]]:
-    """Infer a stable shipment key from references first, field signature second."""
+    """Infer a stable shipment key from references first, field signature second.
+
+    Order of authority:
+
+    1. a reference the **mail** states — subject, body or attachment filename;
+    2. a reference the **document itself** prints ("Booking No:", "Shipment
+       ID:", "OC No.:", "B/L No.:"), read by `app.services.identifiers`. The
+       document is the business record, so its own reference must be usable even
+       when the covering mail never repeats it;
+    3. a field signature — shipper + POL + POD, **plus container number or
+       vessel/voyage when the documents carry them**. Without those the same
+       shipper on the same route collapsed two different bookings into one
+       shipment;
+    4. the email id, as the last resort when there is nothing to group on.
+
+    The internal ``email_id`` is deliberately **not** part of the reference
+    search: it is our own identifier, not the customer's, and treating it as a
+    business reference produced shipment codes like ``REF:DOC-ONLY``.
+    """
     haystack = " ".join(
         str(x or "")
         for x in [
             email.get("subject"),
             email.get("body"),
-            email.get("email_id"),
             " ".join(email.get("attachments") or []),
         ]
     )
     reference = _first_reference(haystack)
+    if not reference and document is not None:
+        reference = document.reference
     if reference:
         return f"REF:{reference.upper()}", reference.upper()
 
@@ -87,7 +147,12 @@ def identify_shipment(
         normalize("port_of_discharge", merged.get("port_of_discharge")),
     ]
     if all(stable_parts):
-        digest = hashlib.sha256("|".join(map(str, stable_parts)).encode()).hexdigest()[:16]
+        parts = list(stable_parts)
+        if document is not None:
+            # Unique per physical movement, so two bookings on the same route
+            # get different keys instead of merging.
+            parts.extend(document.discriminators())
+        digest = hashlib.sha256("|".join(map(str, parts)).encode()).hexdigest()[:16]
         return f"SIG:{digest}", None
 
     return f"EMAIL:{email.get('email_id')}", None
@@ -134,13 +199,8 @@ def register_document_version(
     """
     document = _get_or_create_document(db, shipment.id, doc_type)
     content_hash = hashlib.sha256(content or b"").hexdigest()
-    normalized_hash = _normalized_hash(extracted_fields)
-    received_at = email.get("received_at")
-    if isinstance(received_at, str):
-        try:
-            received_at = datetime.fromisoformat(received_at.replace("Z", "+00:00"))
-        except ValueError:
-            received_at = None
+    normalized_hash = _normalized_hash(extracted_fields, content)
+    received_at = _as_naive_utc(email.get("received_at"))
 
     duplicate = (
         db.query(DocumentVersionRecord)
@@ -176,18 +236,18 @@ def register_document_version(
         db.flush()
         return row
 
-    next_number = _next_version_number(db, document.id)
-    if latest:
-        latest.is_latest = 0
     row = DocumentVersionRecord(
         shipment_id=shipment.id,
         document_id=document.id,
         doc_type=doc_type,
         filename=filename,
         email_id=email.get("email_id"),
-        version_number=next_number,
+        # Provisional; `_reindex_versions` renumbers the whole chain by
+        # chronology immediately below, which is what decides what "current"
+        # means.
+        version_number=_next_version_number(db, document.id),
         previous_version_id=latest.id if latest else None,
-        is_latest=1,
+        is_latest=0,
         document_status="ACTIVE",
         content_hash=content_hash,
         normalized_hash=normalized_hash,
@@ -197,7 +257,79 @@ def register_document_version(
     )
     db.add(row)
     db.flush()
+    _reindex_versions(db, document.id)
+    db.flush()
     return row
+
+
+def _as_naive_utc(value: Any) -> Optional[datetime]:
+    """Normalise a timestamp for storage and comparison.
+
+    Returns a naive UTC datetime, or ``None`` when there is nothing usable.
+    Normalising matters more than it looks: the column is compared and sorted,
+    and mixing aware and naive datetimes makes every later comparison raise.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
+
+
+def _chronology_key(row: DocumentVersionRecord) -> tuple:
+    """Order documents the way they were received.
+
+    ``received_at`` — when the mail actually arrived — is the primary signal.
+    ``created_at`` (when we processed it) is the fallback so that a document
+    with no timestamp keeps its registration position instead of jumping to the
+    front of the chain. ``id`` breaks ties deterministically.
+
+    This is the whole point of the function: registration order is the order
+    Gmail happened to return messages in, which is newest-first, and using it as
+    the chronology made the oldest Shipping Instruction the current one.
+
+    Both timestamps are normalised before comparison. Rows written before
+    timezone normalisation existed hold *aware* datetimes, and `sorted()` over a
+    column mixing aware and naive values raises `TypeError` rather than
+    returning a wrong order — which is how this was found, on the 520-email
+    corpus.
+    """
+    when = _as_naive_utc(row.received_at) or _as_naive_utc(row.created_at)
+    return (when or datetime.min, row.id or 0)
+
+
+def _reindex_versions(db: Session, document_id: int) -> Optional[DocumentVersionRecord]:
+    """Number the ACTIVE versions of a document by chronology.
+
+    Version 1 is the earliest document, the highest number is the current one,
+    and ``previous_version_id`` walks the chain forwards. No row is deleted and
+    no content is rewritten: a late-arriving *older* document is inserted as
+    history and gives up its claim on "current", which is the opposite of what
+    the old "last registered wins" rule did.
+
+    Returns the current version.
+    """
+    rows = (
+        db.query(DocumentVersionRecord)
+        .filter_by(document_id=document_id, document_status="ACTIVE")
+        .all()
+    )
+    if not rows:
+        return None
+    ordered = sorted(rows, key=_chronology_key)
+    for index, row in enumerate(ordered):
+        row.version_number = index + 1
+        row.is_latest = 1 if index == len(ordered) - 1 else 0
+        row.previous_version_id = ordered[index - 1].id if index else None
+    db.flush()
+    return ordered[-1]
 
 
 def _get_or_create_document(db: Session, shipment_id: int, doc_type: str) -> DocumentRecord:
@@ -219,12 +351,20 @@ def _get_or_create_document(db: Session, shipment_id: int, doc_type: str) -> Doc
     return row
 
 
-def _normalized_hash(fields: dict[str, Any]) -> str:
+def _normalized_hash(fields: dict[str, Any], content: bytes = b"") -> str:
     canonical = {
         f: normalize(f, (fields or {}).get(f))
         for f in COMPARED_FIELDS
         if (fields or {}).get(f) is not None
     }
+    if not canonical:
+        # A document carrying none of the compared fields — a commercial
+        # invoice, or one nothing could be read out of — must not share a
+        # signature with every other such document. An empty signature made
+        # each of them a "duplicate" of the first and froze the version number
+        # at 1. Falling back to the bytes means these are only ever equal when
+        # the file really is the same file.
+        return "nosig:" + hashlib.sha256(content or b"").hexdigest()
     payload = json.dumps(canonical, sort_keys=True, default=str)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -452,9 +592,22 @@ def resolution_status(db: Session, shipment_id: int) -> dict[str, Any]:
 
 
 def _update_shipment_status(db: Session, shipment_id: int) -> None:
+    """Persist the shipment's authoritative status.
+
+    The status is the document-aware one from `shipment_overview` — it accounts
+    for missing required documents, mismatches and the verification verdict.
+    This used to store `resolution_status`, which counts *issue rows* only, so a
+    shipment whose Bill of Lading never arrived had no issues and was written
+    down as VERIFIED. The two are different questions and only one of them is
+    "what state is this shipment in".
+
+    Imported inside the function to keep the module import graph acyclic.
+    """
+    from app.services import shipment_overview
+
     shipment = db.query(ShipmentRecord).filter_by(id=shipment_id).first()
     if shipment:
-        shipment.status = resolution_status(db, shipment_id)["status"]
+        shipment.status = shipment_overview.build_overview(db, shipment)["status"]
 
 
 def generate_corrected_draft(db: Session, shipment_id: int) -> dict[str, Any]:

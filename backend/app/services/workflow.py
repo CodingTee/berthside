@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.models import EmailRecord, ReportRecord, ReviewRecord
 from app.schemas import COMPARED_FIELDS
-from app.services import ai_service, inbox_service, versioning
+from app.services import ai_service, doc_types, inbox_service, versioning
 from app.services.classifier import Classification
 from app.services.comparison import compare
 
@@ -549,9 +549,125 @@ def _apply_verdict(report: ReportRecord, verdict: EmailVerdict) -> None:
     report.extracted = verdict.extracted
 
 
-def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
-    verdict = evaluate_email(email)
+# The invoice name rule now lives with the other document-kind rules so the
+# Gmail layer recognises an invoice by exactly the same test.
+_INVOICE_NAME_RE = doc_types.INVOICE_RE
+_INVOICE_NUMBER_RE = re.compile(
+    r"invoice\s*(?:no|number|#|num)\s*[:.#-]?\s*([A-Z0-9][A-Z0-9/_-]{2,})", re.I)
+_INVOICE_TOTAL_RE = re.compile(
+    r"(?:grand\s+total|total\s+amount|amount\s+due|total)\s*[^0-9]{0,16}"
+    r"([0-9][0-9,]*(?:\.[0-9]{1,2})?)", re.I)
+_CURRENCY_RE = re.compile(r"\b(USD|EUR|MYR|GBP|SGD|CNY|AUD|JPY)\b")
+
+
+def _invoice_fields(text: str) -> dict[str, Any]:
+    """Pull the few fields a commercial invoice is stored by.
+
+    Deliberately small: the invoice is kept as evidence of a complete document
+    set, not compared field-by-field against the SI/BL pair.
+    """
+    fields: dict[str, Any] = {}
+    number = _INVOICE_NUMBER_RE.search(text or "")
+    if number:
+        fields["invoice_number"] = number.group(1)
+    total = _INVOICE_TOTAL_RE.search(text or "")
+    if total:
+        fields["total_amount"] = total.group(1).replace(",", "")
+    currency = _CURRENCY_RE.search(text or "")
+    if currency:
+        fields["currency"] = currency.group(1).upper()
+    return fields
+
+
+def _register_invoice_document(db: Session, shipment, email: dict,
+                               claimed: set) -> None:
+    """Store a commercial invoice as its own document under the shipment.
+
+    ``shipment`` may be ``None`` when this email carried no SI/BL pair (an
+    invoice sent on its own). In that case the invoice is attached to an
+    *existing* shipment identified by the reference in the subject — it never
+    creates one, so an invoice alone can never invent a shipment.
+
+    When the email carries no invoice nothing happens, and the shipment view
+    simply reports the invoice as absent.
+    """
+    attachments = [a for a in (email.get("attachments") or []) if a not in claimed]
+    invoice_path = next((a for a in attachments if _INVOICE_NAME_RE.search(str(a))), None)
+    if invoice_path is None:
+        return
+
+    if shipment is None:
+        key, _reference = versioning.identify_shipment(email, {}, {})
+        shipment = (
+            db.query(versioning.ShipmentRecord).filter_by(shipment_key=key).first()
+        )
+        if shipment is None:
+            log.info("invoice %s has no shipment yet; skipping", invoice_path)
+            return
+    try:
+        content = inbox_service.read_attachment(invoice_path)
+    except Exception:  # noqa: BLE001 - an unreadable file must not break processing
+        log.info("invoice attachment could not be read: %s", invoice_path)
+        return
+    filename = str(invoice_path).rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    text, _source = ai_service.document_text(filename, content)
+    if not text:
+        log.info("invoice attachment is unreadable: %s", filename)
+        return
+    try:
+        versioning.register_document_version(
+            db, shipment, "INVOICE", invoice_path, email, content,
+            _invoice_fields(text), text,
+        )
+    except Exception:  # noqa: BLE001 - version bookkeeping must not fail the report
+        log.warning("could not register invoice version for %s", invoice_path)
+
+
+def persist_email_with_verdict(
+    db: Session, email: dict, verdict: "EmailVerdict"
+) -> ReportRecord:
+    """Persist one email whose verdict was already computed elsewhere.
+
+    Used by ``POST /api/process``: that endpoint runs the shared evaluator once
+    (through ``routers/ingest.analyze_email``) and then needs the same side
+    effects the corpus path gets — shipment grouping, documents, versions,
+    issues. Re-evaluating would classify, extract, OCR and compare a second
+    time, so the verdict is handed over instead and only the persistence half
+    of `_run_pipeline` runs.
+
+    Always returns a report row; a pipeline failure is recorded on it rather
+    than raised, matching `process_email`.
+    """
+    email_id = email["email_id"]
+    _upsert_email_record(db, email)
+
+    report = db.query(ReportRecord).filter_by(email_id=email_id).first()
+    if report is None:
+        report = ReportRecord(email_id=email_id)
+        db.add(report)
+    report.attempts = (report.attempts or 0) + 1
+    report.error_message = None
+
+    t0 = time.perf_counter()
+    try:
+        _run_pipeline(db, report, email, verdict=verdict)
+    except Exception as exc:  # noqa: BLE001 — record, don't crash the API
+        log.exception("pipeline failed for %s", email_id)
+        report.status = "ERROR"
+        report.category = report.category or "GENERAL"
+        report.error_message = f"{type(exc).__name__}: {exc}"
+    report.processing_ms = (time.perf_counter() - t0) * 1000.0
+
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+def _run_pipeline(db: Session, report: ReportRecord, email: dict,
+                  verdict: Optional["EmailVerdict"] = None) -> None:
+    verdict = verdict if verdict is not None else evaluate_email(email)
     pair = verdict.pair
+    shipment = None
 
     if pair is not None:
         # The db-backed path additionally resolves which version of each
@@ -595,8 +711,54 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
 
     _apply_verdict(report, verdict)
 
+    if pair is None:
+        # Before the invoice is filed: a lone SI/BL is what makes the shipment
+        # exist at all, and the invoice is filed *against* that shipment, so
+        # running it afterwards would leave the invoice with nothing to attach
+        # to and silently drop it.
+        if verdict.category in DOCUMENT_CARRYING_CATEGORIES:
+            shipment = _register_documents_without_counterpart(db, email) or shipment
+
+    # The invoice is not one of the two compared documents, so it is registered
+    # independently of the comparison: a commercial invoice that arrives in its
+    # own email must still show up on the shipment.
+    _register_invoice_document(db, shipment, email,
+                               {pair.si_path, pair.bl_path} if pair else set())
+
     if pair is not None:
         versioning.sync_issues_for_report(db, report, shipment)
+
+
+# Classifications that reliably carry shipping documents. SPAM/GENERAL are
+# deliberately excluded: reading documents out of unrelated mail would be wasted
+# extraction work with nothing to attach the result to.
+DOCUMENT_CARRYING_CATEGORIES = frozenset({"BL_COMPARISON", "SI_REQUEST"})
+
+
+def _register_documents_without_counterpart(db: Session, email: dict):
+    """File whichever half of the pair arrived, so the shipment exists.
+
+    Called only when this email was judged to be part of a comparison yet only
+    one of the two documents is attached. The half that is here still belongs
+    to a real shipment, and without it there is nothing to later report the
+    missing document against.
+    """
+    si_path, bl_path = _find_doc_attachments(email)
+    shipment = None
+    for path, doc_type in ((si_path, "SI"), (bl_path, "BL")):
+        if not path:
+            continue
+        try:
+            content = inbox_service.read_attachment(path)
+            result = ai_service.extract_document(doc_type, path, content)
+        except Exception:  # noqa: BLE001 - an unreadable half must not fail the report
+            log.info("standalone %s could not be read: %s", doc_type, path)
+            continue
+        shipment = versioning.register_standalone_document(
+            db, email=email, doc_type=doc_type, path=path, content=content,
+            extracted_fields=result.fields or {}, raw_text=result.raw_text,
+        )
+    return shipment
 
 
 # ------------------------------------------------- attachment discovery tiers
@@ -607,58 +769,46 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
 # it". That is a wrong reason on an escalation, and reason quality is what the
 # reliability axis measures.
 #
-# Tier 1 always wins and is untouched. Tier 2 only fills the gaps it leaves, and
-# only when a filename names exactly one of the two types.
-_DOC_SUFFIXES = frozenset({
-    "txt", "pdf", "docx", "xlsx", "doc", "xls", "csv", "rtf",
-    "png", "jpg", "jpeg", "tif", "tiff", "msg", "eml",
-})
-# A type is claimed either by a whole token in the name ("Draft_BL_v2") or by a
-# phrase that survives separator removal ("Shipping_Instruction_PO123"). The
-# bare words "shipping" and "draft" are deliberately NOT here: they turn up in
-# unrelated names ("shipping_invoice.pdf" is an invoice, not an SI).
-_FUZZY_TOKENS = {"SI": frozenset({"si"}), "BL": frozenset({"bl", "bol", "hbl", "mbl"})}
-_FUZZY_PHRASES = {
-    "SI": ("shippinginstruction", "siform"),
-    "BL": ("billoflading", "draftbl", "bldraft", "blcopy"),
-}
+# Tier 1 always wins for a *real* file. The naming rules themselves now live in
+# one place, `app.services.doc_types`, because the Gmail layer used to apply a
+# stricter test than this one and the two disagreed about what an SI is — which
+# is how a real `SI_v1.pdf` ended up ignored in favour of the email body.
+_DOC_SUFFIXES = doc_types.DOC_SUFFIXES
+_FUZZY_TOKENS = doc_types.SI_BL_TOKENS
+_FUZZY_PHRASES = doc_types.SI_BL_PHRASES
 
 
 def _fuzzy_doc_type(attachment: str) -> Optional[str]:
     """Guess SI/BL from a filename that does not follow the `_SI`/`_BL` convention.
 
-    Returns None when the name is silent about the type, when it names both
-    ("SI_and_BL.pdf"), or when the suffix is not a document type at all. An
-    ambiguous attachment must never be bound to one side of a comparison.
+    Thin alias for :func:`app.services.doc_types.detect_si_bl`; kept because it
+    is the name the rest of this module and the diagnostics scripts use.
     """
-    name, dot, suffix = attachment.rpartition(".")
-    if not dot or not name or suffix.lower() not in _DOC_SUFFIXES:
-        return None
-    stem = name.lower()
-    tokens = set(re.split(r"[^a-z0-9]+", stem))
-    joined = re.sub(r"[^a-z0-9]", "", stem)
-    claimed = {
-        doc for doc, toks in _FUZZY_TOKENS.items()
-        if tokens & toks or any(p in joined for p in _FUZZY_PHRASES[doc])
-    }
-    return claimed.pop() if len(claimed) == 1 else None
+    return doc_types.detect_si_bl(attachment)
 
 
 def _find_doc_attachments(email: dict) -> tuple[Optional[str], Optional[str]]:
     attachments = email.get("attachments") or []
     found: dict[str, Optional[str]] = {"SI": None, "BL": None}
 
+    # A document synthesised from an email body is a fallback, never a peer of a
+    # real attachment. It is considered only after every real file has been
+    # given its chance, so it can fill a genuine gap but can never displace the
+    # PDF the sender actually attached.
+    real = [a for a in attachments if not doc_types.is_synthetic(a)]
+    synthetic = [a for a in attachments if doc_types.is_synthetic(a)]
+
     # Tier 1: the "<id>_SI" convention. First match wins, as it always has.
-    for att in attachments:
+    for att in real + synthetic:
         m = _DOC_TYPE_RE.search(att)
         if m and found[m.group(1).upper()] is None:
             found[m.group(1).upper()] = att
-    if found["SI"] is not None and found["BL"] is not None:
+    if all(found[k] is not None for k in ("SI", "BL")):
         return found["SI"], found["BL"]
 
     # Tier 2: fill only the gaps, and never spend a file tier 1 already took.
     claimed = {p for p in found.values() if p}
-    for att in attachments:
+    for att in real + synthetic:
         if att in claimed:
             continue
         guess = _fuzzy_doc_type(att)

@@ -149,18 +149,23 @@ def list_emails(
 # -------------------------------------------------------------------- detail
 @router.get("/emails/{email_id}")
 def email_detail(email_id: str, db: Session = Depends(get_db)):
-    """Full detail incl. the SI vs BL field comparison the UI renders."""
+    """Full detail incl. the SI vs BL field comparison the UI renders.
+
+    Strictly read-only. This used to run the whole pipeline whenever no report
+    existed yet, so a *read* performed classification, OCR, extraction and
+    verification and then wrote a report — meaning a refresh could change what
+    the page showed, and a Dashboard read was doing document processing.
+    It now reports ``processed: false`` with an empty result; running the
+    pipeline is the explicit ``POST /emails/{id}/process`` endpoint's job.
+    """
     email = inbox_service.get_email(email_id)
     if email is None:
         raise HTTPException(404, f"email not found: {email_id}")
 
     report = db.query(ReportRecord).filter_by(email_id=email_id).first()
-    if report is None:
-        # Not processed yet — run it so the detail view always works.
-        report = workflow.process_email(db, email_id)
 
     comparisons = []
-    for fr in (report.field_results or []):
+    for fr in ((report.field_results or []) if report else []):
         si = fr.get("si_value")
         bl = fr.get("bl_value")
         comparisons.append({
@@ -177,10 +182,11 @@ def email_detail(email_id: str, db: Session = Depends(get_db)):
     if hr:
         human_review = {
             "action": "confirm" if hr.decision == "CONFIRM" else "override",
-            "status": report.status,
+            "status": report.status if report else None,
             "note": hr.notes,
         }
 
+    received = email.get("received_at")
     return {
         "email": {
             "email_id": email_id,
@@ -188,7 +194,12 @@ def email_detail(email_id: str, db: Session = Depends(get_db)):
             "subject": email.get("subject") or "",
             "body": email.get("body") or "",
             "attachments": email.get("attachments") or [],
+            "received_at": (received.isoformat()
+                            if hasattr(received, "isoformat") else received),
         },
+        # Lets the UI distinguish "not processed yet" from "processed, no
+        # issues" without having to infer it from an empty result.
+        "processed": report is not None,
         "result": {
             "category": report.category,
             "status": report.status,
@@ -197,7 +208,7 @@ def email_detail(email_id: str, db: Session = Depends(get_db)):
             "defect_fields": report.defect_fields or [],
             "decided_by": "human" if report.reviewed else "rule",
             "rule": None,
-        },
+        } if report else None,
         "comparisons": comparisons,
         "human_review": human_review,
     }

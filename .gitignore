@@ -44,6 +44,10 @@ venv/
 env/
 *.egg-info/
 .pytest_cache/
+# Scratch --basetemp directories. The safe-delete shim used in this sandbox
+# refuses to remove them, so they must not be able to reach a commit.
+.pytest_tmp*/
+.pt_*/
 .ruff_cache/
 .mypy_cache/
 .coverage

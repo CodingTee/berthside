@@ -22,13 +22,16 @@ from __future__ import annotations
 
 import logging
 import re
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
 from app.models import ProcessResultRecord
-from app.routers.ingest import analyze_email
+from app.routers.ingest import (_decode_all_attachments, _portable_path,
+                                _safe_segment, analyze_email_with_verdict)
 from app.schemas import (
     ApiHealthOut,
     EmailAnalyzeRequest,
@@ -37,7 +40,7 @@ from app.schemas import (
     MockDocumentResponse,
     ProcessDocumentSummary,
 )
-from app.services import mock_customer_db, result_cache
+from app.services import mock_customer_db, result_cache, workflow
 
 log = logging.getLogger(__name__)
 
@@ -103,7 +106,11 @@ def process_email(
         )
 
     # ---- the single place where the existing core actually runs -----------
-    analysis = analyze_email(payload)
+    # The verdict is computed once and handed on: `/api/process` must leave the
+    # same shipment / document / version state behind as the corpus path, and
+    # re-evaluating would classify, extract, OCR and compare a second time.
+    analysis, verdict = analyze_email_with_verdict(payload)
+    _persist_shipment_state(db, email_id, payload, verdict)
 
     doc_fingerprints = _doc_fingerprints(payload)
     versions = result_cache.document_versions(db, shipment_id, doc_fingerprints)
@@ -148,6 +155,46 @@ def process_email(
     return EmailProcessResponse(
         **result_cache.cached_response(row, reused=False)
     )
+
+
+def _persist_shipment_state(db: Session, email_id: str,
+                            payload: EmailAnalyzeRequest, verdict) -> None:
+    """Give a `/api/process` run its normal side effects.
+
+    This is the J6 fix. The endpoint used to stop at the verdict, so a shipment
+    the ShipMail "Run ShipSync" button had just verified did not exist as far as
+    `/shipments` was concerned: the button processed the email and the shipment
+    view could not see it.
+
+    Attachments are written to disk before the pipeline runs because the invoice
+    and standalone-document paths resolve their content through the stored path,
+    exactly as they do when mail arrives via `/api/v1/ingest`.
+    """
+    if verdict is None:
+        # Security-quarantined payload: nothing was compared, nothing to file.
+        log.info("no shipment persisted for %s (quarantined payload)", email_id)
+        return
+
+    decoded, _alerts = _decode_all_attachments(payload.attachments)
+    target_dir = Path(get_settings().ingest_dir) / _safe_segment(email_id, "email")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    paths: list[str] = []
+    for name, content in decoded.items():
+        path = target_dir / _safe_segment(name, "attachment")
+        path.write_bytes(content)
+        paths.append(_portable_path(path))
+
+    email = {
+        "email_id": email_id,
+        "from": payload.sender,
+        "subject": payload.subject,
+        "body": payload.body,
+        "attachments": paths,
+        "received_at": (payload.metadata or {}).get("received"),
+    }
+    report = workflow.persist_email_with_verdict(db, email, verdict)
+    log.info("shipment state persisted for %s (report %s/%s)",
+             email_id, report.status, report.category)
 
 
 # -------------------------------------------------------------------- results

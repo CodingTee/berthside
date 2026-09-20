@@ -15,6 +15,7 @@ import logging
 import re
 import time
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -30,7 +31,7 @@ from app.schemas import (
     EmailIngestResponse,
     FieldResult,
 )
-from app.services import workflow
+from app.services import archive, workflow
 from app.services.security import (MAX_ATTACHMENT_SIZE, encoded_size_exceeds_cap,
                                    verify_file_safety)
 
@@ -56,6 +57,46 @@ def _decode_attachment(att: AttachmentPayload) -> bytes:
     if att.content_text is not None:
         return att.content_text.encode("utf-8")
     return b""
+
+
+def _decode_all_attachments(
+    attachments: list[AttachmentPayload],
+) -> tuple[dict[str, bytes], list[str]]:
+    """Decode every attachment and expand ZIP archives into their members.
+
+    Returns ``(decoded, security_alerts)``. A ZIP is only a container: its
+    members become the attachments the engine compares, which is why the
+    archive itself is not kept as a separate document.
+    """
+    decoded: dict[str, bytes] = {}
+    security_alerts: list[str] = []
+
+    for att in attachments:
+        # Reject an oversized payload *before* decoding it ...
+        if encoded_size_exceeds_cap(att.content_base64, att.content_text):
+            security_alerts.append(
+                f"{att.filename}: exceeds the "
+                f"{MAX_ATTACHMENT_SIZE // (1024 * 1024)}MB attachment limit")
+            continue
+        content = _decode_attachment(att)
+        is_safe, reason = verify_file_safety(att.filename, content)
+        if not is_safe:
+            security_alerts.append(f"{att.filename}: {reason}")
+            continue
+
+        if archive.is_archive(att.filename):
+            members, notes = archive.expand_archive(att.filename, content)
+            for note in notes:
+                log.info("archive %s", note)
+            for name, data in members:
+                decoded[name] = data
+            if not members:
+                security_alerts.append(
+                    f"{att.filename}: no readable shipping documents inside")
+            continue
+
+        decoded[att.filename] = content
+    return decoded, security_alerts
 
 
 def _suggested_action(verdict: workflow.EmailVerdict) -> str:
@@ -136,29 +177,34 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
     Takes email metadata + attachments, runs the safety gate, then hands the
     email to the same evaluator the corpus pipeline uses, and returns the
     verdict in milliseconds. Zero database persistence.
+
+    Callers that also need the side effects (shipment grouping, versions,
+    issues) use `analyze_email_with_verdict` so the verdict is computed **once**
+    and handed over, instead of being recomputed on the persistence path.
+    """
+    response, _verdict = analyze_email_with_verdict(payload)
+    return response
+
+
+def analyze_email_with_verdict(
+    payload: EmailAnalyzeRequest,
+) -> tuple[EmailAnalyzeResponse, "workflow.EmailVerdict | None"]:
+    """`analyze_email`, plus the verdict object it was built from.
+
+    The verdict carries the SI/BL pair — paths, contents and extraction results
+    — which is exactly what the persistence path needs. Returning it is what
+    lets ``POST /api/process`` create the shipment without extracting anything a
+    second time. The verdict is ``None`` for a payload the security gate
+    quarantines, because no comparison was run.
     """
     t0 = time.perf_counter()
     email_id = payload.email_id or f"ANL_{uuid.uuid4().hex[:8].upper()}"
 
-    # 1. Decode and verify attachments
-    decoded: dict[str, bytes] = {}
-    security_alerts: list[str] = []
-
-    for att in payload.attachments:
-        # Reject an oversized payload *before* decoding it. The cap is about
-        # not letting one request exhaust the process, and a payload that is
-        # rejected only after it has been fully decoded has already spent the
-        # memory the cap is there to protect.
-        if encoded_size_exceeds_cap(att.content_base64, att.content_text):
-            security_alerts.append(
-                f"{att.filename}: exceeds the "
-                f"{MAX_ATTACHMENT_SIZE // (1024 * 1024)}MB attachment limit")
-            continue
-        content = _decode_attachment(att)
-        is_safe, reason = verify_file_safety(att.filename, content)
-        if not is_safe:
-            security_alerts.append(f"{att.filename}: {reason}")
-        decoded[att.filename] = content
+    # 1. Decode and verify attachments (ZIP archives expand into members).
+    #    Oversized payloads are rejected *before* decoding: the cap exists so a
+    #    single request cannot exhaust the process, and a payload rejected only
+    #    after a full decode has already spent that memory.
+    decoded, security_alerts = _decode_all_attachments(payload.attachments)
 
     # If any attachment is flagged as dangerous executable/malicious
     if security_alerts:
@@ -182,7 +228,7 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
             },
             security_alerts=security_alerts,
             processing_ms=elapsed,
-        )
+        ), None
 
     # 2. Hand the email to the shared evaluator -----------------------------
     # The verification rules live in workflow.evaluate_email. Calling them
@@ -203,7 +249,7 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
     elapsed = (time.perf_counter() - t0) * 1000.0
     action = action_for_verdict(verdict)
     missing_documents = verdict.extracted.get("missing_documents") or []
-    return EmailAnalyzeResponse(
+    response = EmailAnalyzeResponse(
         email_id=email_id,
         shipment_id=payload.shipment_id,
         category=verdict.category,
@@ -221,6 +267,7 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
         security_alerts=[],
         processing_ms=elapsed,
     )
+    return response, verdict
 
 
 def _ingest_response(analysis: EmailAnalyzeResponse, email_id: str,
@@ -271,9 +318,11 @@ def ingest_email(payload: EmailAnalyzeRequest, db: Session = Depends(get_db)):
     ingest_dir.mkdir(parents=True, exist_ok=True)
 
     attachment_paths = []
-    for att in payload.attachments:
-        content = _decode_attachment(att)
-        file_path = ingest_dir / _safe_segment(att.filename, "attachment")
+    # Same decoded set the analysis ran on, so the stored files and the verdict
+    # always describe the same documents (archives expanded, unsafe skipped).
+    decoded, _alerts = _decode_all_attachments(payload.attachments)
+    for name, content in decoded.items():
+        file_path = ingest_dir / _safe_segment(name, "attachment")
         file_path.write_bytes(content)
         attachment_paths.append(_portable_path(file_path))
 
@@ -286,6 +335,16 @@ def ingest_email(payload: EmailAnalyzeRequest, db: Session = Depends(get_db)):
     rec.subject = payload.subject
     rec.body = payload.body
     rec.attachments = attachment_paths
+    # The caller may know when the mail was actually received; the shipment view
+    # shows it as source information, so it is kept when it is supplied.
+    received = (payload.metadata or {}).get("received")
+    if received:
+        try:
+            rec.received_at = datetime.fromisoformat(
+                str(received).replace("Z", "+00:00"))
+        except ValueError:
+            log.info("ignoring unparseable received date for %s: %r",
+                     email_id, received)
     db.commit()
 
     # 4. Upsert ReportRecord

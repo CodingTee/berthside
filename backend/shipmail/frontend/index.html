@@ -131,6 +131,12 @@ body.side-closed .app{grid-template-columns:236px minmax(300px,400px) minmax(360
 .listbar{display:flex;align-items:center;gap:8px;height:48px;padding:0 16px;border-bottom:1px solid var(--border);
   position:sticky;top:0;background:var(--surface-2);z-index:2;color:var(--muted);font-weight:600}
 .listbar .grow{flex:1}
+.src-toggle{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.src-toggle button{border:0;background:none;color:var(--muted);font:inherit;font-size:12px;font-weight:600;
+  padding:5px 11px;cursor:pointer;transition:.15s}
+.src-toggle button+button{border-left:1px solid var(--border)}
+.src-toggle button.on{background:var(--grad-btn);color:#fff}
+.src-toggle button:hover:not(.on){color:var(--text)}
 .row{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;align-items:flex-start;
   position:relative;transition:background .12s}
 .row:hover{background:var(--surface)}
@@ -184,7 +190,13 @@ body.side-closed .app{grid-template-columns:236px minmax(300px,400px) minmax(360
 .preview pre{margin:0;padding:14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;max-height:280px;overflow:auto;white-space:pre-wrap;color:var(--text)}
 
 /* ---------------- ship panel ---------------- */
-.side{background:linear-gradient(180deg,#0b1222,#0a0f1c);color:var(--text);border-left:1px solid #1b2740;
+/* The panel keeps its own always-dark palette. The page theme (shared with
+   the Dashboard via sdoc-theme) flips --text to near-black in light mode,
+   which used to render dark text on this hardcoded dark background —
+   unreadable. Re-declaring the variables here overrides them for the panel
+   and everything inside it, in both themes. */
+.side{--text:#eef4ff;--muted:#b9c7dd;--muted-2:#94a4bf;
+  background:linear-gradient(180deg,#0b1222,#0a0f1c);color:var(--text);border-left:1px solid #1b2740;
   overflow:auto;display:flex;flex-direction:column}
 body.side-closed .side{visibility:hidden;border-left:0;overflow:hidden}
 .shead{padding:16px 18px;border-bottom:1px solid #1b2740;display:flex;align-items:center;gap:12px;
@@ -200,10 +212,10 @@ body.side-closed .side{visibility:hidden;border-left:0;overflow:hidden}
 .pill.ok{background:rgba(52,211,153,.18);color:#6ee7a8}
 .pill.warn{background:rgba(251,191,36,.18);color:#fbbf24}
 .pill.bad{background:rgba(251,113,133,.18);color:#fb7185}
-.pill.mute{background:rgba(148,163,184,.16);color:#cbd5e1}
+.pill.mute{background:rgba(148,163,184,.20);color:#e2e8f4}
 .kv{display:grid;grid-template-columns:92px 1fr;gap:6px 10px;font-size:12.5px;margin-top:12px}
 .kv span:nth-child(odd){color:var(--muted-2)}
-.kv b{font-weight:650;word-break:break-word}
+.kv b{font-weight:650;word-break:break-word;color:var(--text)}
 .doc{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(148,163,184,.10)}
 .doc:last-child{border-bottom:0}
 .doc .l b{font-size:13px}
@@ -213,7 +225,7 @@ body.side-closed .side{visibility:hidden;border-left:0;overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:12px}
 td{padding:7px 0;border-bottom:1px solid rgba(148,163,184,.10);vertical-align:top}
 td:first-child{color:var(--muted-2);width:46%}
-td.val{color:#cbd5e1;font-family:var(--mono);font-size:11.5px}
+td.val{color:#e2e8f4;font-family:var(--mono);font-size:11.5px}
 .note{background:rgba(251,191,36,.10);border:1px solid rgba(251,191,36,.26);border-radius:9px;padding:10px 12px;
   font-size:12.5px;color:#fde68a;margin-bottom:10px}
 .note.bad{background:rgba(251,113,133,.10);border-color:rgba(251,113,133,.28);color:#fda4af}
@@ -224,7 +236,7 @@ td.val{color:#cbd5e1;font-family:var(--mono);font-size:11.5px}
 .btn.primary{background:var(--grad-btn);border:0;color:#fff}
 .btn:disabled{opacity:.55;cursor:not-allowed}
 .src{font-size:11px;color:var(--muted-2);margin-top:10px;line-height:1.5}
-.src b{color:#cbd5e1;font-weight:650}
+.src b{color:#e2e8f4;font-weight:650}
 .empty{padding:26px 18px;color:var(--muted-2);font-size:13px;line-height:1.6}
 .spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--accent-2);border-top-color:transparent;
   display:inline-block;vertical-align:-2px;animation:sp .8s linear infinite}
@@ -289,7 +301,12 @@ td.val{color:#cbd5e1;font-family:var(--mono);font-size:11.5px}
   </aside>
 
   <section class="list" id="list">
-    <div class="listbar"><span>Inbox</span><span class="grow"></span><span id="listMeta"></span></div>
+    <div class="listbar"><span>Inbox</span><span class="grow"></span>
+      <div class="src-toggle" id="srcToggle">
+        <button data-src="simulated" class="on" onclick="switchSource('simulated')">Simulated</button>
+        <button data-src="real" onclick="switchSource('real')">Real Gmail</button>
+      </div>
+      <span id="listMeta"></span></div>
     <div id="rows"></div>
   </section>
 
@@ -316,9 +333,14 @@ td.val{color:#cbd5e1;font-family:var(--mono);font-size:11.5px}
 const API = "";                       // same origin as the ShipSync backend
 const DATA = "data/";                 // static demo data, served as files
 let EMAILS = [], SHIPMENTS = {}, active = 0;
+let mailSource = "simulated";         // "simulated" | "real"
+let REAL = [];                        // normalized real Gmail messages
 const results = Object.create(null);
 const attText = Object.create(null);
 let shipSyncClickTimer = null;
+
+// The list currently shown depends on the selected mail source.
+function curList(){ return mailSource === "simulated" ? EMAILS : REAL; }
 
 const $ = id => document.getElementById(id);
 const esc = s => (s ?? "").toString().replace(/[&<>"']/g,
@@ -341,8 +363,8 @@ function isPanelOpen(){ return !document.body.classList.contains("side-closed");
 function setPanelOpen(open){
   document.body.classList.toggle("side-closed", !open);
   $("ssLaunch")?.classList.toggle("active", open);
-  if (open && EMAILS[active]){
-    if (results[EMAILS[active].id]) renderSide(results[EMAILS[active].id]);
+  if (open && curList()[active]){
+    if (results[curList()[active].id]) renderSide(results[curList()[active].id]);
     else renderIdle();
   }
 }
@@ -387,6 +409,7 @@ async function refreshGmailStatus(){
       $("gmailConnect").style.display = ""; $("gmailSync").style.display = "none";
       note.textContent = "Add a Google OAuth client to enable real Gmail.";
     }
+    if (mailSource === "real"){ chip.className = "conn"; txt.textContent = "Real Gmail"; }
   }catch(_){ /* status is best-effort */ }
 }
 async function connectGmail(){
@@ -394,26 +417,98 @@ async function connectGmail(){
     const r = await fetch(API + "/api/gmail/connect");
     if (!r.ok){ toast("Gmail not configured on the server."); return; }
     const { authorization_url } = await r.json();
-    window.open(authorization_url, "shipmail-gmail", "width=480,height=640");
-    toast("Complete Google sign-in, then Sync now.");
+    // Full-page navigation, not a small popup: Google's consent screen is
+    // unreliable in a 480x640 window (it can render an error page instead of
+    // the account chooser). The callback sends the operator back to ShipMail.
+    window.location.href = authorization_url;
   }catch(_){ toast("Could not start Gmail connection."); }
 }
 async function syncGmail(){
   toast("Syncing Gmail…");
   try{
-    const r = await fetch(API + "/api/gmail/poll", {method:"POST"});
+    // force=true re-runs already synced messages through the pipeline —
+    // the same explicit-reprocess contract as /api/process force:true.
+    const r = await fetch(API + "/api/gmail/poll?force=true", {method:"POST"});
     const d = await r.json();
     toast(`Gmail sync: ${d.processed} processed, ${d.skipped} skipped.`);
+    if (mailSource === "real") await loadReal();   // refresh the real inbox
   }catch(_){ toast("Gmail sync failed."); }
+}
+
+/* ----------------------------------------------- real Gmail mail source */
+// Normalize a /api/gmail/messages item into the same shape renderList /
+// renderMail expect, so Simulated and Real share one rendering path.
+function normalizeReal(m){
+  const sender = m.sender || "Unknown sender";
+  const m0 = sender.match(/^(.*?)\s*<([^>]+)>/);
+  const fromName = m0 ? (m0[1].trim() || m0[2]) : sender;
+  const fromAddr = m0 ? m0[2] : sender;
+  const atts = (m.attachments || []).map(f => ({
+    filename: f,
+    kind: "GMAIL",
+    size_kb: 0,
+    path: "gmail/attachment/" + encodeURIComponent(m.email_id) + "/" + encodeURIComponent(f),
+  }));
+  return {
+    id: m.email_id,
+    email_id: m.email_id,
+    message_id: m.gmail_message_id,
+    thread_id: m.thread_id,
+    from_name: fromName,
+    from: fromAddr,
+    to: "(you)",
+    subject: m.subject || "(no subject)",
+    snippet: (m.snippet || "").slice(0, 140),
+    body: m.body || "",
+    shipment_id: m.shipment_id || "",
+    unread: m.processing_status !== "PROCESSED",
+    received: m.processed_at ? new Date(m.processed_at).toLocaleString() : "",
+    attachments: atts,
+    _real: true,
+    _status: m.status, _category: m.category, _has_defect: m.has_defect,
+  };
+}
+async function switchSource(src){
+  if (src === mailSource) return;
+  mailSource = src;
+  document.querySelectorAll("#srcToggle button").forEach(b =>
+    b.classList.toggle("on", b.dataset.src === src));
+  const chip = $("connChip"), txt = $("connTxt");
+  if (src === "real"){
+    chip.className = "conn"; txt.textContent = "Real Gmail";
+    await loadReal();
+  } else {
+    chip.className = "conn"; txt.textContent = "Simulated";
+    active = 0;
+    renderList();
+    if (EMAILS.length) openMail(0); else $("mail").innerHTML = "";
+  }
+}
+async function loadReal(){
+  $("listMeta").textContent = "loading…";
+  try{
+    const d = await (await fetch(API + "/api/gmail/messages")).json();
+    REAL = (d.items || []).map(normalizeReal);
+    $("listMeta").textContent = REAL.length + " message(s)";
+    renderList();
+    if (REAL.length) openMail(0);
+    else $("mail").innerHTML = `<div class="empty" style="padding:42px 26px">
+      No real Gmail mail yet.<br><br>Connect Gmail from the <b>Mail source</b> card on the
+      left, then press <b>Sync now</b> to pull messages from your inbox here.</div>`;
+  }catch(e){
+    $("listMeta").textContent = "error";
+    $("mail").innerHTML = `<div class="empty" style="padding:42px 26px">
+      Could not load real Gmail messages.<br><br>${esc(e.message)}</div>`;
+  }
 }
 
 /* ----------------------------------------------------------------- list */
 function renderList(){
   const q = ($("q").value || "").toLowerCase();
-  const shown = EMAILS.filter(e =>
+  const shown = curList().filter(e =>
     !q || (e.subject + " " + e.from_name + " " + e.snippet + " " + e.shipment_id).toLowerCase().includes(q));
   $("rows").innerHTML = shown.map(e => {
-    const i = EMAILS.indexOf(e);
+    const i = curList().indexOf(e);
     const kinds = [...new Set(e.attachments.map(a => a.kind))];
     return `<div class="row ${i===active?"active":""} ${e.unread?"unread":""}" onclick="openMail(${i})">
       <div class="av" style="background:${color(e.from_name)}">${esc(initials(e.from_name))}</div>
@@ -426,12 +521,14 @@ function renderList(){
       <div><div class="tm">${esc(e.received)}</div>
         ${e.attachments.length?`<div class="clip" title="${e.attachments.length} attachment(s)">&#128206; ${e.attachments.length}</div>`:""}
       </div></div>`;
-  }).join("") || `<div class="empty">No conversations match.</div>`;
+  }).join("") || `<div class="empty">${mailSource === "real"
+    ? "No real Gmail messages yet — connect Gmail, then press <b>Sync now</b>."
+    : "No conversations match."}</div>`;
 }
 
 /* ----------------------------------------------------------------- mail */
 function renderMail(){
-  const e = EMAILS[active];
+  const e = curList()[active];
   const ship = SHIPMENTS[e.shipment_id] || {};
   $("mail").innerHTML = `
     <div class="mailbar">
@@ -440,7 +537,8 @@ function renderMail(){
       <button class="ic" title="Delete">&#128465;</button>
       <span class="grow"></span>
       ${e.shipment_id?`<span class="chip">${esc(e.shipment_id)}</span>`:""}
-      <span class="chip">${esc(ship.status || "INBOX")}</span>
+      ${e._real && e._status?`<span class="chip">ShipSync: ${esc(e._status)}</span>`:""}
+      <span class="chip">${esc(ship.status || (e._real ? "REAL GMAIL" : "INBOX"))}</span>
     </div>
     <div class="wrap">
       <div class="subj">${esc(e.subject)}</div>
@@ -465,10 +563,11 @@ function renderMail(){
 }
 
 async function previewAtt(i){
-  const a = EMAILS[active].attachments[i];
-  const key = a.path || a.filename;     // bundle-relative path → /api/attachments
+  const a = curList()[active].attachments[i];
+  const key = a.path || a.filename;     // "gmail/..." → /api/gmail/... ; else bundle → /api/attachments/...
+  const url = key.startsWith("gmail/") ? API + "/api/" + key : API + "/api/attachments/" + key;
   if (attText[key] === undefined){
-    attText[key] = await fetch(API + "/api/attachments/" + key)
+    attText[key] = await fetch(url)
       .then(r => r.ok ? r.text() : "(could not read attachment)")
       .catch(() => "(could not read attachment)");
   }
@@ -479,7 +578,7 @@ async function previewAtt(i){
 /* ------------------------------------------------------- open email flow */
 async function openMail(i){
   active = i;
-  const e = EMAILS[i];
+  const e = curList()[i];
   if (e.unread){ e.unread = false; }
   renderList(); renderMail();
 
@@ -497,8 +596,9 @@ async function attachmentsFor(e){
   const out = [];
   for (const a of e.attachments){
     const key = a.path || a.filename;
+    const url = key.startsWith("gmail/") ? API + "/api/" + key : API + "/api/attachments/" + key;
     if (attText[key] === undefined){
-      attText[key] = await fetch(API + "/api/attachments/" + key).then(r => r.ok ? r.text() : "").catch(() => "");
+      attText[key] = await fetch(url).then(r => r.ok ? r.text() : "").catch(() => "");
     }
     out.push({filename: a.filename, content_text: attText[key]});
   }
@@ -506,7 +606,7 @@ async function attachmentsFor(e){
 }
 
 async function runShipSync(force){
-  const e = EMAILS[active];
+  const e = curList()[active];
   setPanelOpen(true);
   showLoading(force ? "Re-processing with ShipSync…" : "ShipSync is processing this email…");
   try{
@@ -532,7 +632,7 @@ async function runShipSync(force){
 }
 
 async function requestDoc(doc){
-  const e = EMAILS[active];
+  const e = curList()[active];
   showLoading(`Requesting ${doc} from the customer…`);
   try{
     const res = await fetch(API + "/api/mock-customer-db/request-document", {
@@ -563,11 +663,11 @@ function showLoading(msg){
   $("side").innerHTML = sideHead() + `<div class="empty"><span class="spin"></span> ${esc(msg)}</div>`;
 }
 function renderIdle(){
-  const e = EMAILS[active];
+  const e = curList()[active];
   $("side").innerHTML = sideHead() + `
     <div class="panel"><h3>Shipment</h3>
       <div class="ship"><span class="id">${esc(e.shipment_id || "—")}</span>
-        <span class="pill mute">NOT PROCESSED</span></div>
+        <span class="pill mute">${esc((e._real && e._status) ? e._status : "NOT PROCESSED")}</span></div>
       <div class="kv"><span>From</span><b>${esc(e.from_name)}</b>
         <span>Attachments</span><b>${e.attachments.length || "none"}</b></div></div>
     <div class="panel"><h3>Action</h3>
@@ -578,7 +678,7 @@ function renderIdle(){
 }
 
 function renderSide(r){
-  const e = EMAILS[active];
+  const e = curList()[active];
   const st = r.status;
   const cls = st === "OK" ? "ok" : st === "MISMATCH" ? "bad" : st === "NEEDS_REVIEW" ? "warn" : "mute";
   const v = r.verification || {};
@@ -686,6 +786,7 @@ window.previewAtt = previewAtt;
 window.openDashboard = openDashboard;
 window.connectGmail = connectGmail;
 window.syncGmail = syncGmail;
+window.switchSource = switchSource;
 boot();
 </script>
 </body>

@@ -253,6 +253,12 @@ _CONTAINER_JOIN = re.compile(
 def _parse_container_count(raw: str) -> Optional[int]:
     text = str(raw)
 
+    # An ISO 6346 container *number* ("ABCU1234567") is never a count. The
+    # "Container No.:" label matches the container_count label set, and without
+    # this guard its trailing digits would be read as "1234567 boxes".
+    if re.fullmatch(r"[A-Z]{4}\d{7}", _strip_spaces(text).replace(",", "").strip().upper()):
+        return None
+
     # Split before collapsing whitespace: "1x40HC and 1x20GP" must keep the word
     # boundaries around "and", which _strip_spaces would erase ("1x40HCand...").
     parts = [p.strip() for p in _CONTAINER_JOIN.split(text) if p.strip()]
@@ -638,10 +644,10 @@ def _norm_name(s: str) -> str:
 def _norm_port(s: str) -> str:
     """City/country words plus the UN/LOCODE, normalised as one string.
 
-    The code is part of the field value, not a replacement for it: the two
-    documents must agree on the whole port string. Measured against the
-    official scorer, comparing "name + code" beats both ignoring the code
-    (0.83) and letting the code alone decide (0.66).
+    The code stays part of the value rather than replacing it: "name + code" is
+    what gets stored, shown and diffed, and it is what the scorer was measured
+    against. What decides a *match* is `ports_match` — the code first when both
+    documents print one, otherwise the name.
     """
     s = str(s or "").upper().strip()
     code = _PORT_CODE.search(s)
@@ -654,11 +660,48 @@ def port_code(s: str) -> Optional[str]:
     return m.group(1) if m else None
 
 
-def ports_match(a: str, b: str) -> bool:
-    """Ports must agree on the whole normalised string (name + LOCODE).
+def _port_name(value: str, code: Optional[str] = None) -> str:
+    """The name part of a normalised port value.
 
-    Kept as a named function so the rule stays visible and testable; plain
-    equality is deliberate — lenient subset matching was measured and neither
-    helped nor hurt, so the simpler rule wins.
+    ``code`` is the LOCODE that was found in the *raw* text; when given, that
+    exact token is removed here. Only the known code is removed — a trailing
+    five-letter word is not a code ("MOMBASA KENYA", "NANTONG CHINA"), so
+    guessing from the normalized string alone would strip the country.
     """
-    return a == b
+    text = str(value or "")
+    if code:
+        text = re.sub(rf"(?:^|\s){re.escape(code)}$", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def ports_match(a: str, b: str, raw_a: str = None, raw_b: str = None) -> bool:
+    """Do two normalised port values refer to the same port?
+
+    Only **one** relaxation is made, and it was measured before being added:
+
+    * identical strings match, as always;
+    * when exactly **one** side prints a UN/LOCODE, the port **names** are
+      compared, because a missing code is a formatting difference, not a
+      routing change.
+
+    When *both* sides print a code the values are compared as they always were
+    (whole-string equality, then the OCR-slip tolerance). Trusting two equal
+    codes was tried and reverted: on this corpus the printed code is not a
+    reliable port identity — 16 SI/BL pairs carry the *same* code on two
+    genuinely different ports ("MOMBASA KENYA KEMBA" vs "TUTICORIN INDIA
+    KEMBA"), and treating those as matches would have silently approved 16 real
+    routing differences. The 7 pairs a one-sided code does fix are all the same
+    port written with and without its code ("NANTONG CHINA" vs "NANTONG CHINA
+    CNNTG").
+
+    The LOCODE is read from the raw text (`raw_a`/`raw_b`) because normalisation
+    drops the parentheses that make a code identifiable. Callers that only hold
+    normalised values keep the previous behaviour: name equality.
+    """
+    if a == b:
+        return True
+    code_a = port_code(raw_a if raw_a is not None else a)
+    code_b = port_code(raw_b if raw_b is not None else b)
+    if bool(code_a) != bool(code_b):
+        return _port_name(a, code_a) == _port_name(b, code_b)
+    return False

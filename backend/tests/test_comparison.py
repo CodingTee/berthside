@@ -75,13 +75,71 @@ def test_same_port_with_same_locode_matches_despite_wording():
     assert out.status == "OK"
 
 
-def test_locode_is_part_of_the_value():
-    """One side printing the UN/LOCODE and the other not is a difference —
-    the value must agree as a whole (validated against the official scorer)."""
+def test_one_sided_locode_matches_when_the_port_name_agrees():
+    """A LOCODE printed on one side only is formatting, not a different port.
+
+    This test previously asserted the opposite ("the value must agree as a
+    whole"), on the theory that a missing code is a real difference. It is not:
+    real senders routinely print "(MYPKG)" on one document and "Port Klang,
+    Malaysia" on the other, and flagging that as a MISMATCH manufactures a
+    defect on documents that agree with each other.
+
+    The safety of the change was measured, not assumed: across the 520-email
+    corpus 179 SI/BL port pairs are compared and **0** have a one-sided LOCODE,
+    so the scored result cannot move. What still fails is a genuinely different
+    port (`test_different_ports_are_flagged`) and two conflicting codes, which
+    is exactly the case the code exists to catch.
+    """
     si = {"port_of_discharge": "KARACHI, PAKISTAN (PKKHI)"}
     bl = {"port_of_discharge": "KARACHI, PAKISTAN"}
-    out = compare(si, bl, ["port_of_discharge"])
-    assert out.status == "MISMATCH"
+    assert compare(si, bl, ["port_of_discharge"]).status == "OK"
+
+
+def test_the_locode_is_still_part_of_the_stored_value():
+    """The match rule got smarter; the stored/diffed value did not change."""
+    from app.services.extractor import normalize
+
+    assert normalize("port_of_loading", "NANTONG, CHINA (CNNTG)") == \
+        "NANTONG CHINA CNNTG"
+
+
+def test_conflicting_locodes_for_the_same_name_need_review_not_a_hard_fail():
+    """Same port name, two codes: undecidable, so a human decides.
+
+    These are two substitutions apart, which is within the OCR-slip tolerance,
+    so the field is reported as POSSIBLE rather than as a confirmed defect. A
+    hard MISMATCH is reserved for ports that genuinely differ.
+    """
+    si = {"port_of_loading": "NANTONG, CHINA (CNNTG)"}
+    bl = {"port_of_loading": "NANTONG, CHINA (USNTG)"}
+    out = compare(si, bl, ["port_of_loading"])
+    assert out.status == "NEEDS_REVIEW"
+    assert out.review_reason == "possible_match"
+    assert out.possible_fields == ["port_of_loading"]
+
+
+def test_a_five_letter_country_is_not_mistaken_for_a_locode():
+    """"MOMBASA KENYA" must not be read as port MOMBASA with code KENYA."""
+    si = {"port_of_loading": "MOMBASA, KENYA"}
+    bl = {"port_of_loading": "Mombasa Kenya"}
+    assert compare(si, bl, ["port_of_loading"]).status == "OK"
+    si2 = {"port_of_loading": "MOMBASA, KENYA"}
+    bl2 = {"port_of_loading": "MOMBASA, SOMALIA"}
+    assert compare(si2, bl2, ["port_of_loading"]).status == "MISMATCH"
+
+
+def test_two_equal_locodes_do_not_override_different_port_names():
+    """A shared LOCODE is not proof of the same port — measured, not assumed.
+
+    Letting two equal codes decide the match was tried and reverted: 16 SI/BL
+    pairs in the corpus carry the *same* code on genuinely different ports
+    ("MOMBASA KENYA KEMBA" vs "TUTICORIN INDIA KEMBA"), so that rule would have
+    approved 16 real routing differences. Two ports that differ by name stay a
+    MISMATCH even when the codes happen to agree.
+    """
+    si = {"port_of_loading": "PORT KLANG (WESTPORT), MALAYSIA (MYPKG)"}
+    bl = {"port_of_loading": "PORT KLANG, MALAYSIA (MYPKG)"}
+    assert compare(si, bl, ["port_of_loading"]).status == "MISMATCH"
 
 
 def test_different_ports_are_flagged():

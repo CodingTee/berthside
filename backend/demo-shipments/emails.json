@@ -1,0 +1,191 @@
+{
+  "mailbox": "operations@shipsync.demo",
+  "note": "curated demo shipments",
+  "emails": [
+    {
+      "email_id": "demo-001",
+      "message_id": "demo-001",
+      "thread_id": "demo-shp-001",
+      "from": "amelia.tan@nordicpaper-asia.com",
+      "from_name": "Amelia Tan",
+      "to": "operations@shipsync.demo",
+      "subject": "SHP-001 - please check SI and draft BL",
+      "body": "Attached are the SI and draft BL for this shipment. Please check the details and confirm. Commercial invoice is attached too.",
+      "received": "2026-09-20T08:00:00",
+      "attachments": [
+        {
+          "filename": "SHP-001_SI.pdf",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-001_BL.pdf",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-001_Invoice.pdf",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-002",
+      "message_id": "demo-002",
+      "thread_id": "demo-shp-002",
+      "from": "amelia.tan@nordicpaper-asia.com",
+      "from_name": "Amelia Tan",
+      "to": "operations@shipsync.demo",
+      "subject": "Shipping Instruction SHP-002 - please verify, BL still outstanding",
+      "body": "Attached are the shipping instruction and the commercial invoice. The carrier has not released the bill of lading yet - please check what we have so far.",
+      "received": "2026-09-20T08:25:00",
+      "attachments": [
+        {
+          "filename": "SHP-002_SI.csv",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-002_Invoice.xlsx",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-003",
+      "message_id": "demo-003",
+      "thread_id": "demo-shp-003",
+      "from": "export.docs@nordicpaper-asia.com",
+      "from_name": "Docs Team",
+      "to": "operations@shipsync.demo",
+      "subject": "SHP-003 shipping instruction (first issue) - please check",
+      "body": "Attached is the first shipping instruction, please check it. Details may still change - the packing list is not final.",
+      "received": "2026-09-20T08:40:00",
+      "attachments": [
+        {
+          "filename": "SHP-003_SI_v1.txt",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-004",
+      "message_id": "demo-004",
+      "thread_id": "demo-shp-003",
+      "from": "export.docs@nordicpaper-asia.com",
+      "from_name": "Docs Team",
+      "to": "operations@shipsync.demo",
+      "subject": "REVISED Shipping Instruction SHP-003 v2 (weight updated) - please check",
+      "body": "Please check the revised SI and discard v1. Gross weight revised after the final weighbridge reading.",
+      "received": "2026-09-20T08:55:00",
+      "attachments": [
+        {
+          "filename": "SHP-003_SI_v2.txt",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-005",
+      "message_id": "demo-005",
+      "thread_id": "demo-shp-003",
+      "from": "amelia.tan@nordicpaper-asia.com",
+      "from_name": "Amelia Tan",
+      "to": "operations@shipsync.demo",
+      "subject": "FINAL Shipping Instruction SHP-003 v3 + Bill of Lading",
+      "body": "Final version (v3) supersedes v1 and v2: one extra container and the confirmed weight. Please compare against the attached BL.",
+      "received": "2026-09-20T09:10:00",
+      "attachments": [
+        {
+          "filename": "SHP-003_SI_v3.docx",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-003_BL.txt",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-003_Invoice.pdf",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-006",
+      "message_id": "demo-006",
+      "thread_id": "demo-shp-004",
+      "from": "amelia.tan@nordicpaper-asia.com",
+      "from_name": "Amelia Tan",
+      "to": "operations@shipsync.demo",
+      "subject": "SHP-004 - please compare SI and carrier draft BL",
+      "body": "Shipping instruction (XML export), invoice and the carrier's draft BL. Please compare the SI against the BL and confirm.",
+      "received": "2026-09-20T09:25:00",
+      "attachments": [
+        {
+          "filename": "SHP-004_SI.xml",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-004_BL.txt",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-004_Invoice.docx",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-007",
+      "message_id": "demo-007",
+      "thread_id": "demo-shp-005",
+      "from": "amelia.tan@nordicpaper-asia.com",
+      "from_name": "Amelia Tan",
+      "to": "operations@shipsync.demo",
+      "subject": "SHP-005 - please check the attached documents (bundle)",
+      "body": "All documents in one archive: shipping instruction, bill of lading and commercial invoice. Please check and confirm.",
+      "received": "2026-09-20T09:40:00",
+      "attachments": [
+        {
+          "filename": "SHP-005_shipment_documents.zip",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-008",
+      "message_id": "demo-008",
+      "thread_id": "demo-shp-005",
+      "from": "ar@nordicpaper-asia.com",
+      "from_name": "Invoicing",
+      "to": "operations@shipsync.demo",
+      "subject": "SHP-005 - revised commercial invoice (scan)",
+      "body": "Our accounts team reissued the invoice; please use the attached revised copy instead of the one in the bundle.",
+      "received": "2026-09-20T09:55:00",
+      "attachments": [
+        {
+          "filename": "SHP-005_Invoice_rev2.jpeg",
+          "content_base64": ""
+        }
+      ]
+    },
+    {
+      "email_id": "demo-009",
+      "message_id": "demo-009",
+      "thread_id": "demo-shp-006",
+      "from": "agent@hamoverflow.de",
+      "from_name": "Port Agent",
+      "to": "operations@shipsync.demo",
+      "subject": "SHP-006 - please verify SI against scanned bill of lading",
+      "body": "Shipping instruction attached. The bill of lading is a poor quality scan from the port agent - please verify carefully because the values may be hard to read.",
+      "received": "2026-09-20T10:10:00",
+      "attachments": [
+        {
+          "filename": "SHP-006_SI.txt",
+          "content_base64": ""
+        },
+        {
+          "filename": "SHP-006_BL.tiff",
+          "content_base64": ""
+        }
+      ]
+    }
+  ]
+}

@@ -74,7 +74,10 @@ def compare(si_fields: dict[str, Any], bl_fields: dict[str, Any],
             out.undecidable_fields.append(f)
             continue
 
-        match = _match(f, si_v, bl_v)
+        # The raw values travel alongside the normalised ones: a UN/LOCODE is
+        # only identifiable in the raw text (normalisation drops the
+        # parentheses), and the port rule needs it.
+        match = _match(f, si_v, bl_v, si_raw, bl_raw)
         out.field_results.append({
             "field": f, "si_value": si_raw, "bl_value": bl_raw, "match": match,
         })
@@ -120,10 +123,11 @@ def compare(si_fields: dict[str, Any], bl_fields: dict[str, Any],
     return out
 
 
-def _match(field: str, a: Any, b: Any) -> bool | str:
+def _match(field: str, a: Any, b: Any, raw_a: Any = None, raw_b: Any = None
+           ) -> bool | str:
     """Return True / False / "POSSIBLE" for two normalised field values."""
     if field in PORT_FIELDS:
-        return _match_port(a, b)
+        return _match_port(a, b, raw_a, raw_b)
     if isinstance(a, float) or isinstance(b, float):
         try:
             return abs(float(a) - float(b)) < 0.001
@@ -134,14 +138,14 @@ def _match(field: str, a: Any, b: Any) -> bool | str:
     return a == b
 
 
-def _match_port(a: str, b: str) -> bool | str:
-    """Token-set comparison so "NANTONG" matches "NANTONG CHINA CNNTG".
+def _match_port(a: str, b: str, raw_a: Any = None, raw_b: Any = None) -> bool | str:
+    """LOCODE decides when both sides print one, otherwise the port name.
 
     An OCR slip on the port name (e.g. VALPARAISO vs VALPARAISQ) is a single
     character off, not a routing change — flag it POSSIBLE for human review
     instead of a hard MISMATCH, which would otherwise block a correct BL.
     """
-    if ports_match(a, b):
+    if ports_match(a, b, raw_a, raw_b):
         return True
     if _fuzzy_close(a, b):
         return "POSSIBLE"

@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     gmail_credentials_file: str = "secrets/google_oauth_client.json"
     gmail_token_file: str = "secrets/gmail_token.json"
     gmail_oauth_redirect_uri: str = "http://127.0.0.1:8000/api/gmail/oauth-callback"
-    gmail_query: str = "in:inbox has:attachment"
+    gmail_query: str = "in:inbox"
     gmail_max_results: int = 10
     gmail_polling_enabled: bool = False
     gmail_poll_interval_seconds: int = 60

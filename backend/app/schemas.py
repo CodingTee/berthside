@@ -237,6 +237,21 @@ class ShipmentSummaryOut(BaseModel):
     mismatch_count: int = 0
     pending_count: int = 0
     resolved_count: int = 0
+    # Shipment-centred additions. Every field is optional so existing consumers
+    # keep working unchanged. They are derived from stored versions only — never
+    # by re-running classification, extraction or verification.
+    shipment_code: Optional[str] = None
+    # `status` and `shipment_status` are the same authoritative shipment status
+    # (PROCESSING / INCOMPLETE / NEEDS_ATTENTION / VERIFIED). `resolution_state`
+    # is the issue-resolution state, which is a different question and is kept
+    # separate so the two can never be mistaken for one another.
+    shipment_status: Optional[str] = None  # PROCESSING/INCOMPLETE/NEEDS_ATTENTION/VERIFIED
+    resolution_state: Optional[str] = None  # VERIFIED/RESOLVED/PENDING_APPROVAL/OPEN
+    document_types: list[str] = Field(default_factory=list)
+    missing_documents: list[str] = Field(default_factory=list)
+    complete: bool = False
+    reasons: list[str] = Field(default_factory=list)
+    actions: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -248,6 +263,62 @@ class ShipmentListOut(BaseModel):
 
 class ShipmentDetailOut(ShipmentSummaryOut):
     documents: list[DocumentOut] = Field(default_factory=list)
+
+
+# ------------------------------------------- shipment-centred overview payloads
+class ShipmentDocumentOut(BaseModel):
+    doc_type: str
+    label: Optional[str] = None
+    present: bool = False
+    version_count: int = 0
+    current_version_number: Optional[int] = None
+    current_version: Optional[dict[str, Any]] = None
+    versions: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ShipmentSourceEmailOut(BaseModel):
+    email_id: Optional[str] = None
+    sender: Optional[str] = None
+    subject: Optional[str] = None
+    received_at: Optional[str] = None
+    attachments: list[str] = Field(default_factory=list)
+    document_types: list[str] = Field(default_factory=list)
+
+
+class ShipmentOverviewOut(BaseModel):
+    """Everything a shipment-centred view needs, read from stored results.
+
+    ``shipment_id`` and ``shipment_code`` are both the human business code
+    ("SHP-003"), the identifier an operator refers to a shipment by.
+    ``shipment_key`` is the internal key ("REF:SHP-003"). Two names for the code
+    exist because the shipment view is the primary surface and callers should
+    not have to strip a prefix to display an identifier.
+    """
+
+    id: int
+    shipment_key: str
+    shipment_id: Optional[str] = None
+    shipment_code: Optional[str] = None
+    reference_number: Optional[str] = None
+    status: str
+    reasons: list[str] = Field(default_factory=list)
+    document_types: list[str] = Field(default_factory=list)
+    documents: dict[str, ShipmentDocumentOut] = Field(default_factory=dict)
+    missing_documents: list[str] = Field(default_factory=list)
+    missing_optional_documents: list[str] = Field(default_factory=list)
+    complete: bool = False
+    mismatch_fields: list[str] = Field(default_factory=list)
+    issue_count: int = 0
+    issues: list[dict[str, Any]] = Field(default_factory=list)
+    verification: dict[str, Any] = Field(default_factory=dict)
+    source_emails: list[ShipmentSourceEmailOut] = Field(default_factory=list)
+    actions: list[str] = Field(default_factory=list)
+    updated_at: Optional[str] = None
+
+
+class ShipmentOverviewListOut(BaseModel):
+    total: int
+    shipments: list[ShipmentOverviewOut]
 
 
 class VersionFieldDiff(BaseModel):

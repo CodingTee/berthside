@@ -16,8 +16,10 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -83,34 +85,122 @@ WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 SHIPMAIL_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "frontend"
 SHIPMAIL_DATA_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "data"
 
-if WEB_DIR.is_dir():
-    from fastapi.staticfiles import StaticFiles
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 
+
+class SafeStaticFiles(StaticFiles):
+    """Static file serving that answers 404 instead of crashing.
+
+    On Windows, ``os.stat()`` on a path containing ``*`` or ``?`` raises
+    ``OSError(WinError 123)`` rather than ``FileNotFoundError``. Starlette only
+    expects the latter, so a request such as ``/shipmail/**`` escaped as an
+    unhandled exception and the user saw a bare "Internal Server Error" over an
+    otherwise healthy app. Treating any odd path as "not found" keeps the UI
+    reachable no matter what URL a browser, scanner or typo throws at it.
+    """
+
+    def lookup_path(self, path: str):
+        try:
+            return super().lookup_path(path)
+        except OSError:
+            return "", None
+
+    async def get_response(self, path: str, scope):
+        """Fall back to the app shell for navigation-style URLs.
+
+        A URL such as ``/shipmail/**`` (a stray ``*``, a bad copy/paste, a
+        scanner probe) is clearly meant to be a page, not a file, so serving
+        ``index.html`` is far more useful than a JSON 404. Requests for real
+        files that are genuinely missing still 404 normally.
+        """
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            last = path.rsplit("/", 1)[-1]
+            if exc.status_code == 404 and self.html and "." not in last:
+                return await super().get_response("", scope)
+            raise
+
+
+if WEB_DIR.is_dir():
     app.mount(
         "/ui",
-        StaticFiles(directory=str(WEB_DIR), html=True),
+        SafeStaticFiles(directory=str(WEB_DIR), html=True),
         name="ui",
     )
 
 if SHIPMAIL_DATA_DIR.is_dir():
-    from fastapi.staticfiles import StaticFiles
-
     # Static demo inbox (emails.json / shipments.json / attachments). Served as
     # plain files: opening the inbox costs no database or pipeline work.
     # Mounted BEFORE /shipmail so the more specific prefix wins.
     app.mount(
         "/shipmail/data",
-        StaticFiles(directory=str(SHIPMAIL_DATA_DIR)),
+        SafeStaticFiles(directory=str(SHIPMAIL_DATA_DIR)),
         name="shipmail-data",
     )
 
 if SHIPMAIL_DIR.is_dir():
-    from fastapi.staticfiles import StaticFiles
-
     app.mount(
         "/shipmail",
-        StaticFiles(directory=str(SHIPMAIL_DIR), html=True),
+        SafeStaticFiles(directory=str(SHIPMAIL_DIR), html=True),
         name="shipmail",
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _http_error(request: Request, exc: StarletteHTTPException):
+    """Show humans a readable 404 instead of ``{"detail": "Not Found"}``."""
+    wants_html = "text/html" in (request.headers.get("accept") or "")
+    if exc.status_code != 404 or not wants_html:
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    return HTMLResponse(
+        status_code=404,
+        content=(
+            "<!doctype html><meta charset='utf-8'><title>Not found</title>"
+            "<body style=\"font:15px/1.6 system-ui;background:#0b1020;color:#e5e7eb;"
+            "display:flex;align-items:center;justify-content:center;height:100vh;margin:0\">"
+            "<div style=\"max-width:560px;background:#131a2e;border:1px solid #2a3555;"
+            "border-radius:14px;padding:28px 32px\">"
+            "<h1 style='margin:0 0 10px;font-size:19px;color:#fbbf24'>Page not found</h1>"
+            f"<div style='color:#c7cfe3'><code>{request.url.path}</code> does not exist.</div>"
+            "<p style='margin:16px 0 0'><a href='/shipmail/' style='color:#7dd3fc'>"
+            "Go to ShipMail</a> &middot; "
+            "<a href='/ui/' style='color:#7dd3fc'>Dashboard</a></p></div></body>"
+        ),
+    )
+
+
+@app.exception_handler(Exception)
+async def _unhandled_error(request: Request, exc: Exception):
+    """Last-resort handler: never show a bare "Internal Server Error".
+
+    Anything that still escapes is logged in full and rendered as a readable
+    page carrying the failure reason, so a demo never dead-ends on an
+    unreadable white screen.
+    """
+    import traceback
+
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    logger = logging.getLogger("sdoc.errors")
+    logger.error("Unhandled error on %s %s\n%s", request.method, request.url.path, tb)
+    tail = "".join(tb.strip().splitlines(keepends=True)[-6:])
+    return HTMLResponse(
+        status_code=500,
+        content=(
+            "<!doctype html><meta charset='utf-8'><title>ShipSync error</title>"
+            "<body style=\"font:15px/1.6 system-ui;background:#0b1020;color:#e5e7eb;"
+            "display:flex;align-items:center;justify-content:center;height:100vh;margin:0\">"
+            "<div style=\"max-width:680px;background:#131a2e;border:1px solid #2a3555;"
+            "border-radius:14px;padding:28px 32px\">"
+            "<h1 style='margin:0 0 10px;font-size:19px;color:#f87171'>ShipSync hit an error</h1>"
+            f"<div style='color:#c7cfe3'>Path: <code>{request.url.path}</code></div>"
+            f"<pre style='white-space:pre-wrap;background:#0b1020;border:1px solid #2a3555;"
+            f"border-radius:8px;padding:12px;color:#fca5a5;font-size:12px;overflow:auto'>"
+            f"{tail}</pre>"
+            "<p style='margin:14px 0 0'>The full traceback is in the server log.</p>"
+            "<p style='margin:8px 0 0'><a href='/shipmail/' style='color:#7dd3fc'>"
+            "Back to ShipMail</a></p></div></body>"
+        ),
     )
 
 
@@ -359,6 +449,8 @@ def meta():
             "GET  /api/gmail/status",
             "GET  /api/gmail/connect",
             "POST /api/gmail/poll",
+            "GET  /api/gmail/messages",
+            "GET  /api/gmail/attachment/{email_id}/{filename}",
             "GET  /ai/issues/{issue_id}/explain",
             "GET  /ai/issues/{issue_id}/suggest",
             "GET  /ai/shipments/{shipment_id}/correction-email",

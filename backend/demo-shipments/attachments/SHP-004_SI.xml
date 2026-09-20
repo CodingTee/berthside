@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ShippingInstruction>
+  <Reference>SHP-004</Reference>
+  <Shipper>PENANG SEMICON SDN BHD</Shipper>
+  <Consignee>FELIXSTOWE ELECTRONICS LTD</Consignee>
+  <NotifyParty>FELIXSTOWE ELECTRONICS LTD</NotifyParty>
+  <PortOfLoading>PENANG, MALAYSIA (MYPEN)</PortOfLoading>
+  <DischargePort>FELIXSTOWE, UNITED KINGDOM (GBFXT)</DischargePort>
+  <NoOfContainersOrPackages>3 x 40'HC</NoOfContainersOrPackages>
+  <GrossWeightKG>52,300 KG</GrossWeightKG>
+  <VesselName>EVER GIVEN</VesselName>
+  <VoyNo>112W</VoyNo>
+</ShippingInstruction>

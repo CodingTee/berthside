@@ -85,12 +85,16 @@ def get_email(email_id: str) -> Optional[dict]:
         with SessionLocal() as db:
             row = db.query(EmailRecord).filter_by(email_id=email_id).first()
             if row:
+                # received_at travels with the email because it is part of the
+                # source information a shipment carries ("Received: 20 Sep"),
+                # so it is handed on rather than dropped here.
                 return {
                     "email_id": row.email_id,
                     "from": row.sender or "",
                     "subject": row.subject or "",
                     "body": row.body or "",
                     "attachments": row.attachments or [],
+                    "received_at": row.received_at,
                 }
     except Exception:
         pass

@@ -22,11 +22,13 @@ from app.schemas import (
     ResolutionStatusOut,
     ShipmentDetailOut,
     ShipmentListOut,
+    ShipmentOverviewListOut,
+    ShipmentOverviewOut,
     ShipmentSummaryOut,
     VersionDiffOut,
     VersionFieldDiff,
 )
-from app.services import versioning
+from app.services import shipment_overview, versioning
 
 router = APIRouter(tags=["shipments"])
 
@@ -40,17 +42,32 @@ def _version_out(row: DocumentVersionRecord | None) -> DocumentVersionOut | None
 
 
 def _shipment_summary(db: Session, shipment: ShipmentRecord) -> ShipmentSummaryOut:
-    status = versioning.resolution_status(db, shipment.id)
+    # One authoritative status, computed once. This used to report
+    # `resolution_status` in `status` *and* the document-aware status in
+    # `shipment_status`, so the same payload could say VERIFIED and
+    # NEEDS_ATTENTION about the same shipment. `status` now carries the
+    # authoritative value; the issue-resolution counters stay for the
+    # resolution workflow, which is a different question.
+    overview = shipment_overview.build_overview(db, shipment)
+    resolution = versioning.resolution_status(db, shipment.id)
     return ShipmentSummaryOut(
         id=shipment.id,
         shipment_key=shipment.shipment_key,
         reference_number=shipment.reference_number,
-        status=status["status"],
+        status=overview["status"],
+        resolution_state=resolution["status"],
         si_latest=_version_out(versioning.latest_version(db, shipment.id, "SI")),
         bl_latest=_version_out(versioning.latest_version(db, shipment.id, "BL")),
-        mismatch_count=status["total_issues"],
-        pending_count=status["pending_approval"],
-        resolved_count=status["resolved"],
+        mismatch_count=resolution["total_issues"],
+        pending_count=resolution["pending_approval"],
+        resolved_count=resolution["resolved"],
+        shipment_code=overview["shipment_id"],
+        shipment_status=overview["status"],
+        document_types=overview["document_types"],
+        missing_documents=overview["missing_documents"],
+        complete=overview["complete"],
+        reasons=overview["reasons"],
+        actions=overview["actions"],
     )
 
 
@@ -62,6 +79,43 @@ def list_shipments(db: Session = Depends(get_db)):
         total=len(rows),
         shipments=[_shipment_summary(db, row) for row in rows],
     )
+
+
+@router.get("/shipments/overview", response_model=ShipmentOverviewListOut,
+            summary="Shipment-centred list: status, completeness, issues, actions")
+def list_shipment_overviews(db: Session = Depends(get_db)):
+    rows = db.query(ShipmentRecord).order_by(ShipmentRecord.id.desc()).all()
+    return ShipmentOverviewListOut(
+        total=len(rows),
+        shipments=[ShipmentOverviewOut(**shipment_overview.build_overview(db, row))
+                   for row in rows],
+    )
+
+
+@router.get("/shipments/by-key/{shipment_key}", response_model=ShipmentOverviewOut,
+            summary="Shipment overview by business code (e.g. SHP-002)")
+def get_shipment_by_key(shipment_key: str, db: Session = Depends(get_db)):
+    """Look a shipment up the way a human refers to it.
+
+    Accepts ``SHP-002``, ``REF:SHP-002`` or the raw shipment key, because the
+    stored key carries a prefix that the business code does not.
+    """
+    key = (shipment_key or "").strip()
+    candidates = [key, f"REF:{key.upper()}", key.upper(), f"REF:{key}"]
+    row = None
+    for candidate in candidates:
+        row = db.query(ShipmentRecord).filter_by(shipment_key=candidate).first()
+        if row is not None:
+            break
+    if row is None:
+        row = (
+            db.query(ShipmentRecord)
+            .filter(ShipmentRecord.shipment_key.ilike(f"%{key}"))
+            .first()
+        )
+    if row is None:
+        raise HTTPException(404, f"shipment '{shipment_key}' not found")
+    return ShipmentOverviewOut(**shipment_overview.build_overview(db, row))
 
 
 @router.get("/shipments/{shipment_id}", response_model=ShipmentDetailOut,
@@ -96,6 +150,17 @@ def get_shipment(shipment_id: int, db: Session = Depends(get_db)):
     return ShipmentDetailOut(**summary.model_dump(), documents=documents)
 
 
+@router.get("/shipments/{shipment_id}/overview", response_model=ShipmentOverviewOut,
+            summary="Shipment-centred detail: documents, versions, issues, sources")
+def get_shipment_overview(shipment_id: int, db: Session = Depends(get_db)):
+    shipment = db.query(ShipmentRecord).filter_by(id=shipment_id).first()
+    if shipment is None:
+        raise HTTPException(404, "shipment not found")
+    # Read-only: everything below comes from stored versions, reports and
+    # issues. No classification, extraction or verification runs here.
+    return ShipmentOverviewOut(**shipment_overview.build_overview(db, shipment))
+
+
 @router.get("/shipments/{shipment_id}/documents", response_model=list[DocumentOut],
             summary="List documents for a shipment")
 def list_documents(shipment_id: int, db: Session = Depends(get_db)):
@@ -109,7 +174,7 @@ def list_documents(shipment_id: int, db: Session = Depends(get_db)):
             summary="List document versions for a shipment")
 def list_versions(
     shipment_id: int,
-    doc_type: str | None = Query(None, pattern="^(SI|BL)$"),
+    doc_type: str | None = Query(None, pattern="^(SI|BL|INVOICE)$"),
     db: Session = Depends(get_db),
 ):
     q = db.query(DocumentVersionRecord).filter_by(shipment_id=shipment_id)

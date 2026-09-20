@@ -5,12 +5,48 @@ are read from paths configured in environment variables.
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 from app.config import get_settings
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+
+
+def _state_path() -> Path:
+    """Where the in-flight OAuth state (PKCE verifier) is kept.
+
+    ``/api/gmail/connect`` and ``/api/gmail/oauth-callback`` are two separate
+    HTTP requests, so a fresh ``Flow`` object is built in each of them. The
+    Flow auto-generates a PKCE ``code_verifier`` when it builds the consent
+    URL; if that verifier is not carried over to the callback, Google rejects
+    the token exchange with ``invalid_grant`` and the user sees a bare
+    "Internal Server Error". Persisting it next to the token keeps the two
+    halves of the handshake in sync.
+    """
+    return Path(get_settings().gmail_token_file).parent / "gmail_oauth_state.json"
+
+
+def _save_state(state: str, code_verifier: str | None) -> None:
+    if not state:
+        return
+    path = _state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"state": state, "code_verifier": code_verifier}),
+        encoding="utf-8",
+    )
+
+
+def _load_state() -> dict[str, Any]:
+    path = _state_path()
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
 
 def oauth_available() -> bool:
@@ -65,6 +101,8 @@ def build_authorization_url() -> dict[str, str]:
         prompt="consent",
         login_hint=settings.gmail_demo_account,
     )
+    # Remember the PKCE verifier so the callback can finish the handshake.
+    _save_state(state, getattr(flow, "code_verifier", None))
     return {"authorization_url": auth_url, "state": state}
 
 
@@ -83,8 +121,22 @@ def exchange_code_for_token(code: str) -> dict[str, str]:
         scopes=SCOPES,
         redirect_uri=settings.gmail_oauth_redirect_uri,
     )
-    flow.fetch_token(code=code)
+    # Restore the PKCE verifier created alongside the consent URL. Without it
+    # Google answers invalid_grant and the callback blows up with a 500.
+    saved = _load_state()
+    if saved.get("code_verifier"):
+        flow.code_verifier = saved["code_verifier"]
+    try:
+        flow.fetch_token(code=code)
+    except Exception as exc:
+        # Surface a readable reason instead of an opaque 500 page.
+        raise RuntimeError(f"Google token exchange failed: {exc}") from exc
     creds = flow.credentials
+    # The state file is intentionally left in place: it is overwritten by the
+    # next /connect and holds nothing but a spent PKCE verifier. Deleting it
+    # here is both unnecessary and fragile (some sandboxed runtimes refuse
+    # filesystem deletions, which would abort the callback before the token is
+    # ever written).
 
     token_path = Path(settings.gmail_token_file)
     token_path.parent.mkdir(parents=True, exist_ok=True)

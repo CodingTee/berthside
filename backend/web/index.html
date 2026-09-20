@@ -1110,8 +1110,23 @@ async function openEmail(id){
     /* Guard: a 404 returns {detail:"email not found: …"} — no .email/.result.
        Without this check renderDetail() would throw a confusing
        "Cannot read properties of undefined (reading 'status')". */
-    if(!res.ok||!d||!d.email||!d.result){
+    if(!res.ok||!d||!d.email){
       throw new Error((d&&(d.detail||d.error))||`Email ${id} is unavailable (HTTP ${res.status})`);
+    }
+    /* The detail endpoint is read-only, so an email that has not been processed
+       yet comes back with result:null and processed:false instead of silently
+       being processed on load. Show that state, don't treat it as a failure. */
+    if(!d.result){
+      state.detail=d;
+      $("#detail").innerHTML=`<div class="empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+        <span class="big">Not processed yet</span>
+        <span>${esc(d.email.subject||d.email.email_id)}</span>
+        <span class="muted">Reading this email does not start the pipeline. Run it explicitly below.</span>
+        <button class="btn primary" style="margin-top:6px" onclick="processEmail('${esc(id)}')">Process this email</button>
+      </div>`;
+      setDock("");
+      return;
     }
     state.detail=d;
     renderDetail(d);
@@ -1128,9 +1143,32 @@ async function openEmail(id){
 }
 
 
+/* ---------- explicit processing (the only way an email gets processed) ----------
+   Kept as an explicit user action: the detail endpoint is read-only so that
+   opening or refreshing a page can never start OCR/extraction/verification. */
+async function processEmail(id){
+  setDock("");
+  $("#detail").innerHTML=`<div class="skel"><div class="sk-line" style="width:28%"></div><div class="sk-line" style="width:62%"></div><div class="sk-block"></div></div>`;
+  try{
+    const res=await fetch(API+"/emails/"+encodeURIComponent(id)+"/process",{method:"POST"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const r=await res.json();
+    toast(`Processed — ${r.status||"done"}.`);
+    await loadList();
+    await openEmail(id);
+  }catch(err){
+    $("#detail").innerHTML=`<div class="empty">
+      <span class="big">Could not process this email</span>
+      <span>${esc(err.message||"Network error")}</span>
+      <button class="btn" style="margin-top:6px" onclick="openEmail('${esc(id)}')">Back</button>
+    </div>`;
+  }
+}
+window.processEmail = processEmail;
+
+
 /* ---------- empty detail helper (P1-d) ---------- */
-function hintRow(k,v){ return '<div class="eh"><span class="eh-k">'+esc(k)+'</span><span class="eh-v">'+esc(v)+'</span></div>'; }
-function renderEmptyDetail(){
+function hintRow(k,v){ return '<div class="eh"><span class="eh-k">'+esc(k)+'</span><span class="eh-v">'+esc(v)+'</span></div>'; }function renderEmptyDetail(){
   const rec=(recentIds().map(id=>(state.items||[]).find(x=>x.email_id===id)).filter(Boolean)).slice(0,4);
   const recHtml = rec.length
     ? '<div class="rec-list">'+rec.map(r=>'<button class="rec-item" type="button" data-tip="Open email" data-tip-desc="Jump to this message" data-tip-pos="right" onclick="openEmail(\''+esc(r.email_id)+'\')"><span class="rec-from">'+esc(r.from||"—")+'</span><span class="rec-sub">'+esc(r.subject||"(no subject)")+'</span></button>').join("")+'</div>'
@@ -1761,7 +1799,7 @@ async function loadRecents(){
     const got=await Promise.all(ids.map(id=>
       fetch(API+"/api/emails/"+encodeURIComponent(id)).then(r=>r.ok?r.json():null).catch(()=>null)));
     palRecent=got.filter(Boolean).map(d=>({kind:"recent",t:d.email.subject||"(no subject)",
-      sub:`${d.email.email_id} · ${d.email.from||"—"} · ${d.result.status}`,ico:ICONS2.clock,run:()=>openEmail(d.email.email_id)}));
+      sub:`${d.email.email_id} · ${d.email.from||"—"} · ${(d.result&&d.result.status)||"not processed"}`,ico:ICONS2.clock,run:()=>openEmail(d.email.email_id)}));
   }catch(_){ palRecent=[]; }
   renderPalette();
 }

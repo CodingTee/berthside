@@ -1,0 +1,36 @@
+{
+  "SHP-001": {
+    "expect": "VERIFIED",
+    "complete": true,
+    "note": "all fields agree; BL fields live on PDF page 2"
+  },
+  "SHP-002": {
+    "expect": "missing_BL",
+    "missing": [
+      "BL"
+    ],
+    "note": "no BL is ever sent"
+  },
+  "SHP-003": {
+    "expect": "version_control",
+    "si_versions_at_least": 3,
+    "current_si_weight": "41500",
+    "note": "v1(38900) -> v2(40150) -> v3(41500); BL matches v3"
+  },
+  "SHP-004": {
+    "expect": "mismatch",
+    "mismatch_fields": [
+      "container_count"
+    ],
+    "note": "SI 3 containers vs BL 4 containers"
+  },
+  "SHP-005": {
+    "expect": "grouped",
+    "source_emails_at_least": 2,
+    "note": "zip from forwarder + scan from accounts"
+  },
+  "SHP-006": {
+    "expect": "ocr",
+    "note": "scanned TIFF BL read by OCR"
+  }
+}
