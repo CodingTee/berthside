@@ -8,12 +8,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BACKEND_ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import sdoc_paths  # noqa: E402  (needs the sys.path setup above)
+
 from app import models  # noqa: F401
 from app.database import Base
 from app.services import workflow, inbox_service
 
-GT = Path.home() / "Downloads" / "sdoc-hackathon-docker" / "data_v2" / "ground_truth.json"
+_gt = sdoc_paths.default_ground_truth()
+if not _gt:
+    raise SystemExit(sdoc_paths.missing_file_hint("ground_truth.json"))
+GT = Path(_gt)
 truth = json.loads(GT.read_text())
 
 engine = create_engine("sqlite:///:memory:")

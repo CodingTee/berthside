@@ -273,15 +273,78 @@ class EmailVerdict:
     pair: Optional[ComparedPair] = None
 
 
-def _wrong_doc(res, other: str) -> bool:
-    """True when a document really reads as the *other* kind of document.
+# How many leading lines count as the heading, i.e. where a document names
+# itself. Measured insensitive on the corpus from 1 to 20 lines (the same five
+# documents are identified either way); a small window is kept because a
+# spreadsheet column or an enclosure list inside the body is not an identity.
+_HEADING_LINES = 4
 
-    Only escalate when it declares the other type AND yields almost no usable
-    fields. A doc that declares the other type yet parses fine still gets
-    compared, because escalating it would silently drop a real defect.
+# Ordered: the first pattern that matches a line wins, so the instruction forms
+# come before the plain ones. "BILL OF LADING INSTRUCTION" is an *SI*, and ten
+# corpus PDFs are titled exactly that in the SI slot, so matching the plain
+# BILL OF LADING first would call every one of them the wrong type.
+_DOC_TITLES = (
+    (re.compile(r"SHIPPING\s+INSTRUCTION", re.IGNORECASE), "SI"),
+    (re.compile(r"BILL\s+OF\s+LADING\s+INSTRUCTION", re.IGNORECASE), "SI"),
+    (re.compile(r"SHIPPING\s+ORDER", re.IGNORECASE), "SI"),
+    (re.compile(r"\bS/?I\s+(?:FORM|NO)\b", re.IGNORECASE), "SI"),
+    (re.compile(r"BILL\s+OF\s+LADING", re.IGNORECASE), "BL"),
+    (re.compile(r"\bB/?L\s+(?:DRAFT|NO)\b", re.IGNORECASE), "BL"),
+    (re.compile(r"PACKING\s+LIST", re.IGNORECASE), "PACKING_LIST"),
+    (re.compile(r"CERTIFICATE\s+OF\s+ORIGIN", re.IGNORECASE),
+     "CERTIFICATE_OF_ORIGIN"),
+    (re.compile(r"DELIVERY\s+ORDER", re.IGNORECASE), "DELIVERY_ORDER"),
+    (re.compile(r"BOOKING\s+(?:CONFIRMATION|NOTE)", re.IGNORECASE),
+     "BOOKING_CONFIRMATION"),
+    (re.compile(r"COMMERCIAL\s+INVOICE", re.IGNORECASE), "INVOICE"),
+)
+
+
+def declared_doc_type(text: str) -> Optional[str]:
+    """What the document calls itself in its heading, or None if it is silent.
+
+    This is the evidence the escalation rests on. 15 corpus documents carry no
+    heading at all (spreadsheet exports), and they must keep being compared on
+    their fields, so a silent heading is not a finding.
     """
-    return bool(res.fields) is False or (
-        len(res.fields) < 3 and _declares_other(res.raw_text, other))
+    lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
+    for line in lines[:_HEADING_LINES]:
+        for pattern, doc_type in _DOC_TITLES:
+            if pattern.search(line):
+                return doc_type
+    return None
+
+
+def _wrong_doc(res, expected: str) -> bool:
+    """True when the document declares a type other than the one expected.
+
+    A positive statement, not an absence. The previous rule was
+    ``not res.fields or (len(res.fields) < 3 and _declares_other(...))``, which
+    filed a PDF we could not open under the same reason as a packing list sent
+    in place of a bill of lading. The two need opposite follow-up: one is a
+    tooling problem, the other is the sender attaching the wrong file, so
+    ground truth labels them `unreadable` and `wrong_doc_type` respectively.
+
+    Reading the *self-declaration* is what separates them, and it also has to
+    survive two corpus facts. Ten PDFs titled "BILL OF LADING INSTRUCTION" are
+    shipping instructions, not bills of lading. And the five documents this
+    rule exists for each say plainly what they are: PACKING LIST, CERTIFICATE
+    OF ORIGIN, COMMERCIAL INVOICE.
+    """
+    declared = declared_doc_type(res.raw_text)
+    return declared is not None and declared != expected
+
+
+def _nothing_read(res) -> bool:
+    """True when a reader returned neither fields nor any usable text.
+
+    `readable` alone is not enough evidence: it is set from whether a reader
+    produced text, and a reader that produced unusable text still leaves all
+    seven fields empty. Escalating on that empty result is the honest call,
+    because the alternative reports the missing fields as the sender's fault.
+    """
+    return not res.readable or (
+        not res.fields and not (res.raw_text or "").strip())
 
 
 def evaluate_email(email: dict,
@@ -367,7 +430,10 @@ def evaluate_email(email: dict,
     si_res = ai_service.extract_document("SI", si_path, si_content)
     bl_res = ai_service.extract_document("BL", bl_path, bl_content)
 
-    if _wrong_doc(si_res, "BL") or _wrong_doc(bl_res, "SI"):
+    if _wrong_doc(si_res, "SI") or _wrong_doc(bl_res, "BL"):
+        wrong = [(d, declared_doc_type(r.raw_text))
+                 for d, r in (("SI", si_res), ("BL", bl_res))
+                 if _wrong_doc(r, d)]
         return EmailVerdict(
             category=cls.category,
             confidence=cls.confidence,
@@ -376,14 +442,23 @@ def evaluate_email(email: dict,
             review_reason="wrong_doc_type",
             extracted={
                 "si": si_res.fields, "bl": bl_res.fields,
-                "evidence": "Attachment present but does not read as the "
-                            "expected document type (SI vs BL).",
+                # Naming what the file *is* turns a dead-end escalation into an
+                # actionable one: the reviewer asks the sender for the right
+                # document instead of hunting for fields that were never there.
+                "declared_types": {d: t for d, t in wrong},
+                "evidence": (
+                    "Attachment present but not the document requested: "
+                    + "; ".join(f"{d} reads as a {t.replace('_', ' ').title()}"
+                                if t else f"{d} reads as another document type"
+                                for d, t in wrong)
+                    + ". The sender most likely attached the wrong file."),
             },
         )
 
     # unreadable binary attachments (pdf/docx/xlsx without an AI parser)
-    if not si_res.readable or not bl_res.readable:
-        unreadable = [d for d, r in (("SI", si_res), ("BL", bl_res)) if not r.readable]
+    if _nothing_read(si_res) or _nothing_read(bl_res):
+        unreadable = [d for d, r in (("SI", si_res), ("BL", bl_res))
+                      if _nothing_read(r)]
         return EmailVerdict(
             category=cls.category,
             confidence=cls.confidence,
@@ -399,14 +474,17 @@ def evaluate_email(email: dict,
         )
 
     # 3b. OCR-derived documents: read, but from pixels ------------------------
-    # A scanned PDF has no text layer, so OCR transcribes it from the rendered
-    # image. That transcription is weaker than an embedded text layer: digits
-    # and letters get confused ("VALPARAISO" -> "VALPARAISQ", "CHINA" ->
-    # "CHIMA"). An incomplete transcription must NOT be silently compared,
-    # because a misread field looks exactly like a real discrepancy. Escalate
-    # instead, and hand the reviewer the transcription plus what is missing.
+    # A scanned PDF or an image attachment has no text layer, so OCR transcribes
+    # it from the rendered pixels. That transcription is weaker than an embedded
+    # text layer: digits and letters get confused ("VALPARAISO" -> "VALPARAISQ",
+    # "CHINA" -> "CHIMA"). An incomplete transcription must NOT be silently
+    # compared, because a misread field looks exactly like a real discrepancy.
+    # Escalate instead, and hand the reviewer the transcription plus what is
+    # missing. The test is on any `-ocr` reader, not on the PDF one: a PNG of a
+    # shipping instruction is the same transcription problem as a scanned PDF,
+    # and keying on one reader let the other one fall through to the comparison.
     ocr_docs = [d for d, r in (("SI", si_res), ("BL", bl_res))
-                if r.source == "pdf-ocr" and not r.is_complete]
+                if r.source.endswith("-ocr") and not r.is_complete]
     if ocr_docs:
         return EmailVerdict(
             category=cls.category,
@@ -587,39 +665,6 @@ def _find_doc_attachments(email: dict) -> tuple[Optional[str], Optional[str]]:
             found[guess] = att
             claimed.add(att)
     return found["SI"], found["BL"]
-
-
-_DECLARATION = {
-    "SI": re.compile(r"SHIPPING\s+INSTRUCTION|SI\s+FORM|SHIPPING\s+ORDER", re.IGNORECASE),
-    "BL": re.compile(r"BILL\s+OF\s+LADING|\bB/?L\s+(?:DRAFT|NO)", re.IGNORECASE),
-}
-
-
-def _declares_other(text: str, other: str) -> bool:
-    """True when the text positively declares the *other* document type."""
-    if not text or not text.strip():
-        return False
-    has_si = bool(_DECLARATION["SI"].search(text))
-    has_bl = bool(_DECLARATION["BL"].search(text))
-    if other == "BL":
-        return has_bl and not has_si
-    return has_si and not has_bl
-
-
-def _declares_doc_type(text: str, doc_type: str) -> bool:
-    """True unless the document clearly declares the *other* document type.
-
-    Tolerant on purpose: parsed PDF/Word/Excel attachments often lack a header
-    line, so we only escalate when the text positively identifies the wrong
-    kind of document (e.g. a "BILL OF LADING" attached where an SI should be).
-    """
-    if not text or not text.strip():
-        return True  # nothing readable to judge by; handled elsewhere
-    has_si = bool(_DECLARATION["SI"].search(text))
-    has_bl = bool(_DECLARATION["BL"].search(text))
-    if doc_type == "SI":
-        return not (has_bl and not has_si)
-    return not (has_si and not has_bl)
 
 
 # --------------------------------------------------------------------- review

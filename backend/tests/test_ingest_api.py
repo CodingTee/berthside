@@ -197,6 +197,66 @@ def test_non_bl_classification(client):
     print("PASS: Invoice query correctly routed without triggering BL comparison.")
 
 
+def test_a_quarantined_payload_is_never_written_to_disk(client):
+    """The verdict says quarantine, so the bytes must not land on disk.
+
+    The ingest route used to write every attachment before looking at the
+    verdict, which meant a file it had just declared malicious was stored for
+    anyone to read back. "We refused this" and "we kept this" cannot both hold.
+    """
+    email_id = "EXT-QUARANTINE-0001"
+    fake_exe = b"MZ\x90\x00\x03\x00\x00\x00" + b"\x00" * 100
+    res = client.post("/api/v1/ingest", json={
+        "email_id": email_id,
+        "from": "suspicious@unknown-sender.biz",
+        "subject": "URGENT: BL Draft for Shipment",
+        "body": "Please open the attached draft.",
+        "attachments": [
+            {"filename": "Draft_BL.pdf.exe",
+             "content_base64": base64.b64encode(fake_exe).decode("ascii")},
+        ],
+    })
+    assert res.status_code == 200, res.text
+    data = res.json()
+    print(f"Status: {data['status']}, persisted: {data['persisted']}")
+    assert data["status"] == "ERROR"
+    assert data["persisted"] is False
+    assert data["security_alerts"]
+
+    from app.config import get_settings
+
+    ingest_root = Path(get_settings().ingest_dir)
+    assert not (ingest_root / email_id).exists()
+    print("PASS: quarantined payload was not stored.")
+
+
+def test_an_oversized_attachment_is_refused_before_decoding(client):
+    """A payload over the cap is rejected without ever being materialised.
+
+    Checks the encoded length instead of the decoded bytes, so the memory the
+    cap protects is never spent on the payload in the first place.
+    """
+    from app.services.security import MAX_ATTACHMENT_SIZE
+
+    email_id = "EXT-OVERSIZE-0001"
+    over = "A" * (((MAX_ATTACHMENT_SIZE // 3) + 4096) * 4)
+    res = client.post("/api/v1/ingest", json={
+        "email_id": email_id,
+        "from": "bulk@example.com",
+        "subject": "TO CONFIRM DOCS _ oversized",
+        "body": "compare the SI and BL",
+        "attachments": [
+            {"filename": "huge_SI.txt", "content_base64": over},
+        ],
+    })
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["status"] == "ERROR"
+    assert data["persisted"] is False
+    assert any("limit" in alert for alert in data["security_alerts"])
+    print(f"Alerts: {data['security_alerts']}")
+
+
 def test_ingest_cannot_escape_the_ingest_directory(client, tmp_path):
     """A caller-supplied id or filename must stay inside INGEST_DIR.
 

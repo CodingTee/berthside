@@ -31,7 +31,8 @@ from app.schemas import (
     FieldResult,
 )
 from app.services import workflow
-from app.services.security import verify_file_safety
+from app.services.security import (MAX_ATTACHMENT_SIZE, encoded_size_exceeds_cap,
+                                   verify_file_safety)
 
 log = logging.getLogger(__name__)
 
@@ -118,6 +119,15 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
     security_alerts: list[str] = []
 
     for att in payload.attachments:
+        # Reject an oversized payload *before* decoding it. The cap is about
+        # not letting one request exhaust the process, and a payload that is
+        # rejected only after it has been fully decoded has already spent the
+        # memory the cap is there to protect.
+        if encoded_size_exceeds_cap(att.content_base64, att.content_text):
+            security_alerts.append(
+                f"{att.filename}: exceeds the "
+                f"{MAX_ATTACHMENT_SIZE // (1024 * 1024)}MB attachment limit")
+            continue
         content = _decode_attachment(att)
         is_safe, reason = verify_file_safety(att.filename, content)
         if not is_safe:
@@ -175,6 +185,27 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
     )
 
 
+def _ingest_response(analysis: EmailAnalyzeResponse, email_id: str,
+                     persisted: bool, review_desk_url: str) -> EmailIngestResponse:
+    """Project an analyze verdict onto the ingest response shape."""
+    return EmailIngestResponse(
+        email_id=email_id,
+        category=analysis.category,
+        confidence=analysis.confidence,
+        classification_reason=analysis.classification_reason,
+        status=analysis.status,
+        has_defect=analysis.has_defect,
+        defect_fields=analysis.defect_fields,
+        field_results=analysis.field_results,
+        review_reason=analysis.review_reason,
+        suggested_action=analysis.suggested_action,
+        security_alerts=analysis.security_alerts,
+        processing_ms=analysis.processing_ms,
+        persisted=persisted,
+        review_desk_url=review_desk_url,
+    )
+
+
 @router.post("/ingest", response_model=EmailIngestResponse, summary="Stateful email ingestion with Review Desk sync")
 def ingest_email(payload: EmailAnalyzeRequest, db: Session = Depends(get_db)):
     """Stateful ingestion endpoint.
@@ -187,6 +218,15 @@ def ingest_email(payload: EmailAnalyzeRequest, db: Session = Depends(get_db)):
 
     # 1. First run the analyze pipeline
     analysis = analyze_email(payload)
+
+    # A payload the security gate quarantined must not be written to disk.
+    # "We refused this file" and "we stored this file" cannot both be true, and
+    # the verdict already says the caller should not have sent it.
+    if analysis.status == "ERROR":
+        log.warning("refusing to persist quarantined payload for %s: %s",
+                    email_id, analysis.security_alerts)
+        return _ingest_response(analysis, email_id, persisted=False,
+                                review_desk_url="")
 
     # 2. Persist attachments to disk (INGEST_DIR/{email_id}/ by default)
     ingest_dir = Path(get_settings().ingest_dir) / _safe_segment(email_id, "unnamed")
@@ -227,19 +267,5 @@ def ingest_email(payload: EmailAnalyzeRequest, db: Session = Depends(get_db)):
 
     review_desk_url = f"/ui/?search={email_id}"
 
-    return EmailIngestResponse(
-        email_id=email_id,
-        category=analysis.category,
-        confidence=analysis.confidence,
-        classification_reason=analysis.classification_reason,
-        status=analysis.status,
-        has_defect=analysis.has_defect,
-        defect_fields=analysis.defect_fields,
-        field_results=analysis.field_results,
-        review_reason=analysis.review_reason,
-        suggested_action=analysis.suggested_action,
-        security_alerts=analysis.security_alerts,
-        processing_ms=analysis.processing_ms,
-        persisted=True,
-        review_desk_url=review_desk_url,
-    )
+    return _ingest_response(analysis, email_id, persisted=True,
+                            review_desk_url=review_desk_url)

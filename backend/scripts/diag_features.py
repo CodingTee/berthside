@@ -15,9 +15,16 @@ from collections import Counter
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BACKEND_ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))
 
-GT = Path.home() / "Downloads" / "sdoc-hackathon-docker" / "data_v2" / "ground_truth.json"
+import sdoc_paths  # noqa: E402  (needs the sys.path setup above)
+
+_gt = sdoc_paths.default_ground_truth()
+if not _gt:
+    raise SystemExit(sdoc_paths.missing_file_hint("ground_truth.json"))
+GT = Path(_gt)
 
 
 def build_our_submission() -> dict:

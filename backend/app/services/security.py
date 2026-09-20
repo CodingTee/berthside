@@ -21,14 +21,43 @@ DANGEROUS_EXTENSIONS = {
     ".jar", ".com", ".sh", ".bash", ".bin",
 }
 
-# Supported legitimate document extensions for shipping verification
-LEGITIMATE_EXTENSIONS = {
-    ".txt", ".pdf", ".docx", ".doc", ".xlsx", ".xls",
-    ".csv", ".tsv", ".png", ".jpg", ".jpeg", ".tif", ".tiff",
-}
+# Extensions that can execute when a file is opened. Used by the
+# double-extension rule, which is about a dangerous label sitting *before* the
+# final extension ("Draft_BL.exe.pdf"). `.com` and `.bin` are left out of that
+# rule because they are ordinary words inside a filename: "report.vendor.com.pdf"
+# carries the ".com" of a domain, and "booking.bin.BL.pdf" a stray label. Both
+# are still blocked when they are the real trailing extension, and a genuine
+# PE/ELF body is caught by the magic-byte checks below regardless.
+EXECUTABLE_EXTENSIONS = DANGEROUS_EXTENSIONS - {".com", ".bin"}
+
+# There is deliberately no whitelist of "legitimate" extensions. Rejecting
+# anything absent from such a list turns an unsupported format into a security
+# incident, while the reader ladder already escalates it honestly as
+# `unreadable`. A file is suspicious because of its extension and its bytes, not
+# because it is unusual.
 
 # Maximum allowed file size for attachments (30 MB)
 MAX_ATTACHMENT_SIZE = 30 * 1024 * 1024
+
+
+def encoded_size_exceeds_cap(encoded: str | None = None,
+                             text: str | None = None) -> bool:
+    """True when a payload is over the cap before it has to be materialised.
+
+    base64 expands three bytes into four characters, so the decoded size is
+    known from the length alone. Decoding an oversized payload and rejecting it
+    afterwards spends exactly the memory the cap exists to protect: a 200 MB
+    body would be fully allocated before anyone looked at it.
+
+    `text` is measured in characters, which is a lower bound on the utf-8 byte
+    length, so only certainly-oversized text is rejected here. The byte-level
+    check in `verify_file_safety` still runs on whatever survives.
+    """
+    if encoded:
+        return len(encoded) // 4 * 3 > MAX_ATTACHMENT_SIZE
+    if text is not None:
+        return len(text) > MAX_ATTACHMENT_SIZE
+    return False
 
 
 def verify_file_safety(filename: str, content: bytes) -> tuple[bool, str]:
@@ -49,12 +78,15 @@ def verify_file_safety(filename: str, content: bytes) -> tuple[bool, str]:
     lower_name = clean_name.lower()
     suffix = Path(clean_name).suffix.lower()
 
-    # 2. Check for double extension spoofing (e.g. invoice.pdf.exe)
+    # 2. Double-extension spoofing: a dangerous label directly before the final
+    #    extension, e.g. "Draft_BL.exe.pdf". Only the second-to-last label is
+    #    examined. Scanning every label flagged the ".com" of a domain name in
+    #    "report.vendor.com.pdf" and a stray ".bin" in "booking.bin.BL.pdf",
+    #    which are ordinary documents.
     parts = lower_name.split(".")
-    if len(parts) > 2:
-        for ext in parts[1:]:
-            if f".{ext}" in DANGEROUS_EXTENSIONS:
-                return False, f"Malicious double-extension or executable script detected: '{clean_name}'"
+    if len(parts) >= 3 and f".{parts[-2]}" in EXECUTABLE_EXTENSIONS:
+        return False, (f"Double-extension spoofing detected: '{clean_name}' "
+                       f"(a '{parts[-2]}' label before '.{parts[-1]}')")
 
     # 3. Direct dangerous extension check
     if suffix in DANGEROUS_EXTENSIONS:

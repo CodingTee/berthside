@@ -20,17 +20,54 @@ Robustness contract
   returns ``None`` and the caller keeps escalating as ``unreadable`` — OCR is a
   pure improvement, never a regression.
 * The function never raises: OCR failures are logged and swallowed.
-* On the static hackathon bundle every PDF has a text layer, so this path is
-  never reached and the local score is unchanged.
+* ``OCR_ENABLED`` is honoured here, by ``ocr_available()``, so every entry point
+  agrees. The image path used to ignore it entirely and transcribe images even
+  with OCR switched off, while the PDF path obeyed it: the container said
+  "OCR off" and ran OCR anyway.
+* Page count is capped (``_MAX_PAGES``). Rendering was unbounded, so one
+  500-page PDF could hold a request open for minutes.
+
+Cost, measured rather than assumed
+----------------------------------
+A full 520-email run with OCR enabled spends **~35s** here, of which:
+
+    ONNX inference        29.5s   (6 pages, ~4.9s each)
+    page rendering         1.4s   (8 render calls)
+    engine construction    5.3s   (9 rebuilds of RapidOCR, now cached)
+
+Inference dominates, and it is already the cheapest honest configuration. Cutting
+the render DPI to 200 saves about 4s but loses 1 to 2 of the 7 compared fields on
+4 of the 6 scanned PDFs, and fragments the heading into "SHIPPING INSTRUC TION".
+Since the transcription is what a human reviewer has to verify, the fields are
+worth more than the seconds, so ``_RENDER_DPI`` stays at 300. Do not lower it
+without re-running that measurement.
 """
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
+from threading import Lock
+
+from app.config import get_settings
 
 log = logging.getLogger(__name__)
 
 # One-time capability probe result. ``None`` = not probed yet.
 _OCR_CAPABLE: bool | None = None
+
+# Render resolution for PDF pages. 300 DPI is the measured quality point; see
+# the module docstring before changing it.
+_RENDER_DPI = 300
+
+# Hard bound on pages rendered and OCR'd per document. Nothing in the corpus
+# exceeds one page, so this costs nothing today and bounds a pathological input.
+_MAX_PAGES = 20
+
+# The ONNX sessions behind the engine are a single shared object, and running
+# OCR concurrently was measured to be no faster (0.86x to 0.99x, because
+# inference already saturates the CPU). Serialising therefore costs nothing and
+# keeps the cached engine out of two threads at once.
+_OCR_LOCK = Lock()
 
 # Minimum per-line confidence we accept from the OCR engine. Below this the
 # line is dropped rather than fed to the extractor: a wrong value is worse
@@ -43,27 +80,46 @@ _ROW_TOLERANCE = 12
 
 
 def ocr_available() -> bool:
-    """True only when a renderer *and* an OCR engine are importable."""
+    """True when OCR is switched on *and* a renderer and engine are importable.
+
+    The switch is read on every call, so it is the one place that decides. Only
+    the "are the libraries importable" probe is cached, because that is the
+    expensive half and it cannot change while the process runs.
+    """
+    if not get_settings().ocr_enabled:
+        return False
     global _OCR_CAPABLE
-    if _OCR_CAPABLE is not None:
-        return _OCR_CAPABLE
-    _OCR_CAPABLE = _renderer() is not None and _engine() is not None
-    if not _OCR_CAPABLE:
-        log.info("OCR unavailable: install pypdfium2 + rapidocr-onnxruntime "
-                 "to enable scanned-PDF transcription")
+    if _OCR_CAPABLE is None:
+        _OCR_CAPABLE = _renderer() is not None and _engine() is not None
+        if not _OCR_CAPABLE:
+            log.info("OCR unavailable: install pypdfium2 + "
+                     "rapidocr-onnxruntime to enable scanned-PDF transcription")
     return _OCR_CAPABLE
 
 
 # ------------------------------------------------------------------ backends
+@lru_cache(maxsize=1)
 def _renderer():
-    """Return a ``bytes -> list[PIL.Image]`` callable, or None."""
+    """Return a ``(bytes, dpi, max_pages) -> iterable[PIL.Image]`` callable, or None.
+
+    Cached: the probe walks three import paths and was re-run on every OCR call.
+    Every backend is lazy or bounded, so a long PDF is never fully materialised.
+    """
     try:
         import pypdfium2 as pdfium
 
-        def render(content: bytes, dpi: int = 300):
+        def render(content: bytes, dpi: int = _RENDER_DPI,
+                   max_pages: int = _MAX_PAGES):
             doc = pdfium.PdfDocument(content)
-            scale = dpi / 72.0
-            return [doc[i].render(scale=scale).to_pil() for i in range(len(doc))]
+
+            def pages():
+                try:
+                    for index in range(min(len(doc), max_pages)):
+                        yield doc[index].render(scale=dpi / 72.0).to_pil()
+                finally:
+                    doc.close()
+
+            return pages()
 
         return render
     except Exception:  # noqa: BLE001 — optional dependency
@@ -71,8 +127,12 @@ def _renderer():
     try:
         from pdf2image import convert_from_bytes
 
-        def render(content: bytes, dpi: int = 300):
-            return convert_from_bytes(content, dpi=dpi)
+        def render(content: bytes, dpi: int = _RENDER_DPI,
+                   max_pages: int = _MAX_PAGES):
+            # pdf2image applies the bound itself, so the extra pages are never
+            # rendered in the first place.
+            return convert_from_bytes(content, dpi=dpi,
+                                      first_page=1, last_page=max_pages)
 
         return render
     except Exception:  # noqa: BLE001 — optional dependency
@@ -80,23 +140,39 @@ def _renderer():
     try:
         import fitz  # PyMuPDF
 
-        def render(content: bytes, dpi: int = 300):
+        def render(content: bytes, dpi: int = _RENDER_DPI,
+                   max_pages: int = _MAX_PAGES):
+            import io as _io
+
+            from PIL import Image
+
             doc = fitz.open(stream=content, filetype="pdf")
-            out = []
-            for page in doc:
-                pix = page.get_pixmap(dpi=dpi)
-                from PIL import Image
-                import io as _io
-                out.append(Image.open(_io.BytesIO(pix.tobytes("png"))))
-            return out
+
+            def pages():
+                try:
+                    for index, page in enumerate(doc):
+                        if index >= max_pages:
+                            break
+                        pix = page.get_pixmap(dpi=dpi)
+                        yield Image.open(_io.BytesIO(pix.tobytes("png")))
+                finally:
+                    doc.close()
+
+            return pages()
 
         return render
     except Exception:  # noqa: BLE001 — optional dependency
         return None
 
 
+@lru_cache(maxsize=1)
 def _engine():
-    """Return a ``PIL.Image -> list[(text, score, y, x)]`` callable, or None."""
+    """Return a ``PIL.Image -> list[(text, score, y, x)]`` callable, or None.
+
+    Cached because constructing ``RapidOCR()`` loads the ONNX models and costs
+    about 0.6s. The old code paid that on every call: nine times across one
+    inbox run, to OCR six pages.
+    """
     try:
         from rapidocr_onnxruntime import RapidOCR
 
@@ -169,21 +245,30 @@ def ocr_pdf(content: bytes) -> str | None:
 
     Returns ``None`` when OCR is disabled, the toolchain is missing, or nothing
     readable came back — the caller then escalates the case as ``unreadable``.
+    At most ``_MAX_PAGES`` pages are read.
     """
     if not ocr_available():
         return None
     render = _renderer()
-    engine = _engine()
-    if render is None or engine is None:
+    if render is None:
         return None
     try:
-        pages = []
-        for img in render(content):
-            items = engine(img)
-            if items:
-                text = _items_to_lines(items)
-                if text.strip():
-                    pages.append(text)
+        pages: list[str] = []
+        with _OCR_LOCK:
+            engine = None
+            for img in render(content):
+                if engine is None:
+                    # Built lazily. A corrupt PDF raises on the first page, and
+                    # the old order loaded the ONNX models (0.6s) before finding
+                    # that out; two such files in the corpus paid it for nothing.
+                    engine = _engine()
+                    if engine is None:
+                        return None
+                items = engine(img)
+                if items:
+                    text = _items_to_lines(items)
+                    if text.strip():
+                        pages.append(text)
         combined = "\n".join(pages).strip()
         return combined or None
     except Exception as exc:  # noqa: BLE001 — OCR is best-effort only
@@ -194,13 +279,11 @@ def ocr_pdf(content: bytes) -> str | None:
 def ocr_image(content: bytes, filename: str = "") -> str | None:
     """Read a single image or multi-page TIFF image and OCR each frame/page.
 
-    Supports .png, .jpg, .jpeg, .tif, .tiff, .bmp, .webp.
+    Supports .png, .jpg, .jpeg, .tif, .tiff, .bmp, .webp. At most ``_MAX_PAGES``
+    frames are read, so a multi-frame TIFF cannot hold a request open.
     Returns concatenated extracted text, or None if unreadable / OCR unavailable.
     """
     if not ocr_available():
-        return None
-    engine = _engine()
-    if engine is None:
         return None
 
     try:
@@ -212,13 +295,23 @@ def ocr_image(content: bytes, filename: str = "") -> str | None:
 
         img = Image.open(io.BytesIO(content))
         pages = []
-        for frame in ImageSequence.Iterator(img):
-            frame_rgb = frame.convert("RGB")
-            items = engine(frame_rgb)
-            if items:
-                text = _items_to_lines(items)
-                if text.strip():
-                    pages.append(text)
+        with _OCR_LOCK:
+            engine = None
+            for index, frame in enumerate(ImageSequence.Iterator(img)):
+                if index >= _MAX_PAGES:
+                    log.info("image '%s': stopping at the %d-page cap",
+                             filename, _MAX_PAGES)
+                    break
+                if engine is None:
+                    engine = _engine()
+                    if engine is None:
+                        return None
+                frame_rgb = frame.convert("RGB")
+                items = engine(frame_rgb)
+                if items:
+                    text = _items_to_lines(items)
+                    if text.strip():
+                        pages.append(text)
         combined = "\n".join(pages).strip()
         return combined or None
     except Exception as exc:  # noqa: BLE001

@@ -11,7 +11,14 @@ ground_truth.json in the docker bundle, so we can score locally in seconds and
 iterate on the classifier without rebuilding anything.
 
 The pipeline, the comparison engine and the submission builder are the *same*
-code the API runs — only the transport is skipped.
+code the API runs; only the transport is skipped.
+
+Finding the bundle: `scripts/sdoc_paths.py` already resolves both private files
+of the organisers' bundle (it honours `$SDOC_MATERIALS` and otherwise searches
+upward from `backend/`), so this script calls into it instead of assuming a
+path. The ground truth is deliberately *not* resolved here: score_cli.py
+derives it from its own folder, so the scorer and the answer key can never be
+taken from two different bundles.
 """
 from __future__ import annotations
 
@@ -22,18 +29,32 @@ import time
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BACKEND_ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))
 
-DEFAULT_SCORER = Path.home() / "Downloads" / "sdoc-hackathon-docker" / "server" / "score_cli.py"
-DEFAULT_GT = Path.home() / "Downloads" / "sdoc-hackathon-docker" / "data_v2" / "ground_truth.json"
+import sdoc_paths  # noqa: E402  (needs the sys.path setup above)
+
+
+def _score_cmd(scorer: Path, submission: str | Path,
+               ground_truth: str | Path | None = None) -> list[str]:
+    """Argv for score_cli.py. `--ground-truth` only when explicitly asked for."""
+    cmd = [sys.executable, str(scorer), str(submission)]
+    if ground_truth:
+        cmd += ["--ground-truth", str(ground_truth)]
+    return cmd
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out", default=str(BACKEND_ROOT / "submission.json"))
-    ap.add_argument("--scorer", default=str(DEFAULT_SCORER))
-    ap.add_argument("--ground-truth", default=str(DEFAULT_GT))
+    ap.add_argument("--scorer", default=sdoc_paths.default_scorer(),
+                    help="path to score_cli.py "
+                         "(default: discovered by scripts/sdoc_paths.py)")
+    ap.add_argument("--ground-truth", default="",
+                    help="override the private ground truth "
+                         "(default: score_cli.py resolves its own)")
     ap.add_argument("--db", default="")
     args = ap.parse_args()
 
@@ -88,16 +109,28 @@ def main() -> int:
     print(f"processed {len(emails)} emails in {elapsed:.1f}s -> {args.out}")
     print("by_status:", json.dumps(by_status, sort_keys=True))
 
-    scorer = Path(args.scorer)
-    if not scorer.exists():
+    if not args.scorer:
+        print(sdoc_paths.missing_file_hint("score_cli.py"))
+        return 1
+    scorer = Path(args.scorer).expanduser()
+    if not scorer.is_file():
         print(f"\nscorer not found: {scorer}\n"
               f"  pass --scorer <path to score_cli.py>")
         return 1
 
+    ground_truth = (Path(args.ground_truth).expanduser()
+                    if args.ground_truth else None)
+    if ground_truth is not None and not ground_truth.is_file():
+        print(f"\nground truth not found: {ground_truth}")
+        return 1
+
+    print(f"scorer       : {scorer}")
+    print("ground truth : " + (str(ground_truth) if ground_truth
+                               else "resolved by score_cli.py next to itself"))
+
     import subprocess
-    cmd = [sys.executable, str(scorer), args.out,
-           "--ground-truth", args.ground_truth]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = subprocess.run(_score_cmd(scorer, args.out, ground_truth),
+                         capture_output=True, text=True)
     print()
     print(res.stdout or res.stderr)
     return res.returncode

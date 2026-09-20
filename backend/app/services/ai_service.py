@@ -188,7 +188,11 @@ def _read_pdf(content: bytes, doc_type: str | None) -> Optional[tuple[str, str]]
                 best, best_score = (text2, "pdf-tables"), score2
 
     # ---- rung 3: OCR the rendered pages ----------------------------------
-    if best_score < 4 and settings.ocr_enabled:
+    # No switch test here on purpose. `ocr_pdf` opens with `ocr_available()`,
+    # which reads OCR_ENABLED live; this module holds an import-time snapshot of
+    # the settings, so testing `settings.ocr_enabled` here meant a change made
+    # after startup never took effect. One place decides, and it is that one.
+    if best_score < 4:
         try:
             from app.services.ocr import ocr_pdf
             text3 = _clean_extracted(ocr_pdf(content) or "")
@@ -201,6 +205,45 @@ def _read_pdf(content: bytes, doc_type: str | None) -> Optional[tuple[str, str]]
                 best, best_score = (text3, "pdf-ocr"), score3
 
     return best
+
+
+# A legacy .doc stream is a mix of binary structures and text, so any reading of
+# it is a guess. Require this many of the 7 compared fields as evidence before
+# trusting one: below it the honest answer is `unreadable`, and a human decides.
+_MIN_LEGACY_FIELDS = 2
+
+
+def _lines_from_stream(text: str) -> str:
+    """Keep the printable, word-bearing lines of a decoded legacy stream."""
+    lines = []
+    for part in re.split(r"[\r\n\x07\x0c\x0b\x1e\x1f]+", text):
+        clean = re.sub(r"[^\x20-\x7E\t]+", " ", part).strip()
+        if len(clean) >= 4 and any(c.isalpha() for c in clean):
+            lines.append(clean)
+    return "\n".join(lines)
+
+
+def _decode_ole_stream(stream: bytes, doc_type: str | None) -> tuple[int, str]:
+    """Decode a WordDocument stream, keeping whichever reading the extractor can use.
+
+    Word 97 stores its text as UTF-16LE. Decoding the raw stream as latin-1
+    therefore leaves a NUL between every character, and the label regexes then
+    see "S h i p p e r" and match nothing, while the result still counts as
+    readable: the case reached the comparison with all seven fields empty and a
+    reason of `missing_value`, blaming the sender for a document we failed to
+    read. Scoring both plausible decodings with the extractor itself is the
+    cheapest honest arbiter, because the extractor is what has to read it.
+
+    Returns `(fields_found, text)`.
+    """
+    candidates = []
+    for encoding in ("utf-16-le", "latin-1"):
+        # NULs are consumed by the utf-16 decode; what is left over marks the
+        # binary padding between 2-byte text runs.
+        decoded = stream.decode(encoding, errors="ignore").replace("\x00", "")
+        candidates.append(_lines_from_stream(decoded))
+    scored = [(_yield(text, doc_type), text) for text in candidates]
+    return max(scored, key=lambda pair: pair[0])
 
 
 def _try_read_binary(filename: str, content: bytes,
@@ -286,14 +329,18 @@ def _try_read_binary(filename: str, content: bytes,
                     with olefile.OleFileIO(io.BytesIO(content)) as ole:
                         if ole.exists("WordDocument"):
                             stream = ole.openstream("WordDocument").read()
-                            raw_text = stream.decode("latin-1", errors="ignore")
-                            lines = []
-                            for part in re.split(r"[\r\n\x07\x0c]+", raw_text):
-                                clean = re.sub(r"[^\x20-\x7E\t]+", " ", part).strip()
-                                if len(clean) >= 4 and any(c.isalpha() for c in clean):
-                                    lines.append(clean)
-                            text = _clean_extracted("\n".join(lines))
-                            return (text or None), "doc-ole"
+                            score, text = _decode_ole_stream(stream, doc_type)
+                            # Evidence gate: a stream this reader can barely
+                            # decode must be escalated, not compared. A wrong
+                            # value read out of binary noise looks exactly like
+                            # a real discrepancy, so guessing here would
+                            # manufacture a defect that does not exist.
+                            if score >= _MIN_LEGACY_FIELDS:
+                                return text, "doc-ole"
+                            log.info(
+                                "legacy .doc yielded %d/%d fields; escalating as "
+                                "unreadable rather than guessing",
+                                score, len(extractor.LABELS))
             except Exception as exc:
                 log.info("olefile failed for %s: %s", filename, exc)
                 return None

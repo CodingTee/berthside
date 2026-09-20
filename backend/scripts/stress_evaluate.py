@@ -34,10 +34,11 @@ import tempfile
 from pathlib import Path
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
+SCRIPTS_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BACKEND_ROOT))
+sys.path.insert(0, str(SCRIPTS_DIR))
 
-DEFAULT_SCORER = Path.home() / "Downloads" / "sdoc-hackathon-docker" / "server" / "score_cli.py"
-DEFAULT_GT = Path.home() / "Downloads" / "sdoc-hackathon-docker" / "data_v2" / "ground_truth.json"
+import sdoc_paths  # noqa: E402  (needs the sys.path setup above)
 
 # Label phrases we know are interchangeable (from extractor.LABELS synonyms).
 _LABEL_SYNONYMS = {
@@ -53,7 +54,7 @@ _LABEL_SYNONYMS = {
 
 # ------------------------------------------------------------------ perturbations
 def p_whitespace(text: str) -> str:
-    """Randomise spacing — extra spaces, tabs, no double-newline runs lost."""
+    """Randomise spacing: extra spaces, tabs, no double-newline runs lost."""
     out = []
     for line in text.splitlines():
         line = re.sub(r"[ \t]+", lambda m: " " if random.random() < 0.7 else "  ", line)
@@ -79,14 +80,14 @@ def p_uppercase(text: str) -> str:
 
 
 def p_collapse_lines(text: str) -> str:
-    """Lose line breaks — some PDF extractors emit one long line."""
+    """Lose line breaks. Some PDF extractors emit one long line."""
     return " ".join(text.splitlines())
 
 
 def p_label_synonyms(text: str) -> str:
     """Reword field labels to an equivalent phrasing.
 
-    Only *label positions* are rewritten — an alternative spelling followed by
+    Only *label positions* are rewritten: an alternative spelling followed by
     a value separator. Rewriting bare occurrences would also hit the value side
     (e.g. turning "...(POL)" into "...(port of loading)") and corrupt the very
     field it is meant to test.
@@ -115,11 +116,29 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--seed", type=int, default=1234)
-    ap.add_argument("--scorer", default=str(DEFAULT_SCORER))
-    ap.add_argument("--ground-truth", default=str(DEFAULT_GT))
+    ap.add_argument("--scorer", default=sdoc_paths.default_scorer(),
+                    help="path to score_cli.py "
+                         "(default: discovered by scripts/sdoc_paths.py)")
+    ap.add_argument("--ground-truth", default="",
+                    help="override the private ground truth "
+                         "(default: score_cli.py resolves its own)")
     ap.add_argument("--out", default=str(BACKEND_ROOT / "stress_report.json"))
     args = ap.parse_args()
     random.seed(args.seed)
+
+    # Fail before doing any work: the six perturbations take minutes, and
+    # without a scorer the report is just a table of None. `Path("").exists()`
+    # is True because the empty string means the current directory, so an
+    # undiscovered scorer used to be handed to subprocess and every
+    # perturbation silently reported final_score=None, which reads like a pass.
+    if not args.scorer:
+        print(sdoc_paths.missing_file_hint("score_cli.py"))
+        return 1
+    scorer = Path(args.scorer).expanduser()
+    if not scorer.is_file():
+        print(f"\nscorer not found: {scorer}\n"
+              f"  pass --scorer <path to score_cli.py>")
+        return 1
 
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
@@ -212,7 +231,7 @@ def main() -> int:
     sub_path = tmp_dir / "submission.json"
 
     # ----- run each perturbation ----------------------------------------------
-    scorer = Path(args.scorer)
+    scored_all = True
     results = {}
     for pname, pfunc in PERTURBATIONS.items():
         perturbed: dict[str, dict] = {}
@@ -238,17 +257,23 @@ def main() -> int:
         submission = build_submission(perturbed)
         sub_path.write_text(json.dumps(submission, indent=2), encoding="utf-8")
 
+        # --ground-truth is passed only when asked: score_cli.py otherwise reads
+        # the answer key sitting next to itself.
+        cmd = [sys.executable, str(scorer), str(sub_path)]
+        if args.ground_truth:
+            cmd += ["--ground-truth", args.ground_truth]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+
         score = None
-        if scorer.exists():
-            res = subprocess.run(
-                [sys.executable, str(scorer), str(sub_path),
-                 "--ground-truth", str(args.ground_truth)],
-                capture_output=True, text=True)
-            for line in (res.stdout or "").splitlines():
-                if "FINAL SCORE" in line:
-                    m = re.search(r"(\d+(?:\.\d+)?)", line.split("FINAL SCORE", 1)[1])
-                    if m:
-                        score = float(m.group(1))
+        for line in (res.stdout or "").splitlines():
+            if "FINAL SCORE" in line:
+                m = re.search(r"(\d+(?:\.\d+)?)", line.split("FINAL SCORE", 1)[1])
+                if m:
+                    score = float(m.group(1))
+        if score is None:
+            scored_all = False
+            print(f"  {pname}: scorer produced no FINAL SCORE line\n"
+                  f"{(res.stderr or res.stdout).strip()[:400]}")
         results[pname] = {
             "verdict_changes": changed,
             "fields_lost_to_noise": fields_lost,
@@ -264,7 +289,9 @@ def main() -> int:
     }, indent=2), encoding="utf-8")
     print(f"\nwrote {args.out}")
     print(f"temp submission dir: {tmp_dir}")
-    return 0
+    if not scored_all:
+        print("some perturbations could not be scored; treat this run as failed")
+    return 0 if scored_all else 1
 
 
 if __name__ == "__main__":

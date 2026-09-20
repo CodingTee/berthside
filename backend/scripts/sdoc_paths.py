@@ -12,7 +12,7 @@ this module resolves both files in one place, in this order:
 
     1. $SDOC_MATERIALS           set it once, every script picks it up
     2. conventional locations    searched upward from the backend root
-    3. ~/Downloads/...           the layout tune_eval.py already assumes
+    3. ~/Downloads/...           the layout the organisers' zip unpacks to
 
 Nothing here touches application code. These scripts are developer tooling, and
 the paths they resolve are optional: a missing key just disables the one check
@@ -90,14 +90,23 @@ def default_ground_truth() -> str:
 
 
 def missing_file_hint(what: str) -> str:
-    """An actionable message for when neither defaults nor args resolved."""
+    """An actionable message for when neither defaults nor args resolved.
+
+    `what` is whatever the caller was looking for: usually a filename
+    ("score_cli.py"), but callers that iterate over flags pass the bare flag
+    name instead ("scorer"). Both are accepted.
+    """
     searched = "\n".join(f"    {root}" for root in candidate_roots())
+    # Pointing --ground-truth at score_cli.py would be nonsense, so pick the
+    # option from what was actually being looked for.
+    key = what.lower().replace("-", "_")
+    flag = "--scorer" if "score" in key else "--ground-truth"
     return (
         f"\nCould not find {what}. None of these locations has it:\n"
         f"{searched}\n\n"
         f"Point at it in either of these ways:\n"
         f"    export SDOC_MATERIALS=/path/to/{BUNDLE_DIRNAME}\n"
-        f"    python <this script> --ground-truth /path/to/{what}\n"
+        f"    python <this script> {flag} /path/to/{what}\n"
     )
 
 

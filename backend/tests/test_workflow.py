@@ -375,3 +375,240 @@ def test_ai_ambiguous_interpretation_is_low_confidence():
     assert out["interpreted_value"] == "24,500 KG"
     assert out["confidence"] == "LOW"
     assert out["needs_human_review"] is True
+
+
+# ------------------------------------------------------- OCR-derived documents
+def _partial_ocr_reading(source: str):
+    """A reader result for a document OCR could only partly transcribe."""
+    from app.services import extractor
+
+    res = extractor.ExtractionResult(doc_type="SI", readable=True)
+    res.fields = {"shipper": "PARTLY READ", "consignee": "PARTLY READ"}
+    res.missing = [f for f in extractor.LABELS if f not in res.fields]
+    res.raw_text = "SHIPPING INSTRUCTION ... (transcribed from pixels)"
+    res.source = source
+    return res
+
+
+def _scan_email(suffix: str) -> dict:
+    return {
+        "email_id": "email_scan", "from": "docs@co.com",
+        "subject": "REQUEST BL DRAFT - please check",
+        "body": "Attached are the SI and draft BL. Please check.",
+        "attachments": [f"attachments/scan_SI.{suffix}",
+                        f"attachments/scan_BL.{suffix}"],
+    }
+
+
+def _verdict_for_reader(monkeypatch, source: str):
+    """Run one email through evaluate_email with a stubbed reader."""
+    from app.services import extractor
+
+    def fake_extract(doc_type, filename, content):
+        return _partial_ocr_reading(source)
+
+    def complete_bl(doc_type, filename, content):
+        res = extractor.ExtractionResult(doc_type="BL", readable=True)
+        res.fields = {"shipper": "PARTLY READ", "consignee": "PARTLY READ"}
+        res.missing = []
+        res.readable = True
+        res.raw_text = "BILL OF LADING (DRAFT)"
+        res.source = "txt"
+        return res
+
+    def reader(doc_type, filename, content):
+        return complete_bl(doc_type, filename, content) if doc_type == "BL" \
+            else fake_extract(doc_type, filename, content)
+
+    monkeypatch.setattr(workflow.ai_service, "extract_document", reader)
+    return workflow.evaluate_email(_scan_email("png"), content_provider=lambda p: b"")
+
+
+def test_an_incomplete_image_transcription_escalates_like_a_scanned_pdf(monkeypatch):
+    """A PNG of an SI is the same OCR problem as a scanned PDF.
+
+    Both readers transcribe from pixels, so both must stop at a human when the
+    transcription is incomplete. Keying the gate on the PDF reader alone let an
+    image through to the comparison with a reason of `missing_value`, which
+    blames the sender for fields that OCR could not read, and dropped the
+    transcription the reviewer needs.
+    """
+    for source in ("pdf-ocr", "image-ocr"):
+        verdict = _verdict_for_reader(monkeypatch, source)
+        assert verdict.status == "NEEDS_REVIEW", source
+        assert verdict.review_reason == "unreadable", source
+        assert verdict.extracted["ocr_documents"], source
+        assert verdict.extracted["ocr_text"], source
+
+
+def test_a_non_ocr_reader_with_missing_fields_still_reaches_the_comparison(
+        monkeypatch):
+    """The OCR gate is about the reader, not about incompleteness in general.
+
+    A text reader that could not find a field is a missing value to be weighed
+    by the comparison, not a transcription to be confirmed by a human.
+    """
+    verdict = _verdict_for_reader(monkeypatch, "txt")
+    assert verdict.status == "NEEDS_REVIEW"
+    assert verdict.review_reason == "missing_value"
+
+
+# ------------------------------------------------------- document type mismatch
+# Realistic values, so the comparison behaves as it does on the corpus rather
+# than tripping over placeholder text.
+_VALUES = {
+    "shipper": "APRIL FAR EAST (M) SDN BHD",
+    "consignee": "EAST BRIGHT FZ-LLC",
+    "notify_party": "EAST BRIGHT FZ-LLC",
+    "port_of_loading": "NANTONG, CHINA (CNNTG)",
+    "port_of_discharge": "KARACHI, PAKISTAN (PKKHI)",
+    "container_count": 6,
+    "gross_weight_kg": 131058.0,
+}
+_ALL_FIELDS = tuple(_VALUES)
+
+
+def _reading(doc_type: str, heading: str, found=_ALL_FIELDS,
+             readable: bool = True, source: str = "txt"):
+    """A stub ExtractionResult that reads like `heading` and found `found`."""
+    from app.services import extractor
+
+    res = extractor.ExtractionResult(doc_type=doc_type, readable=readable)
+    res.raw_text = heading
+    res.source = source
+    res.fields = {name: _VALUES[name] for name in found}
+    res.missing = [name for name in extractor.LABELS if name not in res.fields]
+    return res
+
+
+def _pair_verdict(monkeypatch, si_reading, bl_reading):
+    """Run one SI/BL pair through evaluate_email with a stubbed reader."""
+
+    def reader(doc_type, filename, content):
+        return si_reading if doc_type == "SI" else bl_reading
+
+    monkeypatch.setattr(workflow.ai_service, "extract_document", reader)
+    return workflow.evaluate_email(_scan_email("txt"),
+                                   content_provider=lambda p: b"")
+
+
+def test_a_packing_list_in_the_bl_slot_names_itself_in_the_escalation(
+        monkeypatch):
+    """The sender attached the wrong file, and the reviewer must be told that.
+
+    Reporting it as `missing_value` says the bill of lading lacks fields. It is
+    not a bill of lading at all, so the follow-up is "ask for the right
+    document", not "chase the missing fields". Two of the corpus emails arrive
+    with a packing list in the BL slot and two with a certificate of origin.
+    """
+    for heading, expected in (("PACKING LIST", "PACKING_LIST"),
+                              ("CERTIFICATE OF ORIGIN", "CERTIFICATE_OF_ORIGIN"),
+                              ("COMMERCIAL INVOICE", "INVOICE")):
+        verdict = _pair_verdict(
+            monkeypatch,
+            _reading("SI", "SHIPPING INSTRUCTION"),
+            _reading("BL", heading, found=("shipper", "consignee")),
+        )
+        assert verdict.status == "NEEDS_REVIEW", heading
+        assert verdict.review_reason == "wrong_doc_type", heading
+        assert verdict.extracted["declared_types"] == {"BL": expected}, heading
+
+
+def test_a_document_we_could_not_open_is_unreadable_not_a_type_mismatch(
+        monkeypatch):
+    """Two corpus emails carry a BL that no reader can open.
+
+    Ground truth calls those `unreadable`. Filing them as `wrong_doc_type` says
+    the sender sent the wrong document when in fact we failed to read it, and it
+    was the old rule's `not res.fields` clause that produced that: an empty
+    result counted as evidence of the wrong type.
+    """
+    verdict = _pair_verdict(
+        monkeypatch,
+        _reading("SI", "SHIPPING INSTRUCTION"),
+        _reading("BL", "", found=(), readable=False),
+    )
+    assert verdict.status == "NEEDS_REVIEW"
+    assert verdict.review_reason == "unreadable"
+    assert verdict.extracted["unreadable_documents"] == ["BL"]
+
+
+def test_a_readable_but_empty_document_is_unreadable_too(monkeypatch):
+    """A reader that produced unusable text is not evidence of the wrong type.
+
+    `readable` is set from whether a reader produced text, so a reader can hand
+    back noise with all seven fields empty while still claiming success. That is
+    a document we failed to read, and escalating on it is honest; comparing it
+    would report seven missing fields as the sender's fault.
+    """
+    verdict = _pair_verdict(
+        monkeypatch,
+        _reading("SI", "SHIPPING INSTRUCTION"),
+        _reading("BL", "  \n  ", found=(), readable=True),
+    )
+    assert verdict.review_reason == "unreadable"
+
+
+def test_a_bill_of_lading_instruction_is_read_as_a_shipping_instruction(
+        monkeypatch):
+    """"BILL OF LADING INSTRUCTION" is an SI, and ten corpus PDFs say exactly that.
+
+    The heading contains the words BILL OF LADING, so a detector that matched the
+    plain form first would call every one of those ten documents the wrong type
+    and escalate a perfectly good comparison. The instruction forms are matched
+    before the plain ones for this reason.
+    """
+    verdict = _pair_verdict(
+        monkeypatch,
+        _reading("SI", "BILL OF LADING INSTRUCTION"),
+        _reading("BL", "BILL OF LADING (DRAFT)"),
+    )
+    assert verdict.status == "OK"
+    assert verdict.review_reason is None
+
+
+def test_a_document_with_no_heading_is_judged_on_its_fields(monkeypatch):
+    """15 corpus documents are spreadsheet exports and carry no heading at all.
+
+    A silent heading is not a finding, so those must still be compared.
+    """
+    verdict = _pair_verdict(
+        monkeypatch,
+        _reading("SI", "ASIA PACIFIC PAPERBOARD TRADING PTE LTD"),
+        _reading("BL", "ASIA PACIFIC PAPERBOARD TRADING PTE LTD"),
+    )
+    assert verdict.status == "OK"
+
+
+def test_the_heading_is_what_names_a_document():
+    """`declared_doc_type` reads the opening lines, and the first match wins."""
+    assert workflow.declared_doc_type("SHIPPING INSTRUCTION\nShipper: X") == "SI"
+    assert workflow.declared_doc_type(
+        "BILL OF LADING INSTRUCTION\nShipper: X") == "SI"
+    assert workflow.declared_doc_type("BILL OF LADING (DRAFT)") == "BL"
+    assert workflow.declared_doc_type("PACKING LIST") == "PACKING_LIST"
+    assert workflow.declared_doc_type("CERTIFICATE OF ORIGIN") \
+        == "CERTIFICATE_OF_ORIGIN"
+    assert workflow.declared_doc_type("COMMERCIAL INVOICE") == "INVOICE"
+    assert workflow.declared_doc_type("BOOKING CONFIRMATION") \
+        == "BOOKING_CONFIRMATION"
+    assert workflow.declared_doc_type("ASIA PACIFIC PAPERBOARD PTE LTD") is None
+    assert workflow.declared_doc_type("") is None
+
+
+def test_an_enclosure_list_does_not_rename_the_document():
+    """A shipping instruction legitimately lists the files it encloses.
+
+    The first matching line wins, so the heading settles the type and the
+    enclosure line further down cannot override it.
+    """
+    text = ("SHIPPING INSTRUCTION\nShipper: APRIL FAR EAST (M) SDN BHD\n"
+            "Enclosed: Packing List, Commercial Invoice, Certificate of Origin")
+    assert workflow.declared_doc_type(text) == "SI"
+
+
+def test_a_declaration_below_the_heading_window_is_not_read():
+    """The window is a deliberate bound, pinned so it cannot drift silently."""
+    beyond = "\n".join([f"Ref {i}" for i in range(1, workflow._HEADING_LINES + 1)]
+                       + ["Enclosed: Packing List"])
+    assert workflow.declared_doc_type(beyond) is None

@@ -78,6 +78,70 @@ def test_doc_ole_extraction():
         assert res.fields["container_count"] == 5
 
 
+def test_doc_ole_reads_utf16_text():
+    """Word 97 stores text as UTF-16LE, and reading it as latin-1 destroyed it.
+
+    Decoding the stream as latin-1 leaves a NUL between every character, so the
+    label regexes saw "S h i p p e r" and matched nothing. The result still
+    counted as readable, which sent the case to the comparison with all seven
+    fields empty and blamed the sender for a document we had failed to read.
+    """
+    from unittest.mock import MagicMock, patch
+
+    si_text = (
+        "SHIPPING INSTRUCTION\n"
+        "Shipper: APRIL FAR EAST (M) SDN BHD\n"
+        "Consignee: EAST BRIGHT FZ-LLC\n"
+        "Port of Loading: NANTONG, CHINA (CNNTG)\n"
+        "Port of Discharge: KARACHI, PAKISTAN (PKKHI)\n"
+        "Total Containers: 6 x 40'HC\n"
+        "Gross Weight: 131,058 KG\n"
+    )
+    # A real stream interleaves binary structures with 2-byte text runs.
+    stream = b"\xec\xa5\xc1\x00" * 6 + si_text.encode("utf-16-le") + b"\x00\x00"
+
+    mock_ole = MagicMock()
+    mock_ole.exists.return_value = True
+    mock_stream = MagicMock()
+    mock_stream.read.return_value = stream
+    mock_ole.openstream.return_value = mock_stream
+
+    with patch("olefile.isOleFile", return_value=True), \
+         patch("olefile.OleFileIO") as mock_ole_cls:
+        mock_ole_cls.return_value.__enter__.return_value = mock_ole
+        res = ai_service.extract_document("SI", "legacy_si.doc", b"dummy")
+
+    assert res.readable is True, res.raw_text[:200]
+    assert res.source == "doc-ole"
+    assert "APRIL FAR EAST" in res.fields["shipper"]
+    assert res.fields["container_count"] == 6
+
+
+def test_doc_ole_refuses_to_guess_from_binary_noise():
+    """Without enough evidence the honest verdict is `unreadable`, not a guess.
+
+    A value invented out of binary noise is indistinguishable from a real
+    discrepancy, so a stream the reader can barely decode must stop at a human.
+    """
+    from unittest.mock import MagicMock, patch
+
+    noise = bytes(range(1, 32)) * 40
+
+    mock_ole = MagicMock()
+    mock_ole.exists.return_value = True
+    mock_stream = MagicMock()
+    mock_stream.read.return_value = noise
+    mock_ole.openstream.return_value = mock_stream
+
+    with patch("olefile.isOleFile", return_value=True), \
+         patch("olefile.OleFileIO") as mock_ole_cls:
+        mock_ole_cls.return_value.__enter__.return_value = mock_ole
+        res = ai_service.extract_document("SI", "garbled_si.doc", b"dummy")
+
+    assert res.readable is False
+    assert res.fields == {}
+
+
 def test_multipage_tiff_ocr():
     """Verify that multi-page TIFF images are traversed and OCR'd frame by frame."""
     # Create a 2-page TIFF: Page 1 has Shipper, Page 2 has Containers & Weight
