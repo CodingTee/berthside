@@ -211,8 +211,38 @@ def _next_nonempty(lines: list[str], idx: int, limit: int = 3) -> Optional[int]:
     return None
 
 
+# A compound shipment lists its boxes separately: "1x40HC + 2x20GP" is three
+# containers, and taking the leading 1 would under-count the shipment. Only an
+# explicit "<n> x <size>" spec counts as a part, so an ordinary number such as
+# "22,000 kg" can never be split into two bogus containers: it has no "x" and
+# no size, so the compound branch bails out and the plain rule applies.
+_CONTAINER_SPEC = re.compile(
+    r"(\d+)\s*[xX×]\s*(\d{2})\s*'?\s*(?:HC|HQ|GP|ST|DC|RF|OT|FR|PW|ft|feet)?",
+    re.IGNORECASE,
+)
+_CONTAINER_JOIN = re.compile(
+    r"\s*(?:\+|&|/|,|\band\b|\bplus\b)\s*", re.IGNORECASE,
+)
+
+
 def _parse_container_count(raw: str) -> Optional[int]:
-    m = _CONTAINERS.search(_strip_spaces(raw).replace(",", ""))
+    text = str(raw)
+
+    # Split before collapsing whitespace: "1x40HC and 1x20GP" must keep the word
+    # boundaries around "and", which _strip_spaces would erase ("1x40HCand...").
+    parts = [p.strip() for p in _CONTAINER_JOIN.split(text) if p.strip()]
+    if len(parts) >= 2:
+        counts: list[int] = []
+        for part in parts:
+            spec = _CONTAINER_SPEC.search(_strip_spaces(part))
+            if not spec:
+                counts = []
+                break
+            counts.append(int(spec.group(1)))
+        if counts:
+            return sum(counts)
+
+    m = _CONTAINERS.search(_strip_spaces(text).replace(",", ""))
     if m:
         try:
             return int(m.group(1))
@@ -229,17 +259,43 @@ def _parse_container_count(raw: str) -> Optional[int]:
 _LEAD_NUMBER = re.compile(r"^\s*([\d][\d.,\s\u00a0]*)")
 
 
+# The same load is written two ways: "22.5 MT" in one document and "22,500 KG"
+# in the other. Comparing those raw numbers reports a discrepancy the customer
+# never made, so the unit is captured and everything is normalised to kilograms.
+# The official corpus prints KG everywhere, which is why this never surfaced.
+_WEIGHT_UNIT = re.compile(
+    r"^\s*(kilogramme?s?|kilograms?|kgs|kg|metric\s*tons?|mts|mt|tonnes?|tons?|t)\b",
+    re.IGNORECASE,
+)
+_METRIC_TON = re.compile(r"^(?:metric\s*tons?|mts?|tonnes?|tons?|t)$", re.IGNORECASE)
+_TONS_TO_KG = 1000.0
+
+
+def _to_kilograms(value: float, trailing: str) -> float:
+    """Scale a weight to kg using the unit printed right after the number."""
+    unit = _WEIGHT_UNIT.match(trailing or "")
+    if not unit:
+        return value
+    token = re.sub(r"\s+", "", unit.group(1)).lower()
+    return value * _TONS_TO_KG if _METRIC_TON.match(token) else value
+
+
 def _parse_weight(raw: str) -> Optional[float]:
-    m = _LEAD_NUMBER.match(str(raw))
+    text = str(raw)
+    m = _LEAD_NUMBER.match(text)
     if m:
         try:
-            return float(_strip_spaces(m.group(1)).rstrip(".,").replace(",", ""))
+            value = float(_strip_spaces(m.group(1)).rstrip(".,").replace(",", ""))
         except ValueError:
-            pass
-    m = _WEIGHT.search(_strip_spaces(str(raw)))
+            value = None
+        if value is not None:
+            return _to_kilograms(value, text[m.end():])
+
+    compact = _strip_spaces(text)
+    m = _WEIGHT.search(compact)
     if m:
         try:
-            return float(m.group(1).replace(",", ""))
+            return _to_kilograms(float(m.group(1).replace(",", "")), compact[m.end():])
         except ValueError:
             return None
     return None

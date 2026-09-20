@@ -1,7 +1,9 @@
 """Field extraction tests — label wording varies wildly between SI and BL."""
 from __future__ import annotations
 
-from app.services.extractor import extract_fields, normalize
+from app.services.extractor import (
+    _parse_container_count, _parse_weight, extract_fields, normalize,
+)
 
 SI = """SHIPPING INSTRUCTION
 ========================================
@@ -258,6 +260,53 @@ def test_ocr_groups_words_into_reading_order_lines():
     assert lines[0] == "Shipper: ACME"
     assert lines[1] == "Port of Loading:"
     assert "noise" not in _items_to_lines(items)
+
+
+def test_compound_container_specs_are_summed():
+    """'1x40HC + 2x20GP' is three containers, not the leading 1."""
+    assert _parse_container_count("1x40HC + 2x20GP") == 3
+    assert _parse_container_count("2 x 20GP + 1 x 40HQ") == 3
+    assert _parse_container_count("1x40HC, 2x20GP") == 3
+    assert _parse_container_count("1x40HC and 1x20GP") == 2
+
+
+def test_single_container_specs_are_not_summed():
+    """A lone spec, or a plain number, keeps the original single-value rule."""
+    assert _parse_container_count("6 x 40'HC") == 6
+    assert _parse_container_count("3 containers") == 3
+    assert _parse_container_count("TOTAL CONTAINERS: 12") == 12
+    # A thousands separator must not split a weight into two containers.
+    assert _parse_container_count("22,000 kg") == 22_000
+
+
+def test_weight_is_normalised_to_kilograms():
+    """MT and KG describe the same load; comparing them raw invents a defect."""
+    assert _parse_weight("22.5 MT") == 22_500.0
+    assert _parse_weight("22.5 metric tons") == 22_500.0
+    assert _parse_weight("22.5 tonnes") == 22_500.0
+    assert _parse_weight("22,500 KG") == 22_500.0
+    assert _parse_weight("131 058 KG") == 131_058.0
+    # No unit printed: leave the number alone rather than guessing a scale.
+    assert _parse_weight("22500") == 22_500.0
+
+
+def test_cross_unit_weight_is_not_reported_as_a_defect():
+    """Every other field must be filled too, or the undecidable rule escalates."""
+    from app.schemas import COMPARED_FIELDS
+    from app.services.comparison import compare
+    base = {
+        "shipper": "ACME PAPER SDN BHD",
+        "consignee": "CLIFFORD PAPER INC",
+        "notify_party": "CLIFFORD PAPER INC",
+        "port_of_loading": "NANTONG, CHINA (CNNTG)",
+        "port_of_discharge": "SINGAPORE (SGSIN)",
+        "container_count": 3,
+    }
+    si = {**base, "gross_weight_kg": _parse_weight("22.5 MT")}
+    bl = {**base, "gross_weight_kg": _parse_weight("22,500 KG")}
+    out = compare(si, bl, COMPARED_FIELDS)
+    assert out.status == "OK"
+    assert out.defect_fields == []
 
 
 def test_ocr_engine_reads_rendered_text_when_installed():
