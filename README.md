@@ -67,18 +67,18 @@ Three clean layers:
 3. **Frontend (`app/static/index.html`)**: dependency-free HTML/CSS/JS single
    page. Talks to the API only; contains no business logic.
 
-## System surfaces (Simulated Gmail + Dashboard)
+## System surfaces (ShipMail + Dashboard)
 
 The product now has three user-facing surfaces, all served by the **same
 single backend** (one Render service, no extra split):
 
 ```
               ┌────────────────────────────────────────────┐
-              │  Simulated Gmail        /gmail/            │
+              │  ShipMail                 /shipmail/        │
               │  inbox · email detail · attachments        │
               │  + ShipSync side panel                     │
               │  (static demo data in                      │
-              │   backend/simulated-gmail/data/)           │
+              │   backend/shipmail/data/)                  │
               └───────────────────┬────────────────────────┘
                                   │ ShipSync logo → opens in NEW tab
               ┌───────────────────v────────────────────────┐
@@ -112,12 +112,12 @@ Key behaviours (implemented in `backend/app/routers/integration.py` and
   extraction / verification.
 * **No polling.** Neither frontend contains a `setInterval` or background
   refresh loop. API calls happen only on explicit user actions.
-* **Static Simulated Gmail data.** The demo inbox lives in
-  `backend/simulated-gmail/data/` (`emails.json`, `shipments.json`,
+* **Static ShipMail data.** The demo inbox lives in
+  `backend/shipmail/data/` (`emails.json`, `shipments.json`,
   `attachments/`) and is served as plain files — opening the inbox never
   touches the backend.
 * **Side panel and Dashboard share results.** The Dashboard's *Integrations*
-  panel and the Gmail side panel read the same `process_results` rows.
+  panel and the ShipMail side panel read the same `process_results` rows.
 * **Real Gmail** stays a separate integration (`/api/gmail/*`, OAuth — no
   username/password) feeding the same API and core.
 

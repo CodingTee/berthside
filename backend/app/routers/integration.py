@@ -1,9 +1,9 @@
-"""Integration API for the Simulated Gmail UI, the side panel and real Gmail.
+"""Integration API for the ShipMail UI, the side panel and real Gmail.
 
 Architecture (single source of truth):
 
-    Simulated Gmail ─┐
-    Real Gmail       ┼─► ShipSync API ─► Existing ShipSync Core ─► Stored Result
+    ShipMail (simulated) ─┐
+    Real Gmail            ┼─► ShipSync API ─► Existing ShipSync Core ─► Stored Result
     Dashboard        ┘                                                   │
                             Side Panel ◄─────────────────────────────────┘
 

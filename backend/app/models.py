@@ -163,12 +163,12 @@ class ProcessResultRecord(Base):
     """Cache of one processing result per email / message / thread.
 
     This table is the "process once, store the result, reuse the result" rule
-    made concrete: ``POST /api/process`` writes here, and both the Simulated
-    Gmail side panel and the Dashboard read from here. Nothing is
+    made concrete: ``POST /api/process`` writes here, and both the ShipMail
+    side panel and the Dashboard read from here. Nothing is
     re-classified, re-OCR'd, re-extracted or re-verified just because a UI was
     opened, refreshed, or switched between emails.
 
-    It is deliberately kept separate from ``reports`` so simulated-Gmail /
+    It is deliberately kept separate from ``reports`` so ShipMail /
     real-Gmail traffic never pollutes the scored hackathon corpus.
     """
 
@@ -182,7 +182,7 @@ class ProcessResultRecord(Base):
     message_id = Column(String(160), index=True, nullable=True)
     thread_id = Column(String(160), index=True, nullable=True)
     shipment_id = Column(String(64), index=True, nullable=True)
-    source = Column(String(32), default="simulated-gmail")
+    source = Column(String(32), default="shipmail")
     # Fingerprint of the inputs. If the email or its attachments actually
     # change, reprocessing is legitimate and the entry is refreshed instead
     # of being blindly reused.

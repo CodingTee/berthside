@@ -1,4 +1,4 @@
-"""Tiny mock customer document store for the simulated Gmail demo.
+"""Tiny mock customer document store for the ShipMail demo.
 
 This is deliberately outside the verification engine. It represents an
 external customer/ERP/portal system that can return a missing document when the

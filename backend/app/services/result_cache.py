@@ -3,8 +3,8 @@
 Rule enforced here: **process once, store the result, reuse the result.**
 
 Every result produced by the existing ShipSync core (classification →
-extraction → verification) is written to ``process_results``. The Simulated
-Gmail side panel and the Dashboard then read that same row. Opening a page,
+extraction → verification) is written to ``process_results``. The ShipMail
+side panel and the Dashboard then read that same row. Opening a page,
 refreshing it, switching emails or reopening a shipment never re-runs OCR,
 classification, extraction or verification.
 
@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.models import ProcessResultRecord
 
-DEFAULT_SOURCE = "simulated-gmail"
+DEFAULT_SOURCE = "shipmail"
 
 
 # ------------------------------------------------------------------ identity

@@ -674,13 +674,13 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
         <span>Advanced Shipment Workflow</span>
         <span class="hk">2</span>
       </a>
-      <!-- Opens in a new tab: the Simulated Gmail workspace is a separate
+      <!-- Opens in a new tab: the ShipMail workspace is a separate
            surface, and the Dashboard should stay where the operator left it. -->
-      <a class="navlink" href="/gmail/" target="_blank" rel="noopener noreferrer"
-         data-tip="Simulated Gmail" data-tip-desc="Open the simulated Gmail inbox with the ShipSync side panel"
-         data-tip-kbd="3" data-tip-pos="right" aria-label="Simulated Gmail">
+      <a class="navlink" href="/shipmail/" target="_blank" rel="noopener noreferrer"
+         data-tip="ShipMail" data-tip-desc="Open the ShipMail inbox with the ShipSync side panel"
+         data-tip-kbd="3" data-tip-pos="right" aria-label="ShipMail">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-        <span>Simulated Gmail</span>
+        <span>ShipMail</span>
         <span class="hk">3</span>
       </a>
     </div>
@@ -696,8 +696,8 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
       </div>
     </div>
 
-    <!-- ===================== INTEGRATION (Simulated Gmail / real Gmail) =====
-         Reads the SAME stored results the Gmail side panel shows. It never
+    <!-- ===================== INTEGRATION (ShipMail / real Gmail) ===========
+         Reads the SAME stored results the ShipMail side panel shows. It never
          re-runs classification, extraction or verification. -->
     <div class="panel-box">
       <h4>Integrations</h4>
@@ -706,7 +706,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
       </div>
       <div id="intgList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
       <div style="font-size:10.5px;color:var(--muted-2);margin-top:8px;line-height:1.5">
-        Emails processed through <b>POST /api/process</b> by the Simulated Gmail
+        Emails processed through <b>POST /api/process</b> by the ShipMail
         side panel. Loaded once from storage — opening the Dashboard does not
         reprocess anything.
       </div>
@@ -1446,7 +1446,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="?"){e.preventDefault();openHelp();return;}
   if(e.key==="1"){e.preventDefault();goConsole();return;}
   if(e.key==="2"){e.preventDefault();goShipments();return;}
-  if(e.key==="3"){e.preventDefault();window.open("/gmail/","_blank","noopener");return;}
+  if(e.key==="3"){e.preventDefault();window.open("/shipmail/","_blank","noopener");return;}
   if(e.key==="b"||e.key==="B"){e.preventDefault();goConsole();return;}
   if(e.key==="t"||e.key==="T"){e.preventDefault();toggleTheme();}
   if(e.key==="f"||e.key==="F"){e.preventDefault();toggleFocus();}

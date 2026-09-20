@@ -29,6 +29,10 @@ COPY backend/ /app/
 
 COPY sdoc-hackathon-bundle/ /bundle/
 
+# Build the ShipMail static inbox from the same bundle the Dashboard uses, so
+# the two surfaces always show the same emails.
+RUN python scripts/generate_shipmail_inbox.py --bundle /bundle --out backend/shipmail/data
+
 # Prepare the static hackathon dataset.
 RUN python scripts/prepare_data.py
 

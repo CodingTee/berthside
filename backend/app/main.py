@@ -77,11 +77,11 @@ app.include_router(frontend_compat.router)
 
 
 # Frontends served by this single backend (no extra Render service):
-#   /ui/     -> ShipSync Dashboard / Operations Console (existing web app)
-#   /gmail/  -> Simulated Gmail + ShipSync side panel
+#   /ui/       -> ShipSync Dashboard / Operations Console (existing web app)
+#   /shipmail/ -> ShipMail inbox (simulated mail client) + ShipSync side panel
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
-SIMULATED_GMAIL_DIR = Path(__file__).resolve().parent.parent / "simulated-gmail" / "frontend"
-SIMULATED_GMAIL_DATA_DIR = Path(__file__).resolve().parent.parent / "simulated-gmail" / "data"
+SHIPMAIL_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "frontend"
+SHIPMAIL_DATA_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "data"
 
 if WEB_DIR.is_dir():
     from fastapi.staticfiles import StaticFiles
@@ -92,25 +92,25 @@ if WEB_DIR.is_dir():
         name="ui",
     )
 
-if SIMULATED_GMAIL_DATA_DIR.is_dir():
+if SHIPMAIL_DATA_DIR.is_dir():
     from fastapi.staticfiles import StaticFiles
 
     # Static demo inbox (emails.json / shipments.json / attachments). Served as
     # plain files: opening the inbox costs no database or pipeline work.
-    # Mounted BEFORE /gmail so the more specific prefix wins.
+    # Mounted BEFORE /shipmail so the more specific prefix wins.
     app.mount(
-        "/gmail/data",
-        StaticFiles(directory=str(SIMULATED_GMAIL_DATA_DIR)),
-        name="simulated-gmail-data",
+        "/shipmail/data",
+        StaticFiles(directory=str(SHIPMAIL_DATA_DIR)),
+        name="shipmail-data",
     )
 
-if SIMULATED_GMAIL_DIR.is_dir():
+if SHIPMAIL_DIR.is_dir():
     from fastapi.staticfiles import StaticFiles
 
     app.mount(
-        "/gmail",
-        StaticFiles(directory=str(SIMULATED_GMAIL_DIR), html=True),
-        name="simulated-gmail",
+        "/shipmail",
+        StaticFiles(directory=str(SHIPMAIL_DIR), html=True),
+        name="shipmail",
     )
 
 
@@ -322,7 +322,7 @@ async def _gmail_poll_loop() -> None:
 def root():
     from fastapi.responses import RedirectResponse
 
-    return RedirectResponse(url="/gmail/")
+    return RedirectResponse(url="/shipmail/")
 
 
 @app.get("/meta", tags=["meta"])
@@ -365,7 +365,7 @@ def meta():
             "POST /ai/ambiguous-interpretation",
             "GET  /health",
             "GET  /ui/  (P1 frontend: Review Desk)",
-            "GET  /gmail/  (Simulated Gmail + ShipSync side panel)",
+            "GET  /shipmail/  (ShipMail inbox + ShipSync side panel)",
             "GET  /api/summary, /api/emails, /api/emails/{id}, "
             "/api/emails/{id}/review, /api/review-queue, "
             "/api/attachments/{path}",
