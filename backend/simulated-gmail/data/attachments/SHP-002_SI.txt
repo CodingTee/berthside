@@ -1,0 +1,10 @@
+SHIPPING INSTRUCTION
+Shipper: ACME TRADING LTD
+Consignee: GLOBAL BUYER INC
+Notify Party: GLOBAL BUYER INC
+Port of Loading: SHANGHAI, CHINA (CNSHA)
+Port of Discharge: PORT KLANG, MALAYSIA (MYPKG)
+Total Containers: 2 x 40HC
+Gross Weight: 24,800 KG
+Vessel: COSCO GALAXY V.221
+Booking No.: SHP-002

@@ -11,6 +11,7 @@ layer for whatever the AI returns.
 """
 from __future__ import annotations
 
+import datetime
 import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
@@ -51,6 +52,16 @@ LABELS: dict[str, list[str]] = {
     "gross_weight_kg": [
         r"gross\s+wt\.?\s*\(?(?:kgs?|kg)?\)?", r"gross weight", r"\bG\.?W\.?\b",
         r"total gross weight", r"gross mass", r"g\.?w\.?\s*\(?kgs?\)?",
+    ],
+    "etd": [
+        r"etd", r"estimated time of departure", r"est\.? time of departure",
+        r"expected time of departure", r"date of departure", r"departure date",
+        r"etd\s*\(?", r"eta\s*/\s*etd",
+    ],
+    "eta": [
+        r"eta", r"estimated time of arrival", r"est\.? time of arrival",
+        r"expected time of arrival", r"date of arrival", r"arrival date",
+        r"eta\s*\(?", r"etd\s*/\s*eta",
     ],
 }
 
@@ -301,6 +312,69 @@ def _parse_weight(raw: str) -> Optional[float]:
     return None
 
 
+# Estimated dates (ETD / ETA) are compared as calendar dates, not strings:
+# "15 MAR 2026", "2026-03-15" and "March 15, 2026" must agree. They normalise
+# to an ISO date so the comparison engine can equate them deterministically.
+_MONTHS = {m: i for i, m in enumerate(
+    ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT",
+     "NOV", "DEC"], 1)}
+_MONTHS.update({m: i for i, m in enumerate(
+    ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST",
+     "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"], 1)}
+
+
+def _parse_date(raw: Any) -> Optional[str]:
+    """Return an ISO `YYYY-MM-DD` for a recognisable date, else None.
+
+    Handles ISO, `DD MON YYYY`, `MON DD, YYYY` and `DD/MM/YYYY` (the common
+    logistics forms). Anything unparseable collapses to None so a blank or
+    free-text date is never fabricated into a false ETD/ETA mismatch.
+    """
+    if raw is None:
+        return None
+    s = str(raw).strip().upper()
+    s = re.sub(r"\([^)]*\)", " ", s)              # drop "(GW)"-style codes
+    s = re.sub(r"\b\d{1,2}:\d{2}(:\d{2})?\b", " ", s)  # drop clock times
+    s = re.sub(r"[^A-Z0-9 ]", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    if not s:
+        return None
+
+    m = re.search(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b", s)
+    if m:
+        try:
+            datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+        except ValueError:
+            pass
+
+    m = re.search(r"\b(\d{1,2})\s+([A-Z]+)\s+(\d{4})\b", s)
+    if m and m.group(2) in _MONTHS:
+        try:
+            datetime.date(int(m.group(3)), _MONTHS[m.group(2)], int(m.group(1)))
+            return f"{int(m.group(3)):04d}-{_MONTHS[m.group(2)]:02d}-{int(m.group(1)):02d}"
+        except ValueError:
+            pass
+
+    m = re.search(r"\b([A-Z]+)\s+(\d{1,2}),?\s+(\d{4})\b", s)
+    if m and m.group(1) in _MONTHS:
+        try:
+            datetime.date(int(m.group(3)), _MONTHS[m.group(1)], int(m.group(2)))
+            return f"{int(m.group(3)):04d}-{_MONTHS[m.group(1)]:02d}-{int(m.group(2)):02d}"
+        except ValueError:
+            pass
+
+    m = re.search(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{4})\b", s)
+    if m:
+        d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        try:
+            datetime.date(y, mo, d)
+            return f"{y:04d}-{mo:02d}-{d:02d}"
+        except ValueError:
+            pass
+    return None
+
+
 # ------------------------------------------------------------------ extraction
 def extract_fields(text: str, doc_type: str) -> ExtractionResult:
     """Extract the 7 canonical fields from one SI/BL document text."""
@@ -417,6 +491,8 @@ def _line_value_after_label(lines: list[str], i: int, canonical: str) -> Any:
         value = _parse_weight(inline_value)
     elif canonical in ("port_of_loading", "port_of_discharge"):
         value = _clean_port(inline_value)
+    elif canonical in ("etd", "eta"):
+        value = _parse_date(inline_value)
     else:
         value = inline_value
     return _value_or_none(value)
@@ -476,6 +552,8 @@ def normalize(field: str, value: Any) -> Any:
         return _parse_weight(str(value))
     if field in ("port_of_loading", "port_of_discharge"):
         return _norm_port(str(value))
+    if field in ("etd", "eta"):
+        return _parse_date(str(value))
     return _norm_name(str(value))
 
 

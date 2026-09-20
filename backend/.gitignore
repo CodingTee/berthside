@@ -9,6 +9,7 @@ venv/
 .env
 *.env
 !.env.example
+secrets/
 
 # -------- local runtime data --------
 *.db
@@ -19,9 +20,13 @@ submission.json
 process_all_result.json
 
 # -------- datasets (never commit the hackathon bundle) --------
-data/
-inbox/
-attachments/
+# Anchored to the backend root on purpose: these are the GENERATED dataset
+# folders (scripts/prepare_data.py writes backend/data). An unanchored `data/`
+# would also swallow backend/simulated-gmail/data, which is committed static
+# demo data for the Simulated Gmail UI.
+/data/
+/inbox/
+/attachments/
 
 # -------- local reports --------
 stress_report.json

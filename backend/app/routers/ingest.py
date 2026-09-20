@@ -73,6 +73,32 @@ def _suggested_action(verdict: workflow.EmailVerdict) -> str:
     return "AUTO_APPROVE"
 
 
+def action_for_verdict(verdict: workflow.EmailVerdict) -> dict | None:
+    """Structured workflow action for external integrations / side panels."""
+    if verdict.status == "NEEDS_REVIEW" and verdict.review_reason == "missing_attachment":
+        missing = verdict.extracted.get("missing_documents") or []
+        if missing:
+            return {
+                "type": "request_document",
+                "document": missing[0],
+                "missing_documents": missing,
+                "label": f"Request {missing[0]}",
+            }
+    if verdict.status == "MISMATCH":
+        return {
+            "type": "review_mismatch",
+            "fields": verdict.defect_fields,
+            "label": "Review mismatch",
+        }
+    if verdict.status == "NEEDS_REVIEW":
+        return {
+            "type": "manual_review",
+            "reason": verdict.review_reason or "undecidable",
+            "label": "Open review",
+        }
+    return None
+
+
 def _portable_path(path: Path) -> str:
     """Store a path relative to the backend root when it lives under it.
 
@@ -129,6 +155,7 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
         elapsed = (time.perf_counter() - t0) * 1000.0
         return EmailAnalyzeResponse(
             email_id=email_id,
+            shipment_id=payload.shipment_id,
             category="SPAM",
             confidence=1.0,
             classification_reason="Dangerous or spoofed attachment detected by security gate",
@@ -138,6 +165,11 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
             field_results=[],
             review_reason="security_quarantine",
             suggested_action="QUARANTINE_AND_ALERT_SECURITY",
+            action={
+                "type": "quarantine",
+                "label": "Quarantine attachment",
+                "security_alerts": security_alerts,
+            },
             security_alerts=security_alerts,
             processing_ms=elapsed,
         )
@@ -159,17 +191,23 @@ def analyze_email(payload: EmailAnalyzeRequest) -> EmailAnalyzeResponse:
     verdict = workflow.evaluate_email(email, content_provider=decoded.__getitem__)
 
     elapsed = (time.perf_counter() - t0) * 1000.0
+    action = action_for_verdict(verdict)
+    missing_documents = verdict.extracted.get("missing_documents") or []
     return EmailAnalyzeResponse(
         email_id=email_id,
+        shipment_id=payload.shipment_id,
         category=verdict.category,
         confidence=verdict.confidence,
         classification_reason=verdict.classification_reason,
         status=verdict.status,
         has_defect=verdict.has_defect,
         defect_fields=verdict.defect_fields,
+        possible_fields=verdict.possible_fields,
         field_results=[FieldResult(**fr) for fr in verdict.field_results],
         review_reason=verdict.review_reason,
         suggested_action=_suggested_action(verdict),
+        missing_documents=missing_documents,
+        action=action,
         security_alerts=[],
         processing_ms=elapsed,
     )

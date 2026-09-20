@@ -3,7 +3,7 @@
 <head data-page-node-id="uVmcP1zMphEb0mNtpzUCet">
 <meta charset="UTF-8" data-page-node-id="knp6iFyhvFUNQny66RhhIg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="pTma35LW83jvATT3tAhlYt">
-<title>ShipSync · Shipping Document Verification Console</title>
+<title>ShipSync Dashboard · Shipping Document Operations Console</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 17l4 4 9-10' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" data-page-node-id="g8Lb4H4ZcBs3BNHlWmJZ0a">
 <script>
 /* Apply the saved theme before first paint so the page never flashes the wrong mode.
@@ -645,7 +645,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
       </div>
       <div class="brand-txt" data-page-node-id="ZXwoYngb0oWeeFX4jvTAZz">
         <div class="name" data-page-node-id="mOX9lK6Jzz261pm0KVCCwQ">ShipSync</div>
-        <div class="tag" data-page-node-id="7SO9aCWBMWZlM6qZPXeNQF">Verification Console</div>
+        <div class="tag" data-page-node-id="7SO9aCWBMWZlM6qZPXeNQF">Operations Console</div>
       </div>
       <button class="collapse-btn" id="collapseBtn" type="button" data-tip="Collapse sidebar" data-tip-desc="Shrink the sidebar to an icon rail, or bring it back" data-tip-kbd="[" data-tip-pos="right" aria-label="Collapse sidebar" data-page-node-id="cllpsBtn0n3">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="cllpsIcn0n3"><path d="M11 17l-5-5 5-5" data-page-node-id="cllpsP1"/><path d="M18 17l-5-5 5-5" data-page-node-id="cllpsP2"/></svg>
@@ -674,6 +674,15 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
         <span>Advanced Shipment Workflow</span>
         <span class="hk">2</span>
       </a>
+      <!-- Opens in a new tab: the Simulated Gmail workspace is a separate
+           surface, and the Dashboard should stay where the operator left it. -->
+      <a class="navlink" href="/gmail/" target="_blank" rel="noopener noreferrer"
+         data-tip="Simulated Gmail" data-tip-desc="Open the simulated Gmail inbox with the ShipSync side panel"
+         data-tip-kbd="3" data-tip-pos="right" aria-label="Simulated Gmail">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+        <span>Simulated Gmail</span>
+        <span class="hk">3</span>
+      </a>
     </div>
 
     <div class="panel-box" data-page-node-id="TGnqw11nrbhOZG9Nn4vgFP">
@@ -684,6 +693,22 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
           <div class="big" id="relNum" data-page-node-id="2LdKmDiEC4TUywZCtOJYuu">0</div>
           <div style="font-size:11px;color:var(--muted)" data-page-node-id="LFEh0Z5vSQbgIDCgr3q6ZR">awaiting review</div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===================== INTEGRATION (Simulated Gmail / real Gmail) =====
+         Reads the SAME stored results the Gmail side panel shows. It never
+         re-runs classification, extraction or verification. -->
+    <div class="panel-box">
+      <h4>Integrations</h4>
+      <div class="legend">
+        <div id="intgSummary" style="color:var(--muted)">Reading stored results…</div>
+      </div>
+      <div id="intgList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+      <div style="font-size:10.5px;color:var(--muted-2);margin-top:8px;line-height:1.5">
+        Emails processed through <b>POST /api/process</b> by the Simulated Gmail
+        side panel. Loaded once from storage — opening the Dashboard does not
+        reprocess anything.
       </div>
     </div>
 
@@ -963,6 +988,34 @@ function byIcon(b){
 async function loadSummary(){
   state.summary = await (await fetch(API+"/api/summary")).json();
   renderKPIs();
+}
+
+/* ---------------------------------------------------------------- integrations
+   The Dashboard and the Gmail side panel share one stored result set. This
+   reads that storage (GET /api/results) — it never reprocesses a document.
+   Called once at boot; there is no polling timer anywhere. */
+async function loadIntegrations(){
+  const box=$("#intgList"), sum=$("#intgSummary");
+  if(!box||!sum) return;
+  try{
+    const rows=await (await fetch(API+"/api/results?limit=8")).json();
+    if(!rows.length){
+      sum.innerHTML='<span style="color:var(--muted-2)">No email processed through the API yet.</span>';
+      box.innerHTML="";
+      return;
+    }
+    const bad=rows.filter(r=>r.status==="MISMATCH").length;
+    const rev=rows.filter(r=>r.status==="NEEDS_REVIEW").length;
+    sum.innerHTML=`<b>${rows.length}</b> stored result(s) · <span style="color:var(--bad)">${bad} mismatch</span> · <span style="color:var(--warn)">${rev} needs review</span>`;
+    box.innerHTML=rows.map(r=>`
+      <div style="display:flex;align-items:center;gap:8px;font-size:11.5px">
+        <span class="id">${esc(r.shipment_id||"—")}</span>
+        <span style="color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.email_id)}</span>
+        ${stBadge(r.status)}
+      </div>`).join("");
+  }catch(_){
+    sum.innerHTML='<span style="color:var(--muted-2)">Integration API unavailable.</span>';
+  }
 }
 function clearFilters(){$("#f-cat").value="";$("#f-status").value="";loadList();}
 async function loadList(){
@@ -1393,6 +1446,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="?"){e.preventDefault();openHelp();return;}
   if(e.key==="1"){e.preventDefault();goConsole();return;}
   if(e.key==="2"){e.preventDefault();goShipments();return;}
+  if(e.key==="3"){e.preventDefault();window.open("/gmail/","_blank","noopener");return;}
   if(e.key==="b"||e.key==="B"){e.preventDefault();goConsole();return;}
   if(e.key==="t"||e.key==="T"){e.preventDefault();toggleTheme();}
   if(e.key==="f"||e.key==="F"){e.preventDefault();toggleFocus();}
@@ -1696,6 +1750,7 @@ $("#palClear").addEventListener("mousedown",e=>{e.preventDefault();$("#palQ").va
 $("#palette").addEventListener("click",e=>{if(e.target.id==="palette")closePalette();});
 
 loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h)openEmail(h); else renderEmptyDetail();});
+loadIntegrations();   /* stored API results only — no reprocessing */
 </script>
 </body>
 </html>
