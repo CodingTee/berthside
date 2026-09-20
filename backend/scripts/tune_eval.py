@@ -52,7 +52,11 @@ def main() -> int:
     Base.metadata.create_all(engine)
     db = sessionmaker(bind=engine)()
 
-    emails = inbox_service.all_emails()
+    # The corpus only. Emails ingested through the API live in the developer's
+    # database and would otherwise join the run, so the score would describe a
+    # corpus that does not exist. This is not hypothetical: it once processed
+    # 521 emails instead of 520 for exactly this reason.
+    emails = inbox_service.all_emails(include_ingested=False)
     if args.limit:
         emails = emails[:args.limit]
 

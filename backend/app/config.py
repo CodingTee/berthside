@@ -44,6 +44,21 @@ class Settings(BaseSettings):
             path = BACKEND_ROOT / path
         return str(path.resolve())
 
+    # Where POST /api/v1/ingest writes the attachments it accepts. Relative
+    # paths are anchored to BACKEND_ROOT by the same rule as `data_source`, so
+    # the value means the same thing whatever the process working directory is.
+    # Tests point this at a temporary directory to stay off the real disk.
+    ingest_dir: str = "data/ingested"
+
+    @field_validator("ingest_dir")
+    @classmethod
+    def _anchor_ingest_dir(cls, value: str) -> str:
+        """Anchor a relative ingest directory to BACKEND_ROOT."""
+        path = Path(value).expanduser()
+        if not path.is_absolute():
+            path = BACKEND_ROOT / path
+        return str(path.resolve())
+
     # -- database ----------------------------------------------------------
     # Local dev default: SQLite file next to the backend root.
     # Production (Supabase / any Postgres):

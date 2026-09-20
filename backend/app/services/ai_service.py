@@ -230,6 +230,23 @@ def _try_read_binary(filename: str, content: bytes,
                         lines.append(" | ".join(cells))
             return ("\n".join(lines) or None), "xlsx"
 
+        if filename.endswith(".xls"):
+            try:
+                import xlrd
+                wb = xlrd.open_workbook(file_contents=content)
+                lines = []
+                for sheet in wb.sheets():
+                    for row_idx in range(sheet.nrows):
+                        cells = [str(sheet.cell_value(row_idx, c)).strip() for c in range(sheet.ncols)]
+                        cells = [c for c in cells if c]
+                        if cells:
+                            lines.append(" | ".join(cells))
+                text = _clean_extracted("\n".join(lines))
+                return (text or None), "xls"
+            except Exception as exc:
+                log.info("xlrd failed for %s: %s", filename, exc)
+                return None
+
         if filename.endswith(".pdf"):
             return _read_pdf(content, doc_type)
 
@@ -244,10 +261,58 @@ def _try_read_binary(filename: str, content: bytes,
                         lines.append(" | ".join(cells))
             text = _clean_extracted("\n".join(lines))
             return (text or None), "docx"
+
+        if filename.endswith(".doc"):
+            # 1. In case it was OpenXML docx renamed to .doc
+            try:
+                from docx import Document
+                doc = Document(io.BytesIO(content))
+                lines = [p.text for p in doc.paragraphs]
+                for table in doc.tables:
+                    for row in table.rows:
+                        cells = [c.text.strip() for c in row.cells if c.text and c.text.strip()]
+                        if cells:
+                            lines.append(" | ".join(cells))
+                text = _clean_extracted("\n".join(lines))
+                if text:
+                    return text, "doc-docx"
+            except Exception:
+                pass
+
+            # 2. Compound File Binary Format (OLE2) .doc parsing
+            try:
+                import olefile
+                if olefile.isOleFile(io.BytesIO(content)):
+                    with olefile.OleFileIO(io.BytesIO(content)) as ole:
+                        if ole.exists("WordDocument"):
+                            stream = ole.openstream("WordDocument").read()
+                            raw_text = stream.decode("latin-1", errors="ignore")
+                            lines = []
+                            for part in re.split(r"[\r\n\x07\x0c]+", raw_text):
+                                clean = re.sub(r"[^\x20-\x7E\t]+", " ", part).strip()
+                                if len(clean) >= 4 and any(c.isalpha() for c in clean):
+                                    lines.append(clean)
+                            text = _clean_extracted("\n".join(lines))
+                            return (text or None), "doc-ole"
+            except Exception as exc:
+                log.info("olefile failed for %s: %s", filename, exc)
+                return None
+
+        image_exts = (".tif", ".tiff", ".png", ".jpg", ".jpeg", ".bmp", ".webp")
+        if any(filename.endswith(ext) for ext in image_exts):
+            try:
+                from app.services.ocr import ocr_image
+                text = ocr_image(content, filename)
+                if text:
+                    return _clean_extracted(text), "image-ocr"
+            except Exception as exc:
+                log.warning("Image OCR failed for %s: %s", filename, exc)
+                return None
     except Exception as exc:  # noqa: BLE001 — library missing or file corrupt
         log.info("optional reader failed for %s: %s", filename, exc)
         return None
     return None
+
 
 
 def _clean_extracted(text: str) -> str:

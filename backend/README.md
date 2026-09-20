@@ -271,12 +271,21 @@ backend/
 ## Regression gates — run before every push
 
 ```bash
-python -m pytest tests -q          # 38 unit/integration tests (no server needed)
+python -m pytest tests -q          # 77 unit/integration tests (no server needed)
 python scripts/tune_eval.py        # score with the official scorer (expect 1.0000)
 python scripts/stress_evaluate.py  # score under 6 noise perturbations (expect 1.0)
 python scripts/smoke_test.py       # 9 E2E checks against the live API
 python scripts/check_secrets.py    # nothing sensitive about to be committed
 ```
+
+`tests/conftest.py` gives every test a throwaway in-memory database and a
+temporary ingest directory, so running the suite never writes to `sdoc.db` or
+`data/ingested/`. Keep new tests inside `tests/` for that to apply: a test file
+under `scripts/` would be collected by a bare `pytest` run but would not get the
+harness, and would write to the real database.
+
+Run the suite with `python -m pytest tests`, not a bare `pytest`, so the
+collection scope is explicit.
 
 ## Scoring / tuning loop (no Docker required)
 

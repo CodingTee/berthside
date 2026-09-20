@@ -348,3 +348,41 @@ class AIAmbiguousInterpretationOut(BaseModel):
     confidence: str
     needs_human_review: bool = True
     explanation: str
+
+
+# ------------------------------------------------------------- external API
+class AttachmentPayload(BaseModel):
+    filename: str
+    content_base64: Optional[str] = None
+    content_text: Optional[str] = None
+
+
+class EmailAnalyzeRequest(BaseModel):
+    email_id: Optional[str] = None
+    sender: str = Field(alias="from")
+    subject: str
+    body: str
+    attachments: list[AttachmentPayload] = Field(default_factory=list)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class EmailAnalyzeResponse(BaseModel):
+    email_id: str
+    category: str
+    confidence: float
+    classification_reason: Optional[str] = None
+    status: str
+    has_defect: bool = False
+    defect_fields: list[str] = Field(default_factory=list)
+    field_results: list[FieldResult] = Field(default_factory=list)
+    review_reason: Optional[str] = None
+    suggested_action: str
+    security_alerts: list[str] = Field(default_factory=list)
+    processing_ms: float = 0.0
+
+
+class EmailIngestResponse(EmailAnalyzeResponse):
+    persisted: bool = True
+    review_desk_url: Optional[str] = None
+

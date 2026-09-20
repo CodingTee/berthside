@@ -16,7 +16,8 @@ from __future__ import annotations
 import logging
 import re
 import time
-from typing import Any, Optional
+from dataclasses import dataclass, field
+from typing import Any, Callable, Optional
 
 from sqlalchemy.orm import Session
 
@@ -242,23 +243,83 @@ def process_all(db: Session, limit: int = 0) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------- pipeline
-def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
+@dataclass
+class ComparedPair:
+    """The SI/BL pair that was read, with its bytes and extraction results.
+
+    Carried on the verdict so the db-backed path can hand the same documents to
+    versioning without reading them a second time.
+    """
+    si_path: str
+    bl_path: str
+    si_content: bytes
+    bl_content: bytes
+    si_result: Any
+    bl_result: Any
+
+
+@dataclass
+class EmailVerdict:
+    """What the pipeline decided about one email: no database, no report row."""
+    category: str
+    confidence: float
+    classification_reason: str
+    status: str
+    review_reason: Optional[str] = None
+    has_defect: bool = False
+    defect_fields: list[str] = field(default_factory=list)
+    field_results: list[dict] = field(default_factory=list)
+    extracted: dict = field(default_factory=dict)
+    pair: Optional[ComparedPair] = None
+
+
+def _wrong_doc(res, other: str) -> bool:
+    """True when a document really reads as the *other* kind of document.
+
+    Only escalate when it declares the other type AND yields almost no usable
+    fields. A doc that declares the other type yet parses fine still gets
+    compared, because escalating it would silently drop a real defect.
+    """
+    return bool(res.fields) is False or (
+        len(res.fields) < 3 and _declares_other(res.raw_text, other))
+
+
+def evaluate_email(email: dict,
+                   content_provider: Optional[Callable[[str], bytes]] = None
+                   ) -> EmailVerdict:
+    """Decide one email's outcome. Pure decision logic, never touches the db.
+
+    This is the single implementation of the verification rules, and the point
+    is that both entry points call it. `process_email` and the external
+    `/api/v1/analyze` endpoint each used to carry their own copy, so a rule
+    fixed in one stayed broken in the other: 91 escalated non-issues reappeared
+    that way, and the two disagreed on 6 further reason codes.
+
+    `content_provider(path) -> bytes` fetches attachment contents and defaults
+    to the inbox (local bundle or dataset server). A caller that already holds
+    the bytes, such as the external API, passes its own lookup so an attachment
+    that arrived over HTTP is never resolved against the filesystem.
+
+    Raises whatever `ai_service.classify_email` raises when no provider can be
+    reached; the caller decides whether that becomes ERROR or a 5xx.
+    """
+    provider = content_provider or inbox_service.read_attachment
+
     # 1. classify -----------------------------------------------------------
     try:
         cls: Classification = ai_service.classify_email(email)
     except Exception as exc:  # remote-only provider is down
         raise RuntimeError(f"classification unavailable: {exc}") from exc
-    report.category = cls.category
 
     if cls.category != "BL_COMPARISON":
-        report.status = NON_COMPARISON_STATUS
-        report.has_defect = 0
-        report.defect_fields = []
-        report.review_reason = None
-        report.field_results = []
-        report.extracted = {"classification_reason": cls.reason,
-                            "confidence": cls.confidence}
-        return
+        return EmailVerdict(
+            category=cls.category,
+            confidence=cls.confidence,
+            classification_reason=cls.reason,
+            status=NON_COMPARISON_STATUS,
+            extracted={"classification_reason": cls.reason,
+                       "confidence": cls.confidence},
+        )
 
     # 2. locate SI + BL attachments ---------------------------------------
     si_path, bl_path = _find_doc_attachments(email)
@@ -266,138 +327,197 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
         if _is_document_request(email.get("body") or ""):
             # The sender is asking us to send them a document, so there is
             # nothing to verify: no attachment is expected and none is
-            # missing. Reporting OK is the honest verdict — escalating would
+            # missing. Reporting OK is the honest verdict. Escalating would
             # put a task in the human queue that does not exist.
-            report.status = "OK"
-            report.review_reason = None
-            report.defect_fields = []
-            report.has_defect = 0
-            report.field_results = []
-            report.extracted = {
-                "si_attachment": si_path, "bl_attachment": bl_path,
-                "action": "document_request",
-                "evidence": "Sender asked us to send documents; no SI/BL pair to "
-                            "compare, so nothing is missing.",
-            }
-            return
+            return EmailVerdict(
+                category=cls.category,
+                confidence=cls.confidence,
+                classification_reason=cls.reason,
+                status="OK",
+                extracted={
+                    "si_attachment": si_path, "bl_attachment": bl_path,
+                    "action": "document_request",
+                    "evidence": "Sender asked us to send documents; no SI/BL "
+                                "pair to compare, so nothing is missing.",
+                },
+            )
 
         missing = [d for d, p in (("SI", si_path), ("BL", bl_path)) if p is None]
         present = {d: p for d, p in (("SI", si_path), ("BL", bl_path)) if p}
-        report.status = "NEEDS_REVIEW"
-        report.review_reason = "missing_attachment"
-        report.defect_fields = []
-        report.has_defect = 0
-        report.field_results = []
-        # Evidence for the human reviewer: which document is absent and what we
-        # DID find, so the escalation is actionable (not a silent dead-end).
-        report.extracted = {
-            "si_attachment": si_path, "bl_attachment": bl_path,
-            "missing_documents": missing, "present_documents": present,
-            "evidence": f"Expected both SI and BL; missing: {', '.join(missing) or 'none'}",
-        }
-        return
+        return EmailVerdict(
+            category=cls.category,
+            confidence=cls.confidence,
+            classification_reason=cls.reason,
+            status="NEEDS_REVIEW",
+            review_reason="missing_attachment",
+            # Evidence for the human reviewer: which document is absent and
+            # what we DID find, so the escalation is actionable (not a silent
+            # dead-end).
+            extracted={
+                "si_attachment": si_path, "bl_attachment": bl_path,
+                "missing_documents": missing, "present_documents": present,
+                "evidence": ("Expected both SI and BL; missing: "
+                             f"{', '.join(missing) or 'none'}"),
+            },
+        )
 
     # 3. read + extract ----------------------------------------------------
-    si_content = inbox_service.read_attachment(si_path)
-    bl_content = inbox_service.read_attachment(bl_path)
+    si_content = provider(si_path)
+    bl_content = provider(bl_path)
     si_res = ai_service.extract_document("SI", si_path, si_content)
     bl_res = ai_service.extract_document("BL", bl_path, bl_content)
 
-    # wrong_doc_type: only escalate when the document really is the wrong
-    # kind — i.e. it declares the other type AND yields almost no usable
-    # fields. A doc that declares the other type yet parses fine still gets
-    # compared; escalating it would silently drop a real defect.
-    def _wrong_doc(res, other: str) -> bool:
-        return bool(res.fields) is False or (
-            len(res.fields) < 3 and _declares_other(res.raw_text, other))
-
     if _wrong_doc(si_res, "BL") or _wrong_doc(bl_res, "SI"):
-        report.status = "NEEDS_REVIEW"
-        report.review_reason = "wrong_doc_type"
-        report.extracted = {
-            "si": si_res.fields, "bl": bl_res.fields,
-            "evidence": "Attachment present but does not read as the expected "
-                        "document type (SI vs BL).",
-        }
-        return
+        return EmailVerdict(
+            category=cls.category,
+            confidence=cls.confidence,
+            classification_reason=cls.reason,
+            status="NEEDS_REVIEW",
+            review_reason="wrong_doc_type",
+            extracted={
+                "si": si_res.fields, "bl": bl_res.fields,
+                "evidence": "Attachment present but does not read as the "
+                            "expected document type (SI vs BL).",
+            },
+        )
 
     # unreadable binary attachments (pdf/docx/xlsx without an AI parser)
     if not si_res.readable or not bl_res.readable:
         unreadable = [d for d, r in (("SI", si_res), ("BL", bl_res)) if not r.readable]
-        report.status = "NEEDS_REVIEW"
-        report.review_reason = "unreadable"
-        report.extracted = {
-            "si": si_res.fields, "bl": bl_res.fields,
-            "unreadable_documents": unreadable,
-            "evidence": f"Could not read: {', '.join(unreadable)}. Needs OCR, a "
-                        f"vision model, or a human to transcribe.",
-        }
-        return
+        return EmailVerdict(
+            category=cls.category,
+            confidence=cls.confidence,
+            classification_reason=cls.reason,
+            status="NEEDS_REVIEW",
+            review_reason="unreadable",
+            extracted={
+                "si": si_res.fields, "bl": bl_res.fields,
+                "unreadable_documents": unreadable,
+                "evidence": (f"Could not read: {', '.join(unreadable)}. Needs "
+                             f"OCR, a vision model, or a human to transcribe."),
+            },
+        )
 
     # 3b. OCR-derived documents: read, but from pixels ------------------------
     # A scanned PDF has no text layer, so OCR transcribes it from the rendered
-    # image. That transcription is weaker than an embedded text layer — digits
+    # image. That transcription is weaker than an embedded text layer: digits
     # and letters get confused ("VALPARAISO" -> "VALPARAISQ", "CHINA" ->
-    # "CHIMA") — so an incomplete transcription must NOT be silently compared:
-    # a misread field looks exactly like a real discrepancy. Escalate instead,
-    # and hand the reviewer the transcription plus what is still missing.
+    # "CHIMA"). An incomplete transcription must NOT be silently compared,
+    # because a misread field looks exactly like a real discrepancy. Escalate
+    # instead, and hand the reviewer the transcription plus what is missing.
     ocr_docs = [d for d, r in (("SI", si_res), ("BL", bl_res))
                 if r.source == "pdf-ocr" and not r.is_complete]
     if ocr_docs:
-        report.status = "NEEDS_REVIEW"
-        report.review_reason = "unreadable"
-        report.extracted = {
-            "si": si_res.fields,
-            "bl": bl_res.fields,
-            "ocr_documents": ocr_docs,
-            "ocr_text": {d: r.raw_text[:1500]
-                         for d, r in (("SI", si_res), ("BL", bl_res))
-                         if d in ocr_docs},
-            "evidence": (
-                f"OCR transcribed {', '.join(ocr_docs)} from a scanned image "
-                f"(no embedded text layer), but the transcription is incomplete "
-                f"— missing: "
-                + "; ".join(
-                    f"{d}: {', '.join(r.missing)}"
-                    for d, r in (("SI", si_res), ("BL", bl_res)) if d in ocr_docs)
-                + ". A human must confirm the transcription before comparing; "
-                "guessing here would manufacture a false discrepancy."),
+        return EmailVerdict(
+            category=cls.category,
+            confidence=cls.confidence,
+            classification_reason=cls.reason,
+            status="NEEDS_REVIEW",
+            review_reason="unreadable",
+            extracted={
+                "si": si_res.fields,
+                "bl": bl_res.fields,
+                "ocr_documents": ocr_docs,
+                "ocr_text": {d: r.raw_text[:1500]
+                             for d, r in (("SI", si_res), ("BL", bl_res))
+                             if d in ocr_docs},
+                "evidence": (
+                    f"OCR transcribed {', '.join(ocr_docs)} from a scanned "
+                    f"image (no embedded text layer), but the transcription is "
+                    f"incomplete. Missing: "
+                    + "; ".join(
+                        f"{d}: {', '.join(r.missing)}"
+                        for d, r in (("SI", si_res), ("BL", bl_res))
+                        if d in ocr_docs)
+                    + ". A human must confirm the transcription before "
+                      "comparing; guessing here would manufacture a false "
+                      "discrepancy."),
+            },
+        )
+
+    # 4. deterministic comparison ------------------------------------------
+    outcome = compare(si_res.fields, bl_res.fields, COMPARED_FIELDS)
+    return EmailVerdict(
+        category=cls.category,
+        confidence=cls.confidence,
+        classification_reason=cls.reason,
+        status=outcome.status,
+        review_reason=outcome.review_reason,
+        has_defect=outcome.has_defect,
+        defect_fields=outcome.defect_fields,
+        field_results=outcome.field_results,
+        extracted={
+            "si": si_res.fields, "bl": bl_res.fields,
+            "si_missing": si_res.missing, "bl_missing": bl_res.missing,
+        },
+        pair=ComparedPair(si_path, bl_path, si_content, bl_content,
+                          si_res, bl_res),
+    )
+
+
+def _apply_verdict(report: ReportRecord, verdict: EmailVerdict) -> None:
+    """Copy a verdict onto a report row.
+
+    Every field is written on every path, so a re-processed email can never
+    keep a stale value from its previous verdict.
+    """
+    report.category = verdict.category
+    report.status = verdict.status
+    report.has_defect = 1 if verdict.has_defect else 0
+    report.defect_fields = verdict.defect_fields
+    report.review_reason = verdict.review_reason
+    report.field_results = verdict.field_results
+    report.extracted = verdict.extracted
+
+
+def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
+    verdict = evaluate_email(email)
+    pair = verdict.pair
+
+    if pair is not None:
+        # The db-backed path additionally resolves which version of each
+        # document is current, so a re-sent document is compared against the
+        # latest revision rather than the copy inside this one email. The
+        # stateless entry point skips this: it has no shipment history to
+        # consult, and inventing one would be worse than the plain comparison.
+        shipment, _si_version, _bl_version = versioning.sync_processed_documents(
+            db,
+            report=report,
+            email=email,
+            si_path=pair.si_path,
+            bl_path=pair.bl_path,
+            si_content=pair.si_content,
+            bl_content=pair.bl_content,
+            si_result=pair.si_result,
+            bl_result=pair.bl_result,
+        )
+        latest_outcome, latest_si, latest_bl = versioning.latest_pair_comparison(
+            db, shipment.id
+        )
+        outcome = latest_outcome or compare(
+            pair.si_result.fields, pair.bl_result.fields, COMPARED_FIELDS)
+
+        verdict.status = outcome.status
+        verdict.has_defect = outcome.has_defect
+        verdict.defect_fields = outcome.defect_fields
+        verdict.review_reason = outcome.review_reason
+        verdict.field_results = outcome.field_results
+        verdict.extracted = {
+            **verdict.extracted,
+            "si": (latest_si.extracted_fields if latest_si
+                   else pair.si_result.fields),
+            "bl": (latest_bl.extracted_fields if latest_bl
+                   else pair.bl_result.fields),
+            "shipment_id": shipment.id,
+            "shipment_key": shipment.shipment_key,
+            "latest_si_version_id": latest_si.id if latest_si else None,
+            "latest_bl_version_id": latest_bl.id if latest_bl else None,
         }
-        return
 
-    # 4. deterministic versioning + latest-version comparison ----------------
-    shipment, _si_version, _bl_version = versioning.sync_processed_documents(
-        db,
-        report=report,
-        email=email,
-        si_path=si_path,
-        bl_path=bl_path,
-        si_content=si_content,
-        bl_content=bl_content,
-        si_result=si_res,
-        bl_result=bl_res,
-    )
-    latest_outcome, latest_si, latest_bl = versioning.latest_pair_comparison(
-        db, shipment.id
-    )
-    outcome = latest_outcome or compare(si_res.fields, bl_res.fields, COMPARED_FIELDS)
+    _apply_verdict(report, verdict)
 
-    report.status = outcome.status
-    report.has_defect = 1 if outcome.has_defect else 0
-    report.defect_fields = outcome.defect_fields
-    report.review_reason = outcome.review_reason
-    report.field_results = outcome.field_results
-    report.extracted = {
-        "si": (latest_si.extracted_fields if latest_si else si_res.fields),
-        "bl": (latest_bl.extracted_fields if latest_bl else bl_res.fields),
-        "si_missing": si_res.missing,
-        "bl_missing": bl_res.missing,
-        "shipment_id": shipment.id,
-        "shipment_key": shipment.shipment_key,
-        "latest_si_version_id": latest_si.id if latest_si else None,
-        "latest_bl_version_id": latest_bl.id if latest_bl else None,
-    }
-    versioning.sync_issues_for_report(db, report, shipment)
+    if pair is not None:
+        versioning.sync_issues_for_report(db, report, shipment)
 
 
 # ------------------------------------------------- attachment discovery tiers

@@ -10,20 +10,33 @@ drive the loader through it. They skip (loudly) when the bundle is absent.
 """
 from __future__ import annotations
 
+import sys
 import threading
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
 
-BUNDLE = Path("C:/Users/nicol/Downloads/sdoc-hackathon-bundle")
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.config import get_settings
 
 
-def _free_server():
+def _bundle() -> Path:
+    """The dataset bundle the application itself is configured to read.
+
+    This used to be a hardcoded developer path, which made all three HTTP tests
+    skip silently on every other machine. Delegating to DATA_SOURCE keeps them
+    in step with the app instead.
+    """
+    return Path(get_settings().data_source)
+
+
+def _free_server(root: Path):
     """Start the dataset HTTP server on an ephemeral port; return (srv, url)."""
     from scripts.serve_dataset import Handler
 
-    Handler.root = BUNDLE
+    Handler.root = root
     srv = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, f"http://127.0.0.1:{srv.server_address[1]}"
@@ -31,9 +44,10 @@ def _free_server():
 
 @pytest.fixture(scope="module")
 def http_source():
-    if not (BUNDLE / "inbox").is_dir():
-        pytest.skip(f"dataset bundle not present at {BUNDLE}")
-    srv, url = _free_server()
+    bundle = _bundle()
+    if not (bundle / "inbox").is_dir():
+        pytest.skip(f"dataset bundle not present at {bundle}")
+    srv, url = _free_server(bundle)
     yield url
     srv.shutdown()
 
@@ -42,7 +56,7 @@ def test_http_source_is_detected():
     from app.services.loader import Inbox
 
     assert Inbox("http://localhost:8080").is_http is True
-    assert Inbox(str(BUNDLE)).is_http is False
+    assert Inbox(str(_bundle())).is_http is False
 
 
 def test_http_source_lists_the_whole_inbox(http_source):
@@ -73,7 +87,7 @@ def test_http_source_runs_through_the_service_layer(http_source, monkeypatch):
     monkeypatch.setenv("DATA_SOURCE", http_source)
     inbox_service._inbox.cache_clear()
 
-    emails = inbox_service.all_emails()
+    emails = inbox_service.all_emails(include_ingested=False)
     assert len(emails) > 0
     assert inbox_service.get_email("does_not_exist") is None  # 404 -> None, not a crash
 

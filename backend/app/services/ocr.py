@@ -189,3 +189,39 @@ def ocr_pdf(content: bytes) -> str | None:
     except Exception as exc:  # noqa: BLE001 — OCR is best-effort only
         log.warning("OCR attempt failed for a PDF: %s", exc)
         return None
+
+
+def ocr_image(content: bytes, filename: str = "") -> str | None:
+    """Read a single image or multi-page TIFF image and OCR each frame/page.
+
+    Supports .png, .jpg, .jpeg, .tif, .tiff, .bmp, .webp.
+    Returns concatenated extracted text, or None if unreadable / OCR unavailable.
+    """
+    if not ocr_available():
+        return None
+    engine = _engine()
+    if engine is None:
+        return None
+
+    try:
+        import io
+        from PIL import Image, ImageSequence
+
+        # Defend against decompression bomb DOS attacks
+        Image.MAX_IMAGE_PIXELS = 50_000_000
+
+        img = Image.open(io.BytesIO(content))
+        pages = []
+        for frame in ImageSequence.Iterator(img):
+            frame_rgb = frame.convert("RGB")
+            items = engine(frame_rgb)
+            if items:
+                text = _items_to_lines(items)
+                if text.strip():
+                    pages.append(text)
+        combined = "\n".join(pages).strip()
+        return combined or None
+    except Exception as exc:  # noqa: BLE001
+        log.warning("OCR attempt failed for image '%s': %s", filename, exc)
+        return None
+

@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import SessionLocal, get_db, init_db
 from app.models import EmailRecord
-from app.routers import ai_assist, emails, frontend_compat, reports, reviews, shipments
+from app.routers import ai_assist, emails, frontend_compat, ingest, reports, reviews, shipments
 
 
 logging.basicConfig(
@@ -57,7 +57,9 @@ app.include_router(reports.router)
 app.include_router(reviews.router)
 app.include_router(shipments.router)
 app.include_router(ai_assist.router)
+app.include_router(ingest.router)
 app.include_router(frontend_compat.router)
+
 
 
 # Frontend (P1) UI — Review Desk, served from /ui/

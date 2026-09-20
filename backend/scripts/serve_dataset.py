@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -78,13 +79,22 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", default="C:/Users/nicol/Downloads/sdoc-hackathon-bundle")
+    ap.add_argument("--root", default="",
+                    help="bundle directory; defaults to DATA_SOURCE from the "
+                         "application config, so no machine-specific path is baked in")
     ap.add_argument("--port", type=int, default=8099)
     args = ap.parse_args()
 
-    root = Path(args.root)
+    if args.root:
+        root = Path(args.root).expanduser()
+    else:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from app.config import get_settings
+        root = Path(get_settings().data_source)
+
     if not (root / "inbox").is_dir():
-        print(f"no inbox/ under {root}")
+        print(f"no inbox/ under {root}\n"
+              f"  pass --root <bundle dir>, or set DATA_SOURCE")
         return 1
 
     Handler.root = root
