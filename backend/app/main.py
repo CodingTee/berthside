@@ -322,7 +322,7 @@ async def _gmail_poll_loop() -> None:
 def root():
     from fastapi.responses import RedirectResponse
 
-    return RedirectResponse(url="/ui/")
+    return RedirectResponse(url="/gmail/")
 
 
 @app.get("/meta", tags=["meta"])
