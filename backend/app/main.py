@@ -29,6 +29,7 @@ from app.routers import (
     ai_assist,
     emails,
     frontend_compat,
+    gateway,
     gmail,
     ingest,
     integration,
@@ -75,6 +76,7 @@ app.include_router(ingest.router)
 app.include_router(integration.router)
 app.include_router(gmail.router)
 app.include_router(frontend_compat.router)
+app.include_router(gateway.router)
 
 
 

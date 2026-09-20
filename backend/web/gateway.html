@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShipSync Gateway · Multi-Inbox Security & Staging Buffer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='.52' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cg transform='translate(4,4)' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/g%3E%3C/svg%3E">
+<script>
+(function(){
+  try{
+    var t = localStorage.getItem("sdoc-theme") || "dark";
+    document.documentElement.setAttribute("data-theme", t);
+  }catch(_){}
+})();
+</script>
+<style>
+:root {
+  --bg: #080d18; --bg-2: #0b1222;
+  --surface: rgba(255,255,255,.036);
+  --surface-2: #0f1829; --surface-3: #152036;
+  --border: rgba(148,163,184,.17); --border-strong: rgba(148,163,184,.30);
+  --text: #f2f6ff; --muted: #a3b2c9; --muted-2: #7f8ea8;
+  --accent: #2dd4bf; --accent-2: #38bdf8; --accent-3: #6366f1;
+  --grad: linear-gradient(135deg, #2dd4bf 0%, #38bdf8 52%, #6366f1 100%);
+  --grad-btn: linear-gradient(135deg, #0f766e 0%, #0e7490 50%, #4338ca 100%);
+  --ok: #34d399; --ok-bg: rgba(52,211,153,.12); --ok-bd: rgba(52,211,153,.38);
+  --warn: #fbbf24; --warn-bg: rgba(251,191,36,.12); --warn-bd: rgba(251,191,36,.40);
+  --bad: #fb7185; --bad-bg: rgba(251,113,133,.12); --bad-bd: rgba(251,113,133,.40);
+  --shadow: 0 18px 50px -20px rgba(0,0,0,.65);
+  --radius: 12px;
+  --mono: "JetBrains Mono", Consolas, monospace;
+  --sans: "Inter", "Segoe UI", system-ui, sans-serif;
+}
+[data-theme="light"] {
+  --bg: #eef2f8; --bg-2: #e6ecf5;
+  --surface: rgba(255,255,255,.65); --surface-2: #ffffff; --surface-3: #f5f8fc;
+  --border: rgba(15,23,42,.10); --border-strong: rgba(15,23,42,.18);
+  --text: #0f1b2d; --muted: #54657f; --muted-2: #5e6d82;
+  --shadow: 0 18px 45px -22px rgba(15,23,42,.30);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); font-size: 13.5px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Top Header */
+.header { height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--bg-2); flex-shrink: 0; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; letter-spacing: -0.2px; }
+.logo-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--grad); display: flex; align-items: center; justify-content: center; }
+.logo-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2.2; }
+.nav-links { display: flex; align-items: center; gap: 6px; background: var(--surface); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+.nav-btn { text-decoration: none; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 550; color: var(--muted); display: flex; align-items: center; gap: 6px; transition: all .15s; }
+.nav-btn:hover { color: var(--text); background: rgba(255,255,255,.05); }
+.nav-btn.active { color: #fff; background: var(--grad-btn); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.actions-right { display: flex; align-items: center; gap: 12px; }
+
+/* Main Content */
+.main-wrapper { flex: 1; display: flex; flex-direction: column; padding: 18px 22px; gap: 16px; overflow: hidden; }
+
+/* KPI Strip */
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; flex-shrink: 0; }
+.kpi-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+.kpi-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); opacity: 0.8; }
+.kpi-card.ok::before { background: var(--ok); }
+.kpi-card.bad::before { background: var(--bad); }
+.kpi-card.warn::before { background: var(--warn); }
+.kpi-card.purple::before { background: #a855f7; }
+.kpi-num { font-size: 24px; font-weight: 750; font-family: var(--mono); }
+.kpi-lbl { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+/* Gateway Controls Bar */
+.control-bar { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-shrink: 0; flex-wrap: wrap; }
+.cg-left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.cg-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 550; }
+.select-ctl { background: var(--surface-3); color: var(--text); border: 1px solid var(--border-strong); padding: 6px 12px; border-radius: 8px; font-size: 13px; font-family: var(--sans); outline: none; cursor: pointer; }
+.badge-live { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 2px 8px; border-radius: 20px; font-weight: 600; background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-bd); }
+.badge-live.offline { background: var(--bad-bg); color: var(--bad); border-color: var(--bad-bd); }
+.badge-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* Buttons */
+.btn { background: var(--surface-3); border: 1px solid var(--border-strong); color: var(--text); padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; }
+.btn:hover { background: rgba(255,255,255,.08); }
+.btn-primary { background: var(--grad-btn); border-color: transparent; color: #fff; box-shadow: 0 2px 10px rgba(45,212,191,.2); }
+.btn-primary:hover { opacity: 0.92; }
+.btn-danger { background: var(--bad-bg); border-color: var(--bad-bd); color: var(--bad); }
+.btn-danger:hover { background: var(--bad); color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* Table Container */
+.table-panel { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
+.table-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 650; font-size: 14px; }
+.table-body { flex: 1; overflow-y: auto; }
+table.staged-tbl { width: 100%; border-collapse: collapse; text-align: left; }
+table.staged-tbl th { background: var(--surface-3); padding: 10px 16px; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+table.staged-tbl td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.staged-tbl tr:hover { background: rgba(255,255,255,.02); }
+
+/* Status Badges */
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 6px; font-size: 11.5px; font-weight: 650; text-transform: uppercase; font-family: var(--mono); }
+.pill-clean { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-bd); }
+.pill-blocked { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad-bd); }
+.pill-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-bd); }
+.pill-src { background: rgba(99,102,241,.12); color: #a5b4fc; border: 1px solid rgba(99,102,241,.3); font-family: var(--sans); text-transform: none; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.65); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 999; }
+.modal-overlay.hidden { display: none; }
+.modal-box { background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 14px; width: 560px; max-width: 90vw; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 25px 60px rgba(0,0,0,.8); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 700; }
+.scenario-grid { display: flex; flex-direction: column; gap: 10px; margin: 10px 0; }
+.sc-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; display: flex; align-items: flex-start; gap: 10px; transition: all .15s; }
+.sc-card:hover { border-color: var(--accent); background: rgba(45,212,191,.04); }
+.sc-card.selected { border-color: var(--accent); background: rgba(45,212,191,.08); box-shadow: 0 0 0 1px var(--accent); }
+.sc-title { font-weight: 650; font-size: 13.5px; margin-bottom: 2px; }
+.sc-desc { font-size: 12px; color: var(--muted); }
+
+/* Toast */
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-weight: 550; font-size: 13px; border: 1px solid rgba(255,255,255,.1); box-shadow: var(--shadow); z-index: 1000; transform: translateY(100px); opacity: 0; transition: all .25s ease; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.ok { border-color: var(--ok); }
+.toast.bad { border-color: var(--bad); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <span>ShipSync <span style="font-weight:400;color:var(--muted)">Gateway</span></span>
+  </div>
+
+  <nav class="nav-links">
+    <a href="/ui/gateway.html" class="nav-btn active">🛡️ Security Gateway</a>
+    <a href="/ui/" class="nav-btn">📋 Review Console</a>
+    <a href="/ui/shipments.html" class="nav-btn">🚢 Shipment Lifecycle</a>
+  </nav>
+
+  <div class="actions-right">
+    <button class="btn btn-sm" onclick="toggleTheme()">🌓 Theme</button>
+  </div>
+</header>
+
+<!-- Main Wrapper -->
+<div class="main-wrapper">
+
+  <!-- KPI Row -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-num" id="kpiTotal">520</span>
+      <span class="kpi-lbl">📥 Total Ingested Emails</span>
+    </div>
+    <div class="kpi-card ok">
+      <span class="kpi-num" id="kpiSafe">520</span>
+      <span class="kpi-lbl">🛡️ Clean & Ingested</span>
+    </div>
+    <div class="kpi-card bad">
+      <span class="kpi-num" id="kpiBlocked">1</span>
+      <span class="kpi-lbl">⛔ Malware & Trojans Blocked</span>
+    </div>
+    <div class="kpi-card warn">
+      <span class="kpi-num" id="kpiSpam">2</span>
+      <span class="kpi-lbl">🚫 Spam & Phishing Quarantined</span>
+    </div>
+    <div class="kpi-card purple">
+      <span class="kpi-num" id="kpiPending">1</span>
+      <span class="kpi-lbl">⏳ Awaiting Manual Triage</span>
+    </div>
+  </div>
+
+  <!-- Gateway Controls Bar -->
+  <div class="control-bar">
+    <div class="cg-left">
+      <!-- AI Engine Select -->
+      <div class="cg-item">
+        <span>🤖 AI Triage Engine:</span>
+        <select class="select-ctl" id="selEngine" onchange="changePolicy()">
+          <option value="cascade">🌐 Cloud Cascade (Gemini 2.5 Flash > Zhipu > Qwen)</option>
+          <option value="ollama">💻 Local Private Model (Ollama: qwen2.5vl:7b)</option>
+          <option value="rule">⚡ Deterministic Rule Engine (Regex & Heuristics · Zero Cost)</option>
+        </select>
+        <span class="badge-live" id="ollamaBadge"><span class="badge-dot"></span> <span id="ollamaText">Probing Ollama...</span></span>
+      </div>
+
+      <!-- Ingestion Mode -->
+      <div class="cg-item">
+        <span>🚪 Ingestion Policy:</span>
+        <select class="select-ctl" id="selMode" onchange="changePolicy()">
+          <option value="auto">⚡ Smart Auto-Ingest (Auto-pass verified clean docs)</option>
+          <option value="manual">🛡️ Strict Manual Triage (Operator approval required)</option>
+        </select>
+      </div>
+
+      <!-- Mailbox Source Filter -->
+      <div class="cg-item">
+        <span>📬 Mailbox Source:</span>
+        <select class="select-ctl" id="selMailbox" onchange="loadStagedEmails()">
+          <option value="ALL">All Sources (Unified Enterprise Influx)</option>
+          <option value="sdoc-hackathon-bundle@averis.com">Carrier EDI / API Webhook (Maersk / INTTRA Direct Influx)</option>
+          <option value="operations@shipsync.demo">Direct Mail Influx (operations@shipsync.demo)</option>
+          <option value="docs.export@averis.com">docs.export@averis.com (Export Documentation)</option>
+          <option value="booking@averis.com">booking@averis.com (Booking Confirmations)</option>
+          <option value="april.shipping@averis.com">april.shipping@averis.com (APRIL Pulp & Paper BU)</option>
+          <option value="finance@averis.com">finance@averis.com (Freight & Finance Desk)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Live Simulation Demo Trigger -->
+    <div>
+      <button class="btn btn-primary" onclick="openSimModal()">⚡ Simulate Incoming Email</button>
+    </div>
+  </div>
+
+  <!-- Staged & Quarantine Stream Table -->
+  <div class="table-panel">
+    <div class="table-header">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span>🛡️ Ingestion Buffer & Quarantine Stream</span>
+        <span id="stagedCountBadge" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
+      </div>
+      <button class="btn btn-sm" onclick="loadStagedEmails()">🔄 Refresh Stream</button>
+    </div>
+    <div class="table-body">
+      <table class="staged-tbl">
+        <thead>
+          <tr>
+            <th>Stage ID</th>
+            <th>Target Mailbox</th>
+            <th>Sender & Subject</th>
+            <th>Antivirus & Malware Scan</th>
+            <th>AI Intent Classification</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="stagedList">
+          <!-- Rows rendered by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Simulation Modal -->
+<div class="modal-overlay hidden" id="simModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>⚡ Live Test: Simulate Incoming Transmission</span>
+      <button class="btn btn-sm" onclick="closeSimModal()">✕</button>
+    </div>
+    <p style="color:var(--muted);font-size:12.5px;">
+      Select a test scenario to evaluate the gateway's real-time malware interception, spam filtering, and multi-mailbox document routing:
+    </p>
+
+    <div class="scenario-grid">
+      <div class="sc-card selected" onclick="selectScenario('clean_bl', this)">
+        <span style="font-size:20px;">📄</span>
+        <div>
+          <div class="sc-title">Compliant Draft B/L (Clean B/L Draft)</div>
+          <div class="sc-desc">Sent to <code>docs.export@averis.com</code>. Security verified; extracts 7 core fields for comparison.</div>
+        </div>
+      </div>
+      <div class="sc-card" onclick="selectScenario('trojan_virus', this)">
+        <span style="font-size:20px;">🚨</span>
+        <div>
+          <div class="sc-title">Trojan Malware Attack (PE Binary Attack)</div>
+          <div class="sc-desc">Attachment <code>Draft_BL.pdf.exe</code> (MZ executable header). Tests zero-tolerance instant quarantine!</div>
+        </div>
+      </div>
+      <div class="sc-card" onclick="selectScenario('spam_phishing', this)">
+        <span style="font-size:20px;">🎣</span>
+        <div>
+          <div class="sc-title">Commercial Spam & Phishing (Spam / Phishing)</div>
+          <div class="sc-desc">Disguised container leasing pitch. AI classifies as SPAM and prevents database pollution.</div>
+        </div>
+      </div>
+      <div class="sc-card" onclick="selectScenario('legacy_excel', this)">
+        <span style="font-size:20px;">📊</span>
+        <div>
+          <div class="sc-title">Packing & Shipping Instruction (.xlsx SI)</div>
+          <div class="sc-desc">Sent to <code>april.shipping@averis.com</code>. Tests multi-sheet tabular extraction and routing.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+      <button class="btn" onclick="closeSimModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="executeDrop()">🚀 Execute Simulation Drop</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rejection Reply Modal -->
+<div class="modal-overlay hidden" id="replyModal">
+  <div class="modal-box" style="width:600px;">
+    <div class="modal-head">
+      <span>📤 Dispatch Rejection & Return-to-Sender Clarification</span>
+      <button class="btn btn-sm" onclick="closeReplyModal()">✕</button>
+    </div>
+    <div style="font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:6px;">
+      <div>Channel (From / Reply-Via): <b id="repVia" style="color:var(--accent);"></b></div>
+      <div>Recipient (To): <b id="repTo"></b></div>
+      <div>Subject: <b id="repSub"></b></div>
+    </div>
+    <textarea id="repBody" style="width:100%;height:140px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+      <button class="btn" onclick="closeReplyModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSendReply()">📨 Send Origin-Aware Reply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+let currentScenario = "clean_bl";
+
+function toast(msg, type="ok"){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show " + type;
+  setTimeout(() => t.className = "toast", 3200);
+}
+
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute("data-theme") || "dark";
+  const nxt = cur === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", nxt);
+  localStorage.setItem("sdoc-theme", nxt);
+}
+
+async function loadStatus(){
+  try{
+    const res = await fetch("/api/v1/gateway/status");
+    const data = await res.json();
+    
+    // Update KPIs
+    document.getElementById("kpiTotal").textContent = data.statistics.total_processed;
+    document.getElementById("kpiSafe").textContent = data.statistics.safe_ingested;
+    document.getElementById("kpiBlocked").textContent = data.statistics.blocked_malware;
+    document.getElementById("kpiSpam").textContent = data.statistics.quarantined_spam;
+    document.getElementById("kpiPending").textContent = data.statistics.pending_approval;
+
+    // Update Controls
+    document.getElementById("selEngine").value = data.policy.engine;
+    document.getElementById("selMode").value = data.policy.ingest_mode;
+
+    // Update Engine probe
+    const ob = document.getElementById("ollamaBadge");
+    const ot = document.getElementById("ollamaText");
+    if(data.policy.engine === "rule"){
+      ob.className = "badge-live";
+      ob.style.borderColor = "rgba(45,212,191,.4)";
+      ob.style.color = "var(--accent)";
+      ot.textContent = "Deterministic Rules Ready (Local Regex · <1ms)";
+    } else if(data.policy.engine === "ollama"){
+      ob.style.borderColor = "";
+      ob.style.color = "";
+      if(data.engines.ollama.online && data.engines.ollama.model_ready){
+        ob.className = "badge-live";
+        ot.textContent = `Local Ollama Ready (${data.engines.ollama.current_model})`;
+      } else {
+        ob.className = "badge-live offline";
+        ot.textContent = "Local Ollama Offline (Auto Cloud Cascade)";
+      }
+    } else {
+      ob.className = "badge-live";
+      ob.style.borderColor = "rgba(56,189,248,.4)";
+      ob.style.color = "#38bdf8";
+      ot.textContent = `Cloud Cascade Active (${data.engines.cloud.primary})`;
+    }
+  }catch(e){
+    console.warn("Could not load gateway status", e);
+  }
+}
+
+async function changePolicy(){
+  const engine = document.getElementById("selEngine").value;
+  const ingest_mode = document.getElementById("selMode").value;
+  try{
+    const res = await fetch("/api/v1/gateway/config", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({engine, ingest_mode})
+    });
+    if(res.ok){
+      toast("Gateway policy updated successfully", "ok");
+      loadStatus();
+    }
+  }catch(e){
+    toast("Failed to update gateway policy", "bad");
+  }
+}
+
+async function loadStagedEmails(){
+  const mb = document.getElementById("selMailbox").value;
+  const url = "/api/v1/gateway/emails?limit=1000" + (mb !== "ALL" ? `&source_mailbox=${encodeURIComponent(mb)}` : "");
+  try{
+    const res = await fetch(url);
+    const data = await res.json();
+    renderStagedList(data);
+  }catch(e){
+    console.error(e);
+  }
+}
+
+function renderStagedList(items){
+  const tbody = document.getElementById("stagedList");
+  const badge = document.getElementById("stagedCountBadge");
+  if(badge) badge.textContent = `(${items ? items.length : 0} records)`;
+
+  if(!items || items.length === 0){
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;">No staged records found for this mailbox channel</td></tr>`;
+    return;
+  }
+  let html = "";
+  items.forEach(it => {
+    const isBlocked = it.security_status === "BLOCKED";
+    const secPill = isBlocked
+      ? `<span class="pill pill-blocked">⛔ Malware Intercepted</span>`
+      : `<span class="pill pill-clean">🛡️ Verified Clean</span>`;
+
+    const catPill = it.category === "SPAM"
+      ? `<span class="pill pill-warn">SPAM / Phishing</span>`
+      : `<span class="pill" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);">${it.category}</span>`;
+
+    let actionBtns = "";
+    if(it.status === "STAGED"){
+      actionBtns = `
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="approveEmail('${it.stage_id}')">✅ Approve & Ingest</button>
+          <button class="btn btn-sm btn-danger" onclick="rejectEmail('${it.stage_id}')">📤 Reject & Clarify</button>
+        </div>
+      `;
+    } else if(it.status === "QUARANTINED"){
+      if(isBlocked){
+        actionBtns = `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
+      } else {
+        actionBtns = `
+          <button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="approveEmail('${it.stage_id}')">🔓 Release & Ingest</button>
+        `;
+      }
+    } else if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
+      actionBtns = `<span style="color:var(--ok);font-weight:600;font-size:12px;">✓ Ingested to Review Desk</span>`;
+    } else {
+      actionBtns = `<span style="color:var(--muted);font-size:12px;">Rejected</span>`;
+    }
+
+    html += `
+      <tr>
+        <td style="font-family:var(--mono);font-size:12px;">${it.stage_id}</td>
+        <td><span class="pill pill-src">${it.source_mailbox}</span></td>
+        <td>
+          <div style="font-weight:600;color:var(--text);">${it.subject}</div>
+          <div style="font-size:11.5px;color:var(--muted);">Sender: ${it.sender || "—"}</div>
+        </td>
+        <td>
+          ${secPill}
+          ${it.attachments.length > 0 ? `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px;">📎 ${it.attachments.join(", ")}</div>` : ""}
+        </td>
+        <td>${catPill}</td>
+        <td><span style="font-size:12px;font-family:var(--mono);">${it.status}</span></td>
+        <td>${actionBtns}</td>
+      </tr>
+    `;
+  });
+  tbody.innerHTML = html;
+}
+
+async function approveEmail(stageId){
+  try{
+    const res = await fetch(`/api/v1/gateway/emails/${stageId}/approve`, {method: "POST"});
+    if(res.ok){
+      toast(`Email ${stageId} approved and synced to Review Console!`, "ok");
+      loadStatus();
+      loadStagedEmails();
+    }
+  }catch(e){
+    toast("Approval failed", "bad");
+  }
+}
+
+async function rejectEmail(stageId){
+  try{
+    const res = await fetch(`/api/v1/gateway/emails/${stageId}/reject`, {method: "POST"});
+    const d = await res.json();
+    document.getElementById("repVia").textContent = d.reply_via;
+    document.getElementById("repTo").textContent = d.reply_to;
+    document.getElementById("repSub").textContent = d.draft_subject;
+    document.getElementById("repBody").value = d.draft_body;
+    document.getElementById("replyModal").classList.remove("hidden");
+  }catch(e){
+    toast("Failed to generate rejection notice", "bad");
+  }
+}
+
+function closeReplyModal(){
+  document.getElementById("replyModal").classList.add("hidden");
+  loadStatus();
+  loadStagedEmails();
+}
+
+function confirmSendReply(){
+  toast("Rejection notice dispatched via origin mailbox!", "ok");
+  closeReplyModal();
+}
+
+/* Simulation Modal Logic */
+function openSimModal(){ document.getElementById("simModal").classList.remove("hidden"); }
+function closeSimModal(){ document.getElementById("simModal").classList.add("hidden"); }
+
+function selectScenario(sc, el){
+  currentScenario = sc;
+  document.querySelectorAll(".sc-card").forEach(c => c.classList.remove("selected"));
+  el.classList.add("selected");
+}
+
+async function executeDrop(){
+  closeSimModal();
+  toast("Simulating incoming email transmission & running security scan...", "ok");
+  try{
+    const mailbox = document.getElementById("selMailbox").value !== "ALL" ? document.getElementById("selMailbox").value : "docs.export@averis.com";
+    const res = await fetch("/api/v1/gateway/simulate-drop", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({scenario: currentScenario, source_mailbox: mailbox})
+    });
+    const d = await res.json();
+    if(d.security_status === "BLOCKED"){
+      toast(`⚠️ Intercepted malicious Trojan! Dispatched to quarantine.`, "bad");
+    } else {
+      toast(`✓ Security verified! Status: ${d.status}`, "ok");
+    }
+    loadStatus();
+    loadStagedEmails();
+  }catch(e){
+    toast("Simulation drop failed", "bad");
+  }
+}
+
+// Keyboard Shortcuts
+document.addEventListener("keydown", e => {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+  const k = e.key;
+  if (k === "1") { e.preventDefault(); location.href = "/ui/"; }
+  else if (k === "2") { e.preventDefault(); location.href = "/ui/shipments.html"; }
+  else if (k === "0") { e.preventDefault(); loadStagedEmails(); loadStatus(); toast("Stream refreshed", "ok"); }
+  else if (k === "t" || k === "T") { e.preventDefault(); toggleTheme(); }
+});
+
+// Initial Boot
+loadStatus();
+loadStagedEmails();
+setInterval(loadStatus, 8000); // lightweight zero-cost poll for gateway status
+</script>
+</body>
+</html>

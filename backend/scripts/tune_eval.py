@@ -65,6 +65,7 @@ def main() -> int:
     from app.database import Base
     from app.services import workflow
     from app.services import inbox_service
+    from app.services.submission import submission_entry
 
     if args.db:
         engine = create_engine(f"sqlite:///{args.db}")
@@ -97,13 +98,7 @@ def main() -> int:
         if r is None:
             submission[email_id] = default
             continue
-        submission[email_id] = {
-            "category": r.category,
-            "status": r.status if r.status != "ERROR" else "NEEDS_REVIEW",
-            "review_reason": r.review_reason,
-            "has_defect": bool(r.has_defect),
-            "defect_fields": r.defect_fields or [],
-        }
+        submission[email_id] = submission_entry(r)
 
     Path(args.out).write_text(json.dumps(submission, indent=2), encoding="utf-8")
     print(f"processed {len(emails)} emails in {elapsed:.1f}s -> {args.out}")

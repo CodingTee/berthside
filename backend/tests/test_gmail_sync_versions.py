@@ -216,7 +216,7 @@ def test_three_gmail_emails_become_one_shipment_with_three_si_versions(
     assert versions[0].id not in (versions[1].id, versions[2].id)
 
     # --- document/attachment metadata survives ---------------------------
-    assert [v.filename.rsplit("/", 1)[-1] for v in versions] == [
+    assert [v.filename.replace("\\", "/").rsplit("/", 1)[-1] for v in versions] == [
         "SHP-001_SI_v1.txt", "SHP-001_SI_v2.txt", "SHP-001_SI_v3.txt"]
     assert [v.email_id for v in versions] == [
         "GMAIL-si-v1", "GMAIL-si-v2", "GMAIL-si-v3"]

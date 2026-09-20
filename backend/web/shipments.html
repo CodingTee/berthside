@@ -557,6 +557,11 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
     <div class="nav-sec" data-page-node-id="qarqEauyVONOBd0auTi097">
       <div class="wf-title" data-page-node-id="weQsW6sMudD2uoT4qsYTHQ">Workflows</div>
+      <a class="navlink" href="gateway.html" data-tip="Security Gateway" data-tip-desc="Pre-ingestion quarantine buffer — AI triage, malware shield & multi-mailbox dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Security Gateway">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Security Gateway</span>
+        <span class="hk">0</span>
+      </a>
       <a class="navlink" href="/ui/" data-tip="Review Console" data-tip-desc="Email-centric console — process the inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console" data-page-node-id="nPRW3ST1L4rVsr6D58tNad">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="3FWcqyEjXIVzxOBDaYWt8y"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1" data-page-node-id="ivohGka5yZwMVmh268LQVC"/></svg>
         <span data-page-node-id="0tO99WvagTfEhoNohvAlBH">Review Console</span>
@@ -839,6 +844,7 @@ function icon(name){
     chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>',
     rail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h12M3 19h18"/></svg>',
     refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>',
+    shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
     clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.3 2"/></svg>',
     filter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8.4V20l-4-2.2v-4.4z"/></svg>'
   };
@@ -1514,6 +1520,8 @@ document.getElementById("collapseBtn").addEventListener("click",toggleRail);
    palette badges are all derived from these tables so they cannot drift apart.
    IS_MAC / MODK live up top with SHIFTK, because the filter chips need them. */
 const NAV = {
+  gateway:   {href:"gateway.html",   key:"0", label:"Security Gateway",
+              desc:"Pre-ingestion quarantine buffer \u2014 AI triage, malware shield & multi-mailbox dispatch"},
   console:   {href:"/ui/",           key:"1", label:"Review Console",
               desc:"Email-centric console — process the inbox and review SI \u2194 BL mismatches"},
   shipments: {href:"shipments.html", key:"2", label:"Advanced Shipment Workflow",
@@ -1524,6 +1532,7 @@ const NAV = {
 const SHORTCUTS = [
   {section:"Navigation"},
   {keys:[MODK,"K"], label:"Search", desc:"Open the search palette from anywhere"},
+  {keys:["0"], label:NAV.gateway.label,   desc:NAV.gateway.desc},
   {keys:["1"], label:NAV.console.label,   desc:NAV.console.desc},
   {keys:["2"], label:NAV.shipments.label, desc:NAV.shipments.desc},
   {keys:["B"], label:NAV.back.label,      desc:NAV.back.desc},
@@ -1647,6 +1656,7 @@ function palPins(){
 }
 function palCmds(){
   const c=[
+    {ico:icon("shield"), title:"Open Security Gateway", meta:"Pre-ingestion quarantine buffer & AI engine control", kbd:"0", run:()=>{ navTo(NAV.gateway.href); }},
     {ico:icon("home"), title:"Shipment Dashboard", meta:"Back to the shipment list", kbd:"G", run:goDashboard},
     {ico:icon("refresh"), title:"Reload current view", meta:"Re-fetch data from the API", run:()=>{ route(); }},
     {ico:icon(themeIconName(currentTheme())), title:"Switch theme",
@@ -1880,6 +1890,7 @@ document.addEventListener("keydown",e=>{
   if(k==="?"){ e.preventDefault(); openHelp(); return; }
   if(k==="Escape"){ if(state.current){ e.preventDefault(); goDashboard(); } return; }
 
+  if(k==="0"){ e.preventDefault(); navTo(NAV.gateway.href); return; }
   if(k==="1"){ e.preventDefault(); navTo(NAV.console.href); return; }
   if(k==="2"){ e.preventDefault(); goShipments(); return; }
   if(k==="b"||k==="B"){ e.preventDefault(); navTo(NAV.back.href); return; }

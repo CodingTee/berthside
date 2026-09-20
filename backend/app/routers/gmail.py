@@ -1,7 +1,7 @@
 """Real Gmail integration endpoints."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, Response
 from pathlib import Path
 from sqlalchemy.orm import Session
@@ -17,6 +17,45 @@ router = APIRouter(prefix="/api/gmail", tags=["gmail-integration"])
 @router.get("/status", summary="Check Gmail integration configuration")
 def gmail_status():
     return auth.integration_status()
+
+
+@router.post("/credentials", summary="Save Google OAuth client credentials JSON")
+async def save_gmail_credentials(request: Request):
+    import json
+
+    settings = get_settings()
+    content_type = request.headers.get("content-type", "")
+    client_data = None
+    try:
+        if "application/json" in content_type:
+            body = await request.json()
+            if isinstance(body, dict) and "client_json" in body:
+                raw = body["client_json"]
+                client_data = json.loads(raw) if isinstance(raw, str) else raw
+            elif isinstance(body, dict) and ("web" in body or "installed" in body):
+                client_data = body
+            else:
+                client_data = body
+        else:
+            text = (await request.body()).decode("utf-8")
+            client_data = json.loads(text)
+    except Exception as exc:
+        raise HTTPException(400, f"Invalid JSON payload: {exc}") from exc
+
+    if not isinstance(client_data, dict) or not ("web" in client_data or "installed" in client_data):
+        raise HTTPException(
+            400,
+            "Invalid Google OAuth client JSON format. Expected JSON containing a 'web' or 'installed' object with client_id and client_secret.",
+        )
+
+    cred_path = Path(settings.gmail_credentials_file)
+    cred_path.parent.mkdir(parents=True, exist_ok=True)
+    cred_path.write_text(json.dumps(client_data, indent=2), encoding="utf-8")
+    return {
+        "status": "configured",
+        "path": str(cred_path),
+        "account": settings.gmail_demo_account,
+    }
 
 
 @router.get("/connect", summary="Create Google OAuth authorization URL")

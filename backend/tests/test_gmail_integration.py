@@ -99,3 +99,35 @@ def test_gmail_sync_processes_unseen_message(monkeypatch, db_session):
     second = sync.poll_and_process(db_session, limit=10)
     assert second["processed"] == 0
     assert second["skipped"] == 1
+
+
+def test_gmail_credentials_rejects_invalid_payload():
+    client = TestClient(app)
+    res = client.post("/api/gmail/credentials", json={"invalid": "payload"})
+    assert res.status_code == 400
+    assert "Invalid Google OAuth client JSON format" in res.json()["detail"]
+
+
+def test_gmail_credentials_accepts_valid_web_payload(tmp_path, monkeypatch):
+    from app.config import get_settings
+
+    dummy_path = tmp_path / "google_oauth_client.json"
+    settings = get_settings()
+    monkeypatch.setattr(settings, "gmail_credentials_file", str(dummy_path))
+
+    client = TestClient(app)
+    valid_payload = {
+        "web": {
+            "client_id": "test-client-id.apps.googleusercontent.com",
+            "project_id": "test-project",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "client_secret": "test-secret",
+            "redirect_uris": ["http://127.0.0.1:8000/api/gmail/oauth-callback"],
+        }
+    }
+    res = client.post("/api/gmail/credentials", json=valid_payload)
+    assert res.status_code == 200
+    assert res.json()["status"] == "configured"
+    assert dummy_path.is_file()
+

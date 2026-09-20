@@ -98,6 +98,10 @@ pdf_text.txt
 .git.corrupt-*/
 .tmp-reclone/
 
+# --- one-off rewrite scripts, hardcoded local paths ---
+backend/diff_summary.txt
+backend/scripts/build_shipmail_from_friend.py
+
 # --- 通用临时文件 / 下载残留 ---
 *.tmp
 *.crdownload

@@ -11,6 +11,7 @@ from app.models import ReportRecord
 from app.schemas import (ReportListOut, ReportOut, ReportSummary,
                          SubmissionEntry, SubmissionOut)
 from app.services import inbox_service
+from app.services.submission import submission_entry
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -92,13 +93,7 @@ def submission(db: Session = Depends(get_db)):
             base = defaults[email_id]
             out[email_id] = SubmissionEntry(**base)
             continue
-        out[email_id] = SubmissionEntry(
-            category=r.category,
-            status=r.status if r.status != "ERROR" else "NEEDS_REVIEW",
-            review_reason=r.review_reason,
-            has_defect=bool(r.has_defect),
-            defect_fields=r.defect_fields or [],
-        )
+        out[email_id] = SubmissionEntry(**submission_entry(r))
 
     return SubmissionOut(
         submission=out,

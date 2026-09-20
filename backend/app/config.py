@@ -90,11 +90,22 @@ class Settings(BaseSettings):
     # "rule"     -> deterministic built-in classifier/extractor (default, offline)
     # "remote"   -> forward to P3's AI microservice over HTTP
     # "hybrid"   -> remote first, fall back to rule engine on failure
+    # "cascade"  -> multi-provider LLM gateway: Gemini > Zhipu > Qwen > Rule fallback
     ai_provider: str = "rule"
     ai_service_url: str = ""  # e.g. http://localhost:8001
     ai_api_key: str = ""
     ai_timeout_seconds: float = 30.0
     ai_max_retries: int = 2
+
+    # Cloud LLM Provider API Keys
+    dashscope_api_key: str = ""
+    gemini_api_key: str = ""
+    zhipuai_api_key: str = ""
+
+    # Local / Private GPU Ollama Configuration
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "qwen2.5vl:7b"
+    ollama_api_key: str = ""
 
     # -- processing --------------------------------------------------------
     process_max_emails: int = 0  # 0 = no limit for POST /emails/process-all

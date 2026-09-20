@@ -513,6 +513,14 @@ pre.body{white-space:pre-wrap;font-size:12.4px;line-height:1.6;background:var(--
 .cmp-row.diff.pulse{animation:diffPulse 1.1s ease}
 @keyframes diffPulse{0%{box-shadow:0 0 0 0 rgba(251,113,133,0)}30%{box-shadow:0 0 0 2px var(--bad)}100%{box-shadow:0 0 0 0 rgba(251,113,133,0)}}
 
+/* ---------- table row jump pulse ---------- */
+.row.pulse{animation:rowJumpPulse 1.4s ease}
+@keyframes rowJumpPulse{
+  0%{box-shadow:inset 0 0 0 2px var(--accent), 0 0 14px rgba(45,212,191,.45);background:var(--surface-hover)}
+  70%{box-shadow:inset 0 0 0 2px var(--accent), 0 0 14px rgba(45,212,191,.2);background:var(--surface-hover)}
+  100%{box-shadow:none;background:transparent}
+}
+
 /* ---------- draggable split grip (inbox ⇄ detail) ---------- */
 .grip{position:absolute;top:8px;bottom:20px;left:calc(21px + var(--inbox-w));width:14px;z-index:6;
   display:flex;align-items:center;justify-content:center;cursor:col-resize;touch-action:none;
@@ -694,6 +702,11 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 
     <div class="nav-sec">
       <div class="wf-title">Workflows</div>
+      <a class="navlink" href="gateway.html" data-tip="Security Gateway" data-tip-desc="Pre-ingestion quarantine buffer — AI triage, malware shield & multi-mailbox dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Security Gateway">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Security Gateway</span>
+        <span class="hk">0</span>
+      </a>
       <a class="navlink active" href="/ui/" data-tip="Review Console" data-tip-desc="Email-centric console — process the inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
         <span>Review Console</span>
@@ -1101,11 +1114,38 @@ async function openEmail(id){
   state.active=id;
   recordRecent(id);
   if(decodeURIComponent(location.hash.slice(1))!==id){history.replaceState(null,"","#"+id);}
-  document.querySelectorAll(".row").forEach(el=>el.classList.toggle("active",state.items[+el.dataset.i]?.email_id===id));
+
+  // Exit focus mode if active so the console table is visible
+  if(appEl && appEl.classList.contains("focus")){
+    setFocus(false);
+  }
+
+  // If the email is not present in the current view (filtered out), reset category/status filters so it can be revealed
+  const existsInView = state.items && state.items.some(r => r.email_id === id);
+  if(!existsInView && ($("#f-cat").value || $("#f-status").value)){
+    $("#f-cat").value = "";
+    $("#f-status").value = "";
+    await loadList();
+  }
+
+  // Mark row active, scroll smoothly into view, and trigger pulse animation
+  let activeRow = null;
+  document.querySelectorAll(".row").forEach(el=>{
+    const isCurrent = state.items[+el.dataset.i]?.email_id === id;
+    el.classList.toggle("active", isCurrent);
+    if(isCurrent) activeRow = el;
+  });
+  if(activeRow){
+    activeRow.scrollIntoView({block:"center", behavior:"smooth"});
+    activeRow.classList.remove("pulse");
+    void activeRow.offsetWidth; // trigger reflow
+    activeRow.classList.add("pulse");
+  }
+
   setDock("");
   $("#detail").innerHTML=`<div class="skel"><div class="sk-line" style="width:28%"></div><div class="sk-line" style="width:62%"></div><div class="sk-block"></div><div class="sk-line" style="width:82%"></div><div class="sk-line" style="width:46%"></div></div>`;
   try{
-    const res=await fetch(API+"/api/emails/"+id);
+    const res=await fetch(API+"/api/emails/"+encodeURIComponent(id));
     const d=await res.json().catch(()=>null);
     /* Guard: a 404 returns {detail:"email not found: …"} — no .email/.result.
        Without this check renderDetail() would throw a confusing
@@ -1459,6 +1499,8 @@ function isTyping(){const el=document.activeElement;if(!el)return false;
 const MODK=IS_MAC?"\u2318":"Ctrl";
 const SHIFTK="\u21e7";
 const NAV={
+  gateway:  {href:"gateway.html",   key:"0", label:"Security Gateway",
+             desc:"Pre-ingestion quarantine buffer \u2014 AI triage, malware shield & multi-mailbox dispatch"},
   console:  {href:"/ui/",           key:"1", label:"Review Console",
              desc:"Email-centric console \u2014 process the inbox and review SI \u2194 BL mismatches"},
   shipments:{href:"shipments.html", key:"2", label:"Advanced Shipment Workflow",
@@ -1469,6 +1511,7 @@ const NAV={
 const SHORTCUTS=[
   {section:"Navigation"},
   {keys:[MODK,"K"], label:"Search the inbox", desc:"Find an email by subject, sender or id — or run a command"},
+  {keys:["0"], label:NAV.gateway.label,   desc:NAV.gateway.desc},
   {keys:["1"], label:NAV.console.label,   desc:NAV.console.desc},
   {keys:["2"], label:NAV.shipments.label, desc:NAV.shipments.desc},
   {keys:["B"], label:NAV.back.label,      desc:NAV.back.desc},
@@ -1488,6 +1531,7 @@ const SHORTCUTS=[
   {keys:["\u2191","\u2193"], label:"Next / previous email", desc:"Move through the inbox and open the highlighted email"}
 ];
 function navTo(h){ location.href=h; }
+function goGateway(){ location.href="gateway.html"; }
 /* `1` / `B` land on this console — don't reload when we are already here. */
 function goConsole(){
   if(/\/ui\/(index\.html)?$/.test(location.pathname)) return;
@@ -1527,6 +1571,7 @@ document.addEventListener("keydown",e=>{
   if(isTyping())return;
   if(e.key==="/"&&!(e.metaKey||e.ctrlKey)){e.preventDefault();openPalette();}
   if(e.key==="?"){e.preventDefault();openHelp();return;}
+  if(e.key==="0"){e.preventDefault();goGateway();return;}
   if(e.key==="1"){e.preventDefault();goConsole();return;}
   if(e.key==="2"){e.preventDefault();goShipments();return;}
   if(e.key==="3"){e.preventDefault();window.open("/shipmail/","_blank","noopener");return;}
@@ -1705,6 +1750,7 @@ setFocus(localStorage.getItem("sdoc-focus")==="1");
 window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!==state.active)openEmail(h);});
 /* ---------- command palette ---------- */
 const ICONS2={
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   jump:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   focus:ICON_FOCUS_MAX,
   theme:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
@@ -1749,6 +1795,7 @@ function buildCmds(){
   const firstMismatch=state.items.find(r=>r.status==="MISMATCH");
   const firstReview=state.items.find(r=>r.status==="NEEDS_REVIEW");
   CMDS=[
+    {t:"Open Security Gateway",sub:"Pre-ingestion quarantine buffer & AI engine control",ico:ICONS2.shield,k:"0",run:goGateway},
     {t:"Go to first mismatch",sub:firstMismatch?firstMismatch.email_id:"none in current view",ico:ICONS2.jump,run:()=>firstMismatch&&openEmail(firstMismatch.email_id)},
     {t:"Go to first review",sub:firstReview?firstReview.email_id:"none in current view",ico:ICONS2.jump,run:()=>firstReview&&openEmail(firstReview.email_id)},
     {t:"Toggle focus mode",sub:"Hide inbox · expand comparison",ico:ICONS2.focus,k:"F",run:toggleFocus},
@@ -1787,7 +1834,7 @@ function renderPalette(){
   palShown.forEach((c,i)=>{
     const lbl=c.kind==="email"?"Emails":c.kind==="recent"?"Recent":"Commands";
     if(c.kind!==last){html+=`<div class="pal-group">${lbl}</div>`;last=c.kind;}
-    html+=`<div class="palette-item ${i===palIdx?'active':''}" data-i="${i}" onmouseenter="palHover(${i})" onclick="palRun(${i})">
+    html+=`<div class="palette-item ${i===palIdx?'active':''}" data-i="${i}" onmouseenter="palHover(${i})" onpointerdown="palRun(${i})" onclick="palRun(${i})">
       <div class="pi-ico">${c.ico}</div><div class="pi-txt"><b>${esc(c.t)}</b><span>${esc(c.sub||"")}</span></div>${c.k?`<span class="pi-kbd">${c.k}</span>`:""}</div>`;
   });
   $("#palList").innerHTML=html;
@@ -1815,7 +1862,11 @@ async function palSearchEmails(q){
   }catch(_){ if(my!==palSeq)return; palEmails=[]; }
   renderPalette();
 }
-function palHover(i){palIdx=i;renderPalette();}
+function palHover(i){
+  palIdx=i;
+  const items=document.querySelectorAll("#palList .palette-item");
+  items.forEach((el,idx)=>el.classList.toggle("active",idx===i));
+}
 function openPalette(){buildCmds();palIdx=0;palEmails=[];palRecent=[];palSeq++;clearTimeout(palTimer);$("#palQ").value="";$("#palField").classList.remove("has-text");$("#palette").hidden=false;renderPalette();loadRecents();$("#palQ").focus();}
 /* Closing must also drop focus: the input lives inside a hidden container, and a
    focused-but-hidden field would make isTyping() swallow every later shortcut. */
@@ -1825,7 +1876,15 @@ function closePalette(){
   if(a && a.closest && a.closest("#palette") && a.blur) a.blur();
 }
 function palMove(d){const n=palShown.length;if(!n)return;palIdx=(palIdx+d+n)%n;renderPalette();const a=$("#palList").querySelector(".palette-item.active");if(a)a.scrollIntoView({block:"nearest"});}
-function palRun(i){const c=palShown[i??palIdx];if(!c)return;const st=statusForQuery($("#palQ").value.trim().toLowerCase());if(st&&c.kind==="email")recordStatusUse(st);closePalette();c.run&&c.run();}
+function palRun(i){
+  const idx = (typeof i === "number" && !isNaN(i)) ? i : palIdx;
+  const c = palShown[idx];
+  if(!c) return;
+  const st = statusForQuery($("#palQ").value.trim().toLowerCase());
+  if(st && c.kind === "email") recordStatusUse(st);
+  closePalette();
+  if(c.run) c.run();
+}
 function palOnInput(){
   const raw=$("#palQ").value, q=raw.trim();
   const f=$("#palField"); if(f)f.classList.toggle("has-text",!!raw);
@@ -1837,6 +1896,14 @@ function palOnInput(){
 $("#palQ").addEventListener("input",palOnInput);
 $("#palClear").addEventListener("mousedown",e=>{e.preventDefault();$("#palQ").value="";palIdx=0;palOnInput();$("#palQ").focus();});
 $("#palette").addEventListener("click",e=>{if(e.target.id==="palette")closePalette();});
+
+/* Delegated click handler on the palette list for 100% click reliability */
+$("#palList").addEventListener("click",e=>{
+  const it=e.target.closest&&e.target.closest(".palette-item");
+  if(it && it.dataset.i !== undefined){
+    palRun(+it.dataset.i);
+  }
+});
 
 loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h)openEmail(h); else renderEmptyDetail();});
 loadIntegrations();   /* stored API results only — no reprocessing */

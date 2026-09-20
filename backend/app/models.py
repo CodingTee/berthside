@@ -217,3 +217,37 @@ class GmailMessageRecord(Base):
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class StagedEmailRecord(Base):
+    """Emails held in the pre-ingestion staging buffer / quarantine gate."""
+    __tablename__ = "staged_emails"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stage_id = Column(String(64), unique=True, index=True, nullable=False)
+    source_mailbox = Column(String(128), index=True, default="docs.export@averis.com")
+    sender = Column(String(255), nullable=True)
+    recipient = Column(String(255), nullable=True)
+    subject = Column(String(512), nullable=True)
+    body = Column(Text, nullable=True)
+    attachments = Column(JSON, default=list)  # list of filenames / descriptors
+    security_status = Column(String(32), default="CLEAN")  # CLEAN | BLOCKED | SUSPICIOUS
+    security_details = Column(JSON, default=list)  # details per attachment
+    category = Column(String(32), default="GENERAL")
+    confidence = Column(Float, default=1.0)
+    ai_reason = Column(Text, nullable=True)
+    status = Column(String(32), default="STAGED")  # STAGED | AUTO_INGESTED | APPROVED | QUARANTINED | REJECTED
+    ai_engine = Column(String(64), default="cascade")
+    received_at = Column(DateTime, default=utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class GatewayPolicyRecord(Base):
+    """Runtime configuration policy for the email security gateway."""
+    __tablename__ = "gateway_policy"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    engine = Column(String(32), default="cascade")  # "cascade" | "ollama"
+    ingest_mode = Column(String(32), default="auto")  # "auto" | "manual"
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)

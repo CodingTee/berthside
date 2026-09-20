@@ -219,6 +219,73 @@ def _ambiguous_explanation(text: str) -> str:
 
 
 def _remote_assist(task: str, payload: dict[str, Any]) -> Optional[dict[str, Any]]:
+    # Only invoke external/remote AI if provider is configured for AI (cascade, hybrid, remote)
+    if settings.ai_provider not in ("cascade", "hybrid", "remote"):
+        return None
+
+    # 1. First priority: Use Cascading LLM Gateway if keys are available
+    try:
+        from app.services.llm_gateway import gateway
+        keys = gateway._get_keys()
+        if any(keys.values()):
+            if task == "correction_email":
+                ref = payload.get("reference_number") or payload.get("shipment_key") or "Shipment"
+                issues = payload.get("issues", [])
+                disc_list = [
+                    {
+                        "field": iss.get("field_name", ""),
+                        "expected": iss.get("si_value", ""),
+                        "actual": iss.get("bl_value", ""),
+                        "discrepancy_type": "mismatch" if iss.get("si_value") != iss.get("bl_value") else "unreadable"
+                    }
+                    for iss in issues
+                ]
+                res = gateway.generate_hitl_draft(
+                    email={"subject": f"Shipment {ref}", "from": "customer_ops@client.com"},
+                    discrepancies=disc_list
+                )
+                if res and res.get("draft_body"):
+                    return {
+                        "provider": res.get("source", "llm-gateway"),
+                        "confidence": "HIGH",
+                        "subject": res.get("draft_subject", f"Action Required: BL discrepancy review for shipment {ref}"),
+                        "body": res.get("draft_body", ""),
+                    }
+            elif task == "mismatch_explanation":
+                field = payload.get("field_name", "")
+                si = payload.get("si_value")
+                bl = payload.get("bl_value")
+                diff = payload.get("difference", "")
+                sys_prompt = "You are a shipping document auditor. Explain the discrepancy between SI and Draft BL and suggest how human operations should verify it. Respond with JSON: {\"explanation\": \"...\", \"suggestion\": \"...\"}"
+                prompt = f"Field: {field}\nSI Value: {si}\nBL Value: {bl}\nDifference: {diff}"
+                res = gateway.call_text_cascade(prompt, sys_prompt)
+                if res and res.get("content"):
+                    parsed = gateway._extract_json_from_text(res["content"])
+                    if parsed:
+                        return {
+                            "provider": res.get("provider", "llm-gateway"),
+                            "confidence": "HIGH",
+                            "explanation": parsed.get("explanation"),
+                            "suggestion": parsed.get("suggestion"),
+                        }
+            elif task == "ambiguous_interpretation":
+                text = payload.get("text", "")
+                field = payload.get("field_name", "")
+                sys_prompt = f"Interpret this ambiguous OCR shipping text for field '{field}'. Return JSON: {{\"interpreted_value\": \"...\", \"explanation\": \"...\"}}"
+                res = gateway.call_text_cascade(text, sys_prompt)
+                if res and res.get("content"):
+                    parsed = gateway._extract_json_from_text(res["content"])
+                    if parsed:
+                        return {
+                            "provider": res.get("provider", "llm-gateway"),
+                            "interpreted_value": parsed.get("interpreted_value"),
+                            "confidence": "HIGH",
+                            "explanation": parsed.get("explanation"),
+                        }
+    except Exception:
+        pass
+
+    # 2. Secondary fallback: Remote AI service URL if configured
     if settings.ai_provider not in ("remote", "hybrid") or not settings.ai_service_url:
         return None
     url = settings.ai_service_url.rstrip("/") + "/assist"
