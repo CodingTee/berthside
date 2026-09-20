@@ -381,7 +381,7 @@ backend/
 ## Regression gates — run before every push
 
 ```bash
-python -m pytest tests -q          # 108 unit/integration tests (no server needed)
+python -m pytest tests -q          # 128 unit/integration tests (no server needed)
 python scripts/tune_eval.py        # score with the official scorer (expect 1.0000)
 python scripts/stress_evaluate.py  # score under 6 noise perturbations (expect 1.0)
 python scripts/smoke_test.py       # 9 E2E checks against the live API

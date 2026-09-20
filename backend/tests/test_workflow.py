@@ -384,7 +384,7 @@ def _partial_ocr_reading(source: str):
 
     res = extractor.ExtractionResult(doc_type="SI", readable=True)
     res.fields = {"shipper": "PARTLY READ", "consignee": "PARTLY READ"}
-    res.missing = [f for f in extractor.LABELS if f not in res.fields]
+    res.missing = extractor.missing_of(res.fields)
     res.raw_text = "SHIPPING INSTRUCTION ... (transcribed from pixels)"
     res.source = source
     return res
@@ -477,7 +477,7 @@ def _reading(doc_type: str, heading: str, found=_ALL_FIELDS,
     res.raw_text = heading
     res.source = source
     res.fields = {name: _VALUES[name] for name in found}
-    res.missing = [name for name in extractor.LABELS if name not in res.fields]
+    res.missing = extractor.missing_of(res.fields)
     return res
 
 

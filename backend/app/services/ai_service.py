@@ -88,7 +88,7 @@ def _merge_with_local(remote: extractor.ExtractionResult, doc_type: str,
     for field, value in local.fields.items():
         merged.setdefault(field, value)
     remote.fields = merged
-    remote.missing = [f for f in extractor.LABELS if f not in merged]
+    remote.missing = extractor.missing_of(merged)
     remote.readable = True
     return remote
 
@@ -115,7 +115,7 @@ def _rule_extract(doc_type: str, filename: str, content: bytes) -> extractor.Ext
             return result
 
     result = extractor.ExtractionResult(doc_type=doc_type, readable=False)
-    result.missing = list(extractor.LABELS.keys())
+    result.missing = list(extractor.COMPLETENESS_FIELDS)
     return result
 
 
@@ -124,7 +124,8 @@ def _yield(text: str | None, doc_type: str | None) -> int:
     if not text or not doc_type:
         return 0
     try:
-        return 7 - len(extractor.extract_fields(text, doc_type).missing)
+        return len(extractor.COMPLETENESS_FIELDS) - len(
+            extractor.extract_fields(text, doc_type).missing)
     except Exception:  # noqa: BLE001 — never let a probe break the reader
         return 0
 
@@ -340,7 +341,7 @@ def _try_read_binary(filename: str, content: bytes,
                             log.info(
                                 "legacy .doc yielded %d/%d fields; escalating as "
                                 "unreadable rather than guessing",
-                                score, len(extractor.LABELS))
+                                score, len(extractor.COMPLETENESS_FIELDS))
             except Exception as exc:
                 log.info("olefile failed for %s: %s", filename, exc)
                 return None
@@ -437,5 +438,5 @@ def _remote_extract(doc_type: str, filename: str,
         fields={k: v for k, v in fields.items() if v is not None},
         readable=bool(data.get("readable", True)),
     )
-    result.missing = [f for f in extractor.LABELS if f not in result.fields]
+    result.missing = extractor.missing_of(result.fields)
     return result

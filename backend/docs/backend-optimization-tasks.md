@@ -91,7 +91,7 @@ value-capture logic):
 ```
 python scripts/tune_eval.py        # must stay at FINAL 1.0000
 python scripts/stress_evaluate.py  # collapse_lines verdict changes should drop toward 0
-python -m pytest -q                # 46 tests, all pass
+python -m pytest -q                # no failures, no errors
 ```
 
 If `tune_eval.py` drops below 1.0000, **revert the change** — the clean-set score is

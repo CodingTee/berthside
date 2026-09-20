@@ -28,7 +28,7 @@ Categories: BL_COMPARISON 227 · SI_REQUEST 140 · INVOICE_QUERY 111 · SPAM 15 
 ## Regression gates — run these before every push
 
 ```bash
-python -m pytest tests -q          # 34 tests, deterministic engine
+python -m pytest tests -q          # unit/integration tests (no server needed)
 python scripts/smoke_test.py       # 9 E2E checks against the live API
 python scripts/check_secrets.py    # no secrets / datasets about to be committed
 ```
@@ -165,7 +165,7 @@ company codename (only content-semantic operational markers remain), and an OCR
 fallback path exists for image-only PDFs (`app/services/ocr.py`, disabled unless
 `OCR_ENABLED=1`, degrades to the previous `unreadable` escalation).
 
-Regression guards added in `tests/test_extractor.py` (38 tests pass).
+Regression guards were added to `tests/test_extractor.py`.
 
 **Known remaining limitation:** when line breaks are lost entirely, company
 names absorb the address line (307 field-level diffs of 658 possible). SI and BL

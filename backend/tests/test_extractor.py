@@ -1,8 +1,10 @@
 """Field extraction tests — label wording varies wildly between SI and BL."""
 from __future__ import annotations
 
+from app.schemas import COMPARED_FIELDS, INFO_COMPARED_FIELDS
 from app.services.extractor import (
-    _parse_container_count, _parse_weight, extract_fields, normalize,
+    _parse_container_count, _parse_date, _parse_weight, extract_fields,
+    normalize,
 )
 
 SI = """SHIPPING INSTRUCTION
@@ -325,3 +327,103 @@ def test_ocr_engine_reads_rendered_text_when_installed():
     assert items, "OCR engine returned nothing for a clean synthetic image"
     text = ocr._items_to_lines(items)
     assert "21577" in text.replace(",", "") or "21,577" in text
+
+
+# --------------------------------------------------------------------------
+# ETD / ETA are informational. They are extracted and shown, but they must not
+# decide completeness: `is_complete` is what the OCR escalation gate in
+# workflow.py reads, and the official corpus prints neither field anywhere, so
+# folding them into `missing` would escalate every scanned page even when the
+# transcription was perfect.
+# --------------------------------------------------------------------------
+def test_absent_etd_eta_does_not_make_a_document_incomplete():
+    r = extract_fields(SI, "SI")
+    assert r.missing == []
+    assert r.is_complete is True
+
+
+def test_a_perfect_ocr_transcription_is_not_escalated_for_want_of_a_date():
+    """The gate asks whether the compared fields came through, nothing else."""
+    r = extract_fields(SI, "SI")
+    r.source = "pdf-ocr"
+    assert r.is_complete is True
+
+
+def test_etd_eta_are_still_extracted_when_a_document_prints_them():
+    r = extract_fields("ETD: 11 Feb 2026\nETA: 20 Feb 2026\n", "SI")
+    assert r.fields["etd"] == "2026-02-11"
+    assert r.fields["eta"] == "2026-02-20"
+    # None of the seven compared fields were printed, and only those are
+    # reported as missing.
+    assert len(r.missing) == len(COMPARED_FIELDS)
+    assert "etd" not in r.missing and "eta" not in r.missing
+
+
+def test_missing_never_names_an_informational_field():
+    r = extract_fields("Shipper: ACME LTD\n", "SI")
+    assert "shipper" not in r.missing
+    assert set(r.missing) == set(COMPARED_FIELDS) - {"shipper"}
+
+
+def test_extractor_and_schemas_agree_on_what_counts():
+    """Guards the import: the compared list must not drift from schemas."""
+    from app.services import extractor
+    assert set(extractor.COMPLETENESS_FIELDS) == set(COMPARED_FIELDS)
+    # Everything the extractor recognises is either compared or explicitly
+    # informational, so a new field cannot be added without saying which it is.
+    assert set(extractor.LABELS) == set(COMPARED_FIELDS) | set(INFO_COMPARED_FIELDS)
+
+
+def test_reader_ladder_scores_the_compared_fields_only():
+    """`_yield` picks the best PDF reader, on a scale of the compared fields."""
+    from app.services import ai_service
+    assert ai_service._yield(SI, "SI") == len(COMPARED_FIELDS)
+    assert ai_service._yield(None, "SI") == 0
+
+
+# --------------------------------------------------------------------------
+# ETD / ETA date parsing. The numeric patterns used to be dead code: the
+# cleanup step replaced "." "/" "-" with spaces before they ran, so
+# "2026-01-05" arrived as "2026 01 05" and matched nothing.
+# --------------------------------------------------------------------------
+def test_numeric_dates_parse_however_they_are_punctuated():
+    for raw in ("2026-01-05", "2026/01/05", "2026.01.05",
+                "05/01/2026", "05.01.2026", "5/1/2026"):
+        assert _parse_date(raw) == "2026-01-05", raw
+
+
+def test_month_name_dates_survive_the_fix():
+    """The forms that already worked must keep working.
+
+    "15-MAR-2026" and "MAR. 15, 2026" only parse because the month patterns
+    still run on the punctuation-stripped form.
+    """
+    expected = {
+        "11 Feb 2026": "2026-02-11",
+        "11 FEBRUARY 2026": "2026-02-11",
+        "Feb 11, 2026": "2026-02-11",
+        "11 FEB, 2026": "2026-02-11",
+        "MARCH 15 2026": "2026-03-15",
+        "15-MAR-2026": "2026-03-15",
+        "MAR. 15, 2026": "2026-03-15",
+        "15 MAR. 2026": "2026-03-15",
+    }
+    for raw, want in expected.items():
+        assert _parse_date(raw) == want, raw
+
+
+def test_numeric_dates_are_read_day_first():
+    """Trade documents write DD/MM: 05/01/2026 is 5 January, not 1 May."""
+    assert _parse_date("05/01/2026") == "2026-01-05"
+    assert _parse_date("13/05/2026") == "2026-05-13"
+
+
+def test_impossible_and_free_text_dates_stay_unparsed():
+    for raw in ("2026-13-45", "31/02/2026", "TBA", "", "pending", None):
+        assert _parse_date(raw) is None, raw
+
+
+def test_a_numeric_etd_reaches_the_extracted_fields():
+    r = extract_fields("ETD: 2026-01-05\nETA: 05.01.2026\n", "SI")
+    assert r.fields["etd"] == "2026-01-05"
+    assert r.fields["eta"] == "2026-01-05"

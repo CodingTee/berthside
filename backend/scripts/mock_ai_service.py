@@ -34,7 +34,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from app.services import extractor  # noqa: E402
 from app.services.classifier import classify as rule_classify  # noqa: E402
 
-FIELDS = list(extractor.LABELS.keys())
+FIELDS = list(extractor.COMPLETENESS_FIELDS)
 
 
 class Handler(BaseHTTPRequestHandler):

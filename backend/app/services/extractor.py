@@ -1,9 +1,10 @@
 """Deterministic field extraction from SI / BL document text.
 
 Reads plain-text Shipping Instructions and draft Bills of Lading and pulls out
-the seven compared fields. Field labels vary between documents ("Port of
-Loading" vs "Load Port", "Gross Wt (kgs)" vs "Gross Weight (KG)") — we align by
-meaning via synonym label sets, never by exact header text.
+the seven compared fields, plus ETD/ETA when a document happens to print them.
+Field labels vary between documents ("Port of Loading" vs "Load Port", "Gross
+Wt (kgs)" vs "Gross Weight (KG)"), so we align by meaning via synonym label
+sets, never by exact header text.
 
 Extraction is purely deterministic (regex + heuristics). When the AI service
 (P3) is wired in, `extract_fields` remains the fallback and the normalization
@@ -15,6 +16,12 @@ import datetime
 import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
+
+from app.schemas import COMPARED_FIELDS
+
+# Which fields decide that a document is readable. Imported from schemas
+# instead of repeated here so the two cannot drift apart.
+COMPLETENESS_FIELDS: tuple[str, ...] = tuple(COMPARED_FIELDS)
 
 # --------------------------------------------------------------------- labels
 # Each canonical field maps to regex fragments that recognise its label.
@@ -64,6 +71,13 @@ LABELS: dict[str, list[str]] = {
         r"eta\s*\(?", r"etd\s*/\s*eta",
     ],
 }
+
+# `LABELS` also carries ETD/ETA, which schemas.py lists as INFO_COMPARED_FIELDS:
+# they are extracted and shown to the operator, but they never drive the
+# verdict. Keeping them out of `missing` is what makes `is_complete` mean "the
+# compared fields were read". The official corpus prints neither field
+# anywhere, so folding them in would mark every document incomplete and make
+# the OCR escalation gate in workflow.py fire on every scanned page.
 
 # Fields whose value is the FIRST line only (a company name); the following
 # line is the street address, not part of the name.
@@ -326,21 +340,28 @@ _MONTHS.update({m: i for i, m in enumerate(
 def _parse_date(raw: Any) -> Optional[str]:
     """Return an ISO `YYYY-MM-DD` for a recognisable date, else None.
 
-    Handles ISO, `DD MON YYYY`, `MON DD, YYYY` and `DD/MM/YYYY` (the common
-    logistics forms). Anything unparseable collapses to None so a blank or
-    free-text date is never fabricated into a false ETD/ETA mismatch.
+    Handles `YYYY-MM-DD`, `DD MON YYYY`, `MON DD, YYYY` and `DD/MM/YYYY` (the
+    common logistics forms). Anything unparseable collapses to None so a blank
+    or free-text date is never fabricated into a false ETD/ETA mismatch.
     """
     if raw is None:
         return None
     s = str(raw).strip().upper()
     s = re.sub(r"\([^)]*\)", " ", s)              # drop "(GW)"-style codes
     s = re.sub(r"\b\d{1,2}:\d{2}(:\d{2})?\b", " ", s)  # drop clock times
+
+    # Two views of the same value. A month name reads the same however the rest
+    # is punctuated, so those patterns keep the old punctuation-stripped form.
+    # The numeric forms need the separators they are written with, and throwing
+    # those away was the bug: "2026-01-05" became "2026 01 05", so the ISO and
+    # `DD/MM/YYYY` patterns below could never match anything.
+    numeric = re.sub(r"[^A-Z0-9 ./-]", " ", s)
     s = re.sub(r"[^A-Z0-9 ]", " ", s)
     s = re.sub(r"\s+", " ", s).strip()
-    if not s:
+    if not s and not numeric.strip():
         return None
 
-    m = re.search(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b", s)
+    m = re.search(r"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b", numeric)
     if m:
         try:
             datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
@@ -364,7 +385,10 @@ def _parse_date(raw: Any) -> Optional[str]:
         except ValueError:
             pass
 
-    m = re.search(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{4})\b", s)
+    # Day first, which is the convention trade documents use: "05/01/2026" is
+    # 5 January. A value that only makes sense the other way round ("13/05")
+    # is unambiguous anyway, and the rest are not worth guessing at.
+    m = re.search(r"\b(\d{1,2})[/.](\d{1,2})[/.](\d{4})\b", numeric)
     if m:
         d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
         try:
@@ -376,13 +400,27 @@ def _parse_date(raw: Any) -> Optional[str]:
 
 
 # ------------------------------------------------------------------ extraction
+def missing_of(fields: dict[str, Any]) -> list[str]:
+    """Which compared fields a set of already-extracted values still lacks.
+
+    The caller's dict may carry extra keys (ETD/ETA); only the compared fields
+    count towards completeness.
+    """
+    return [f for f in COMPLETENESS_FIELDS if f not in fields]
+
+
 def extract_fields(text: str, doc_type: str) -> ExtractionResult:
-    """Extract the 7 canonical fields from one SI/BL document text."""
+    """Extract the canonical fields from one SI/BL document text.
+
+    `fields` holds everything recognised, ETD/ETA included. `missing` lists
+    only the compared fields, so `is_complete` answers "were the seven fields
+    read", not "did anything on the page go unread".
+    """
     result = ExtractionResult(doc_type=doc_type, raw_text=text)
 
     if _looks_like_binary(text):
         result.readable = False
-        result.missing = list(LABELS.keys())
+        result.missing = list(COMPLETENESS_FIELDS)
         return result
 
     lines = text.splitlines()
@@ -406,8 +444,8 @@ def extract_fields(text: str, doc_type: str) -> ExtractionResult:
     for canonical in LABELS:
         if canonical in found:
             result.fields[canonical] = found[canonical]
-        else:
-            result.missing.append(canonical)
+
+    result.missing = missing_of(result.fields)
 
     return result
 
