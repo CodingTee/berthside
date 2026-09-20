@@ -189,6 +189,22 @@ unaffected.
 - **Review queue grouped by reason:** `GET /api/review-queue` buckets
   escalations by `review_reason`; the ops board at `/ops/` renders them.
 
+### Finding the SI and BL among the attachments
+
+Two tiers, strictly ordered. Tier 1 reads the naming convention this corpus
+uses (`email_123_SI.pdf`). Tier 2 runs **only** when tier 1 left a gap, and reads
+the names senders actually write: `Draft_BL_v2.pdf`,
+`Shipping_Instruction_PO123.pdf`, `SI.xlsx`, `BL-102938.pdf`. A name is accepted
+only when it names exactly one of the two types, never when it names both or
+names neither, and tier 1 always wins.
+
+Without tier 2 an unrecognised name is indistinguishable from an absent file, so
+the reviewer is handed `missing_attachment`. That blames the sender for a file
+that was attached, and the reason on an escalation is exactly what the
+reliability axis measures. The corpus never exercises tier 2 (all 250
+attachments follow the convention), so this is not a scoring fix. It is what
+keeps the escalation reason honest on any other inbox.
+
 ### Scanned documents: OCR reads them, humans confirm them
 
 Of the 58 non-txt documents, 8 (emails 511–515) have **no embedded text
@@ -291,13 +307,14 @@ Or pass the paths explicitly per run: `--scorer <path> --ground-truth <path>`.
 ## Diagnostics: measure a rule before changing it
 
 Comparison rules are easy to argue about and impossible to settle by intuition,
-so each open question got a measuring script instead of an opinion. All three
+so each open question got a measuring script instead of an opinion. All of them
 only read; none of them touches source files or the database.
 
 ```bash
-python scripts/diag_reliability.py    # escalation precision/recall + every false flag listed
-python scripts/diag_port_locode.py    # how often one document prints a UN/LOCODE and the other does not
-python scripts/diag_port_lenient.py   # A/B both port rules through the official scorer (~2 min, runs the inbox twice)
+python scripts/diag_reliability.py     # escalation precision/recall + every false flag listed
+python scripts/diag_port_locode.py     # how often one document prints a UN/LOCODE and the other does not
+python scripts/diag_port_lenient.py    # A/B both port rules through the official scorer (~2 min, runs the inbox twice)
+python scripts/diag_filename_fallback.py  # tier-2 naming: corpus diff + the names that must and must not resolve
 ```
 
 `diag_port_lenient.py` doubles as the template for any "should we relax rule X?"
@@ -306,6 +323,11 @@ scorer, keep whichever wins. It restores the original function in a `finally`
 block, so the measured change never leaks into the working tree. This is how the
 decision to keep the strict name+LOCODE comparison was made, and it is why that
 rule is still the shipped one.
+
+`diag_filename_fallback.py` is the counterpart for "did this change anything?"
+questions: it runs the new code and the old code over the whole corpus and
+prints the difference, which is the fastest way to show that a fallback path
+never fires where it should not.
 
 ## P3 (AI) contract
 

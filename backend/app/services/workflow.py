@@ -400,17 +400,73 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict) -> None:
     versioning.sync_issues_for_report(db, report, shipment)
 
 
+# ------------------------------------------------- attachment discovery tiers
+# Tier 1 is the naming convention the corpus uses: "<id>_SI.pdf" / "<id>_BL.xlsx".
+# Tier 2 exists for names that do not follow it, because an unrecognised name is
+# indistinguishable from an absent file: both land on `missing_attachment`, so a
+# naming difference is reported to the reviewer as "the sender forgot to attach
+# it". That is a wrong reason on an escalation, and reason quality is what the
+# reliability axis measures.
+#
+# Tier 1 always wins and is untouched. Tier 2 only fills the gaps it leaves, and
+# only when a filename names exactly one of the two types.
+_DOC_SUFFIXES = frozenset({
+    "txt", "pdf", "docx", "xlsx", "doc", "xls", "csv", "rtf",
+    "png", "jpg", "jpeg", "tif", "tiff", "msg", "eml",
+})
+# A type is claimed either by a whole token in the name ("Draft_BL_v2") or by a
+# phrase that survives separator removal ("Shipping_Instruction_PO123"). The
+# bare words "shipping" and "draft" are deliberately NOT here: they turn up in
+# unrelated names ("shipping_invoice.pdf" is an invoice, not an SI).
+_FUZZY_TOKENS = {"SI": frozenset({"si"}), "BL": frozenset({"bl", "bol", "hbl", "mbl"})}
+_FUZZY_PHRASES = {
+    "SI": ("shippinginstruction", "siform"),
+    "BL": ("billoflading", "draftbl", "bldraft", "blcopy"),
+}
+
+
+def _fuzzy_doc_type(attachment: str) -> Optional[str]:
+    """Guess SI/BL from a filename that does not follow the `_SI`/`_BL` convention.
+
+    Returns None when the name is silent about the type, when it names both
+    ("SI_and_BL.pdf"), or when the suffix is not a document type at all. An
+    ambiguous attachment must never be bound to one side of a comparison.
+    """
+    name, dot, suffix = attachment.rpartition(".")
+    if not dot or not name or suffix.lower() not in _DOC_SUFFIXES:
+        return None
+    stem = name.lower()
+    tokens = set(re.split(r"[^a-z0-9]+", stem))
+    joined = re.sub(r"[^a-z0-9]", "", stem)
+    claimed = {
+        doc for doc, toks in _FUZZY_TOKENS.items()
+        if tokens & toks or any(p in joined for p in _FUZZY_PHRASES[doc])
+    }
+    return claimed.pop() if len(claimed) == 1 else None
+
+
 def _find_doc_attachments(email: dict) -> tuple[Optional[str], Optional[str]]:
-    si_path = bl_path = None
-    for att in email.get("attachments") or []:
+    attachments = email.get("attachments") or []
+    found: dict[str, Optional[str]] = {"SI": None, "BL": None}
+
+    # Tier 1: the "<id>_SI" convention. First match wins, as it always has.
+    for att in attachments:
         m = _DOC_TYPE_RE.search(att)
-        if not m:
+        if m and found[m.group(1).upper()] is None:
+            found[m.group(1).upper()] = att
+    if found["SI"] is not None and found["BL"] is not None:
+        return found["SI"], found["BL"]
+
+    # Tier 2: fill only the gaps, and never spend a file tier 1 already took.
+    claimed = {p for p in found.values() if p}
+    for att in attachments:
+        if att in claimed:
             continue
-        if m.group(1).upper() == "SI" and si_path is None:
-            si_path = att
-        elif m.group(1).upper() == "BL" and bl_path is None:
-            bl_path = att
-    return si_path, bl_path
+        guess = _fuzzy_doc_type(att)
+        if guess is not None and found[guess] is None:
+            found[guess] = att
+            claimed.add(att)
+    return found["SI"], found["BL"]
 
 
 _DECLARATION = {

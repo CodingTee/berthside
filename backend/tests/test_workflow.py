@@ -108,6 +108,13 @@ INBOX = {
                  "and confirm (attachments appear to have been dropped). Thank you."),
         "attachments": [],
     },
+    "email_909": {  # both documents present, named the way senders really name them
+        "email_id": "email_909", "from": "docs@co.com",
+        "subject": "REQUEST BL DRAFT - please check",
+        "body": "Attached are the SI and draft BL. Please check.",
+        "attachments": ["attachments/Shipping_Instruction_4471.txt",
+                        "attachments/Draft BL v2.txt"],
+    },
 }
 
 ATTACHMENTS = {
@@ -115,6 +122,8 @@ ATTACHMENTS = {
     "attachments/e_BL.txt": BL_TEXT.encode(),
     "attachments/e2_SI.txt": SI_TEXT.encode(),
     "attachments/e2_BL.txt": BL_TEXT_MATCHING_LATEST.encode(),
+    "attachments/Shipping_Instruction_4471.txt": SI_TEXT.encode(),
+    "attachments/Draft BL v2.txt": BL_TEXT.encode(),
 }
 
 
@@ -188,6 +197,49 @@ def test_compare_request_with_declared_missing_docs_still_escalates(db):
     r = workflow.process_email(db, "email_908")
     assert r.status == "NEEDS_REVIEW"
     assert r.review_reason == "missing_attachment"
+
+
+# ------------------------------------------- attachment naming: tiers 1 and 2
+def test_attachments_named_without_the_convention_are_still_compared(db):
+    """Real senders write "Draft BL v2", not "email_123_BL".
+
+    Both files are present under names the convention does not recognise. Before
+    tier 2 this reached the reviewer as `missing_attachment`, which blames the
+    sender for a file that was in fact attached: our parsing gap reported as
+    their mistake.
+    """
+    r = workflow.process_email(db, "email_909")
+    assert r.status == "MISMATCH"
+    assert r.review_reason is None
+    assert set(r.defect_fields) == {"consignee", "notify_party"}
+
+
+def test_an_ambiguous_attachment_name_is_bound_to_neither_side():
+    """A file naming both types must not become the SI *and* the BL."""
+    paths = workflow._find_doc_attachments(
+        {"attachments": ["attachments/SI and BL combined.txt"]}
+    )
+    assert paths == (None, None)
+
+
+def test_the_convention_outranks_tier_two():
+    """Tier 2 only fills gaps; it never overrides a name tier 1 already read.
+
+    "draft_BL_and_SI.txt" ends with "_SI.txt", so tier 1 calls it the SI, while
+    tier 2 would see both tokens and refuse to choose. Tier 1 decides.
+    """
+    paths = workflow._find_doc_attachments(
+        {"attachments": ["attachments/draft_BL_and_SI.txt"]}
+    )
+    assert paths == ("attachments/draft_BL_and_SI.txt", None)
+
+
+def test_tier_two_never_binds_one_file_to_both_sides():
+    """A single attachment claiming both roles is worse than no attachment."""
+    paths = workflow._find_doc_attachments(
+        {"attachments": ["attachments/Draft_BL_v2.txt", "attachments/notes.txt"]}
+    )
+    assert paths == (None, "attachments/Draft_BL_v2.txt")
 
 
 def test_processing_is_idempotent_and_counts_attempts(db):
