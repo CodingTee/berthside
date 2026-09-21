@@ -9,7 +9,10 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
-from bs4 import BeautifulSoup
+try:
+    from bs4 import BeautifulSoup
+except ImportError:  # optional: HTML mail falls back to raw text
+    BeautifulSoup = None
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -37,7 +40,7 @@ def _clean_body(body_dict: dict[str, Any] | str) -> str:
         raw = body_dict.get("content", "")
     else:
         raw = ""
-    if "<html" in raw.lower() or "<body" in raw.lower() or "<p" in raw.lower() or "<div" in raw.lower():
+    if BeautifulSoup and ("<html" in raw.lower() or "<body" in raw.lower() or "<p" in raw.lower() or "<div" in raw.lower()):
         try:
             soup = BeautifulSoup(raw, "html.parser")
             return soup.get_text(separator="\n").strip()

@@ -267,9 +267,20 @@
     const grid = $("outMatrixGrid");
     if(!grid) return;
     const mbs = OUT.mailboxes || [];
+    const pol = OUT.policy || {};
+
+    // Keep the kebab summary live even when the current queue is empty,
+    // otherwise it stays on the "sources" placeholder forever.
+    const total = mbs.length;
+    const auto = mbs.filter(mb => {
+      const forced = (pol.disposition_policies || {})[mb];
+      return (forced || pol.disposition_mode || "manual") === "auto";
+    }).length;
+    const kebab = $("outKebabSum");
+    if(kebab) kebab.textContent = total + " src · " + auto + " auto / " + (total - auto) + " manual";
+
     if(!mbs.length){ grid.innerHTML = ""; return; }
 
-    const pol = OUT.policy || {};
     const dp = pol.disposition_policies || {};
 
     let html = "";
@@ -305,14 +316,6 @@
         </div>`;
     });
     grid.innerHTML = html;
-
-    const total = mbs.length;
-    const auto = mbs.filter(mb => {
-      const forced = (pol.disposition_policies || {})[mb];
-      return (forced || pol.disposition_mode || "manual") === "auto";
-    }).length;
-    const kebab = $("outKebabSum");
-    if(kebab) kebab.textContent = total + " src · " + auto + " auto / " + (total - auto) + " manual";
   }
 
   function openMatrixModal(){

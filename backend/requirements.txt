@@ -45,3 +45,7 @@ google-auth>=2.0
 google-auth-oauthlib>=1.0
 httpx>=0.24
 
+# Outlook integration (Microsoft Graph + PKCE). beautifulsoup4 strips HTML
+# mail bodies; sync.py degrades to the raw body when it is not installed.
+beautifulsoup4>=4.12
+

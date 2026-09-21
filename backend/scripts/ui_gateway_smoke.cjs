@@ -128,7 +128,13 @@ function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
     check("outstream dist panel renders", !!outPanel);
     const segIds2 = ["outSegAwaiting","outSegSent","outSegReview","outSegOther"];
     check("outstream dist segments present", segIds2.every(id => !!window.document.getElementById(id)));
-    const outKebab = window.document.getElementById("outKebabSum");
+    // render() is async (fetch -> renderMatrix), so poll instead of racing it
+    let outKebab = null;
+    for(let i = 0; i < 40; i++){
+      outKebab = window.document.getElementById("outKebabSum");
+      if(outKebab && /\d+ src/.test(outKebab.textContent || "")) break;
+      await sleep(150);
+    }
     check("outstream kebab summary populated", !!outKebab && /\d+ src/.test(outKebab.textContent || ""), outKebab && outKebab.textContent);
     const outModal = window.document.getElementById("outMatrixModal");
     check("outMatrixModal exists and starts hidden", !!outModal && outModal.classList.contains("hidden"));
