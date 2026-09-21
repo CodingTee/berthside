@@ -13,13 +13,20 @@ the same rule the XML reader uses, so the two paths cannot drift.
 Nesting is flattened by joining the path: ``{"shipment": {"portOfLoading": ...}}``
 yields the label "Shipment Port Of Loading", which still contains the printed
 label the extractor looks for.
+
+A value that spans lines keeps them. Exporters routinely put the whole rendered
+document in one ``text`` field, and collapsing its newlines ran the shipper's
+address into its name, which turned into a false discrepancy on every such
+attachment (measured 2026-09-21: 8 of 8 mock JSON documents).
 """
 from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any, Optional
 
+from app.services import extractor
 from app.services.labels import label_from_key
 
 log = logging.getLogger(__name__)
@@ -104,7 +111,9 @@ def _format_scalar(value: Any) -> str:
         return f"{value:,.2f}".rstrip("0").rstrip(".") if value % 1 else f"{value:,.0f}"
     if isinstance(value, int):
         return f"{value:,}"
-    return " ".join(str(value).split())
+    # Collapse runs of spaces and tabs but keep line breaks: the value may be a
+    # whole document, and flattening it is what merged addresses into names.
+    return re.sub(r"[^\S\n]+", " ", str(value)).strip()
 
 
 def _walk(node: Any, path: list[str], out: list[tuple[str, str]]) -> None:
@@ -157,7 +166,20 @@ def read_json_text(filename: str, content: bytes) -> Optional[tuple[str, str]]:
 
     lines: list[str] = []
     for label, value in pairs:
-        lines.append(f"{label} | {value}" if label else value)
+        # A field can hold a whole document. Only its first line is the value of
+        # the label; the rest keeps its own line breaks and indentation, which
+        # is what lets the extractor stop at the address line instead of reading
+        # it as part of the name.
+        # A field can hold a whole document, and such a value carries its own
+        # labels. The key is dropped rather than glued in front of the first
+        # line, or "text | SHIPPER: ACME" hands back "SHIPPER: ACME" as the
+        # shipper's name.
+        head, *rest = value.split("\n")
+        if rest and extractor.is_label_line(head):
+            lines.append(head)
+        else:
+            lines.append(f"{label} | {head}" if label else head)
+        lines.extend(rest)
         if sum(len(line) for line in lines) > MAX_TEXT_CHARS:
             break
     text = "\n".join(lines)[:MAX_TEXT_CHARS]

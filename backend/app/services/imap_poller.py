@@ -50,12 +50,61 @@ def decode_mime_str(header_val: Optional[str]) -> str:
         return str(header_val)
 
 
+def _extract_part_bytes(part: email.message.Message) -> Optional[bytes]:
+    payload = part.get_payload(decode=True)
+    if isinstance(payload, bytes):
+        return payload
+    inner = part.get_payload()
+    if isinstance(inner, list) and inner and isinstance(inner[0], email.message.Message):
+        return inner[0].as_bytes()
+    if isinstance(inner, email.message.Message):
+        return inner.as_bytes()
+    return None
+
+
+def _collect_nested_attachments(name: str, payload: bytes, ingest_dir: Path, depth: int = 0) -> List[Dict[str, Any]]:
+    if depth >= 3:
+        return []
+    results: List[Dict[str, Any]] = []
+
+    from app.services import archive, nested_mail
+
+    # 1. Expand nested .eml / .msg messages (e.g. Gmail "Forward as attachment")
+    if nested_mail.is_nested_mail(name, payload):
+        expansion = nested_mail.expand_mail(name, payload)
+        for member_name, member_bytes in expansion.members:
+            results.extend(_collect_nested_attachments(member_name, member_bytes, ingest_dir, depth + 1))
+        return results
+
+    # 2. Expand nested archives (.zip / .tar / etc.)
+    if archive.detect_container(name, payload) is not None:
+        expansion = archive.expand_archive(name, payload)
+        for member_name, member_bytes in expansion.members:
+            results.extend(_collect_nested_attachments(member_name, member_bytes, ingest_dir, depth + 1))
+        return results
+
+    # 3. Save standard document (PDF, txt, xlsx, etc.)
+    safe_name = os.path.basename(name).replace(" ", "_")
+    save_path = ingest_dir / safe_name
+    try:
+        save_path.write_bytes(payload)
+    except Exception as exc:
+        log.warning("Could not write attachment %s to %s: %s", safe_name, save_path, exc)
+    results.append({
+        "filename": safe_name,
+        "filepath": str(save_path),
+        "bytes": payload,
+    })
+    return results
+
+
 def extract_email_payload(msg: email.message.Message, ingest_dir: Path) -> Tuple[str, List[Dict[str, Any]]]:
-    """Extract plain text body and save attachments to disk."""
-    body_text = ""
+    """Extract plain text body and save attachments to disk, unpacking .eml / .msg containers."""
+    body_parts: List[str] = []
+    html_parts: List[str] = []
     attachments: List[Dict[str, Any]] = []
 
-    for part in msg.walk():
+    def _traverse(part: email.message.Message) -> None:
         content_type = part.get_content_type()
         disposition = str(part.get("Content-Disposition") or "")
 
@@ -63,26 +112,41 @@ def extract_email_payload(msg: email.message.Message, ingest_dir: Path) -> Tuple
         if filename:
             filename = decode_mime_str(filename)
 
-        if "attachment" in disposition.lower() or filename:
-            payload = part.get_payload(decode=True)
-            if payload and filename:
-                safe_name = os.path.basename(filename).replace(" ", "_")
-                save_path = ingest_dir / safe_name
-                try:
-                    save_path.write_bytes(payload)
-                except Exception as exc:
-                    log.warning("Could not write attachment %s to %s: %s", safe_name, save_path, exc)
-                attachments.append({
-                    "filename": safe_name,
-                    "filepath": str(save_path),
-                    "bytes": payload,
-                })
-        elif content_type == "text/plain" and not body_text:
+        is_attachment = "attachment" in disposition.lower() or bool(filename) or (content_type == "message/rfc822")
+        if is_attachment:
+            raw_bytes = _extract_part_bytes(part)
+            if raw_bytes:
+                att_name = filename or f"forwarded_message_{len(attachments)+1}.eml"
+                expanded = _collect_nested_attachments(att_name, raw_bytes, ingest_dir, 0)
+                attachments.extend(expanded)
+            return
+
+        if part.is_multipart():
+            payload = part.get_payload()
+            if isinstance(payload, list):
+                for child in payload:
+                    if isinstance(child, email.message.Message):
+                        _traverse(child)
+            return
+
+        if content_type == "text/plain":
             payload = part.get_payload(decode=True)
             if payload:
-                body_text = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+                body_parts.append(payload.decode(part.get_content_charset() or "utf-8", errors="replace"))
+        elif content_type == "text/html":
+            payload = part.get_payload(decode=True)
+            if payload:
+                html_parts.append(payload.decode(part.get_content_charset() or "utf-8", errors="replace"))
+
+    _traverse(msg)
+
+    body_text = "\n\n".join(b.strip() for b in body_parts if b.strip())
+    if not body_text and html_parts:
+        from app.services.nested_mail import _html_to_text
+        body_text = "\n\n".join(_html_to_text(h) for h in html_parts if h.strip())
 
     return body_text.strip(), attachments
+
 
 
 def poll_imap_inbox(db: Session) -> Dict[str, Any]:
@@ -202,29 +266,36 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
             # Auto-reply via SMTP if enabled
             smtp_result = None
             if settings.auto_reply_on_verification and sender_email:
+                from app.services.email_utils import clean_subject, extract_original_sender
+                clean_subj = clean_subject(subject)
+                orig_client = extract_original_sender(body)
+                orig_client_line = f"• Original Client: {orig_client}\n" if (orig_client and orig_client != sender_email) else ""
+
                 is_rejection = staged.status == "REJECTED" or security_status == "BLOCKED"
                 if is_rejection:
-                    reply_subj = f"Re: {subject} - B/L Document Amendment Required (Rejected) - Ref #{stage_id}"
+                    reply_subj = f"Re: {clean_subj} - B/L Document Amendment Required (Rejected) - Ref #{stage_id}"
                     reply_body = (
                         f"Dear Shipping Documentation Team / Customer,\n\n"
-                        f"Regarding your submission for '{subject}':\n\n"
+                        f"Regarding your submission for '{clean_subj}':\n\n"
                         f"Our automated documentation gateway has audited the package and flagged discrepancies or safety issues:\n"
                         f"• Status: {staged.status}\n"
-                        f"• Reference: {stage_id}\n\n"
+                        f"• Reference: {stage_id}\n"
+                        f"{orig_client_line}\n"
                         f"Please review and submit a revised version.\n\n"
                         f"Best regards,\n"
                         f"Documentation Operations Desk\n"
                         f"{staged.source_mailbox}"
                     )
                 else:
-                    reply_subj = f"Re: {subject} - Document Verification Complete - Ref #{stage_id}"
+                    reply_subj = f"Re: {clean_subj} - Document Verification Complete - Ref #{stage_id}"
                     reply_body = (
                         f"Dear Shipping Documentation Team / Customer,\n\n"
-                        f"Thank you for your submission for '{subject}'.\n\n"
+                        f"Thank you for your submission for '{clean_subj}'.\n\n"
                         f"Our automated verification pipeline has verified your documents:\n"
                         f"• Status: {report_summary}\n"
                         f"• Reference: {stage_id}\n"
-                        f"• Inbound Channel: IMAP Live Gateway\n\n"
+                        f"• Inbound Channel: IMAP Live Gateway\n"
+                        f"{orig_client_line}\n"
                         f"Best regards,\n"
                         f"Documentation Operations Desk\n"
                         f"{staged.source_mailbox}"

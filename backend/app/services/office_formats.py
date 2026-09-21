@@ -422,9 +422,20 @@ _IWA_MIN_LINE = 8
 
 # Text inside a decompressed chunk. The newline belongs in the class because
 # iWork stores a whole paragraph, line breaks and all, as one string field, so
-# splitting on it is what yields the lines. Protobuf length and tag bytes sit
-# just outside the printable range, which is why a run starts cleanly on text.
-_IWA_RUN = re.compile(rb"[\x20-\x7e\n\r\t]{8,}")
+# splitting on it is what yields the lines. High bytes belong too: the store is
+# UTF-8, so a document that prints "Gross Weight" ahead of a localised unit
+# (Gross Weight毛重(KGS)) used to break the run at the first multi-byte
+# character, which pushed the label and its value into separate runs and lost
+# the field. On the 86 iWork mock documents that cost gross_weight_kg on 20 of
+# them, measured 2026-09-21.
+_IWA_RUN = re.compile(rb"[\x20-\x7e\x80-\xff\n\r\t]{8,}")
+
+# A protobuf length prefix is one plain byte, so any length in the printable
+# range arrives glued to the front of the string it measures: a leading ":" is
+# the 58 that counts "Notify Party/Intermediate Consignee: ...". Document lines
+# do not begin with punctuation, so the scaffolding is dropped by removing
+# leading non-letters.
+_IWA_SCAFFOLD = re.compile(r"^[^A-Za-z]+")
 
 
 def _varint(buf: bytes, i: int) -> tuple[int, int]:
@@ -529,7 +540,7 @@ def _iwork_iwa_text(content: bytes) -> Optional[str]:
                 for chunk in _iwa_chunks(zf.read(name)):
                     for match in _IWA_RUN.finditer(chunk):
                         for line in match.group().decode("utf-8", "replace").splitlines():
-                            line = " ".join(line.split())
+                            line = _IWA_SCAFFOLD.sub("", " ".join(line.split()))
                             if len(line) < _IWA_MIN_LINE or line in seen:
                                 continue
                             if not extractor.is_label_line(line):

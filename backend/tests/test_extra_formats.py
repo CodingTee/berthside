@@ -471,6 +471,44 @@ def test_iwork_store_keeps_only_field_lines():
                                            _iwork_bytes(noise)) is None
 
 
+def test_iwork_label_survives_a_multibyte_character_inside_the_line():
+    """A run of text must not end at a non-ASCII character.
+
+    The store is UTF-8, so "Gross Weight毛重(KGS): 68,649 KG" used to split into
+    "Gross Weight" and "(KGS): 68,649 KG". The weight went missing on 20 of the
+    86 mock iWork documents before the run class admitted high bytes.
+    """
+    lines = [
+        "Shipper: ASIA PACIFIC PAPERBOARD TRADING PTE LTD",
+        "Consignee (Non-Negotiable): PACIFIC OFFICE (M) SDN BHD",
+        "Notify: PACIFIC OFFICE (M) SDN BHD",
+        "Port of Loading (POL): NHAVA SHEVA, INDIA (INNSA)",
+        "POD: KLAIPEDA, LITHUANIA (LTKLJ)",
+        "No. of Containers: 5 x 20'GP",
+        "Gross Weight毛重(KGS): 68,649 KG",
+    ]
+    text, source = office_formats.read_office_text("SHP-016_SI.numbers",
+                                                   _iwork_bytes("\n".join(lines)))
+    assert source == "iwork-numbers"
+    result = extractor.extract_fields(text, "SI")
+    assert result.fields["gross_weight_kg"] == 68649.0
+    assert not result.missing
+
+
+def test_iwork_drops_the_length_prefix_glued_to_a_line():
+    """A protobuf length prefix is a plain byte, so it can be printable.
+
+    ":" is 58, the length of the notify party line it introduces, and the glued
+    byte stopped that line from reading as a label.
+    """
+    body = "Notify Party/Intermediate Consignee: ORIENT LINKS CO (LLC)"
+    text, source = office_formats.read_office_text("SHP-016_SI.pages",
+                                                   _iwork_bytes(f":{body}"))
+    assert source == "iwork-pages"
+    assert extractor.extract_fields(text, "SI").fields["notify_party"] == \
+        "ORIENT LINKS CO (LLC)"
+
+
 # ------------------------------------------------------------------- EDI
 
 _EDIFACT = "\n".join([
@@ -632,6 +670,25 @@ def test_json_empty_or_null_only_is_refused():
     assert json_doc.read_json_text("x.json", b"{}") is None
     assert json_doc.read_json_text("x.json", json.dumps({"a": None, "b": True}).encode()) is None
     assert json_doc.detect_json("x.json", b"not json at all") is None
+
+
+def test_json_value_that_spans_lines_keeps_them():
+    """One field often holds the whole rendered document.
+
+    Flattening those newlines ran the address underneath a name into the name
+    itself, so every mock JSON attachment reported a shipper and a consignee
+    the document never had.
+    """
+    raw = json.dumps({"text":
+                      "SHIPPER: ASIA PACIFIC PAPERBOARD TRADING PTE LTD\n"
+                      "  80 RAFFLES PLACE, #50-01 UOB PLAZA 1\n"
+                      "Consignee: KPP-ANTALIS (SINGAPORE) PTE. LTD.\n"
+                      "  8 TEMASEK BOULEVARD\n"}).encode()
+    text, source = json_doc.read_json_text("SHP-017_SI.json", raw)
+    assert source == "json"
+    result = extractor.extract_fields(text, "SI")
+    assert result.fields["shipper"] == "ASIA PACIFIC PAPERBOARD TRADING PTE LTD"
+    assert result.fields["consignee"] == "KPP-ANTALIS (SINGAPORE) PTE. LTD."
 
 
 # -------------------------------------------------------------------- CAD

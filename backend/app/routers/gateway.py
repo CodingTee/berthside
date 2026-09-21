@@ -429,8 +429,10 @@ def reject_staged_email(stage_id: str, db: Session = Depends(get_db)):
     db.commit()
 
     import urllib.parse
+    from app.services.email_utils import clean_subject
+    clean_subj = clean_subject(staged.subject)
 
-    reply_subject = f"Re: {staged.subject} - Document Ingestion Rejected"
+    reply_subject = f"Re: {clean_subj} - Document Ingestion Rejected"
     reason = staged.ai_reason or "Document does not conform to enterprise shipping verification requirements."
     reply_body = (
         f"Dear Sender,\n\n"
@@ -454,6 +456,9 @@ def reject_staged_email(stage_id: str, db: Session = Depends(get_db)):
 
 def _build_return_receipt(staged: StagedEmailRecord):
     """Compose customer-ready return and amendment message."""
+    from app.services.email_utils import clean_subject
+    clean_subj = clean_subject(staged.subject)
+
     is_rejection = staged.status == "REJECTED" or staged.security_status == "BLOCKED"
     if is_rejection:
         decision = "REJECTED"
@@ -463,7 +468,7 @@ def _build_return_receipt(staged: StagedEmailRecord):
         )
         body = (
             f"Dear Documentation Operations / Shipping Team,\n\n"
-            f"Regarding the submission for '{staged.subject}' received via {staged.source_mailbox}:\n\n"
+            f"Regarding the submission for '{clean_subj}' received via {staged.source_mailbox}:\n\n"
             f"Automated comparison between the Shipping Instruction (SI) and Bill of Lading (B/L) detected discrepancies:\n"
             f"• Issue Identified: {reason}\n"
             f"• Tracking Reference: {staged.stage_id}\n\n"
@@ -479,7 +484,7 @@ def _build_return_receipt(staged: StagedEmailRecord):
         subject = f"CONFIRMATION: Document Verification Complete - Ref #{staged.stage_id}"
         body = (
             f"Dear Shipping Documentation Team / Customer,\n\n"
-            f"Thank you for your submission for '{staged.subject}' to {staged.source_mailbox}.\n\n"
+            f"Thank you for your submission for '{clean_subj}' to {staged.source_mailbox}.\n\n"
             f"Automated verification has PASSED with 0 discrepancies for reference {staged.stage_id}.\n"
             f"• Document Type: {staged.category}\n"
             f"• Verification Status: 100% Match (SI ↔ B/L aligned)\n\n"
