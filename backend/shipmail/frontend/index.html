@@ -1109,7 +1109,7 @@ body.resizing .mail-body{user-select:none}
       <button class="icon-btn" id="collapseBtn" type="button" data-tip="Collapse sidebar" data-tip-desc="Shrink the mail rail to an icon strip, or bring it back" data-tip-kbd="[" data-tip-pos="bottom" aria-label="Collapse sidebar" data-page-node-id="zXYVhDg1nm7UrJZRxgDo0m">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="CqzEq2IKVfiOm5Y2wP9B19"><path d="M3 5h18M3 12h12M3 19h18" data-page-node-id="Cd7Nv4WYd1IR9kPFvel9Qd"/></svg>
       </button>
-      <span class="conn-chip" id="connChip" data-tip="Mail source" data-tip-desc="Where this inbox comes from — a linked Gmail account, or nothing until you connect one" data-tip-pos="bottom" data-page-node-id="YvearCCxlOXEmfsxOVL1e7"><i class="dot" data-page-node-id="L470NSEj7K4zPwLMbIc6Sm"></i><span id="connTxt" data-page-node-id="afMfaB10bSnwKy8hBZF0jI">Not connected</span></span>
+      <span class="conn-chip" id="connChip" data-tip="Mail source" data-tip-desc="Where this inbox comes from — the bundled demo inbox, or a linked Gmail account" data-tip-pos="bottom" data-page-node-id="YvearCCxlOXEmfsxOVL1e7"><i class="dot" data-page-node-id="L470NSEj7K4zPwLMbIc6Sm"></i><span id="connTxt" data-page-node-id="afMfaB10bSnwKy8hBZF0jI">Simulated</span></span>
       <button class="icon-btn" id="themeBtn" type="button" data-tip="Toggle theme" data-tip-desc="Switch between dark and light mode" data-tip-kbd="T" data-tip-pos="bottom" aria-label="Toggle theme" data-page-node-id="BBJilOxBoJIMMaBD4IoUyC">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="DNaU7UUJ7ebMX5ZI7oKimU"></svg>
       </button>
@@ -1155,6 +1155,7 @@ body.resizing .mail-body{user-select:none}
       <div class="panel-box rail-card" data-page-node-id="9aGaHPEAycFC7TOJ37B9My">
         <h4 data-page-node-id="z69hEVBb7WGnFHxfE9s4Dx">Mail source</h4>
         <div class="legend" data-page-node-id="APE7NbDnF7Zo5fdAWB8I37">
+          <div id="simRow" role="button" tabindex="0" data-page-node-id="7Uu4CFzbTvjgJdChh5HEd2"><i style="background:var(--ok)" data-page-node-id="vBrSG1VjOqwkzNYAb83Oef"></i> Simulated inbox</div>
           <div id="gmailRow" role="button" tabindex="0" data-page-node-id="Db1MCSEY3ZZDil3HQTw5p5"><i style="background:var(--muted-2)" data-page-node-id="t0sgWIR3zEu7coy6etaBk8"></i> Real Gmail</div>
         </div>
         <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap" data-page-node-id="v9tn80Ka1qWSfBktPcHAKS">
@@ -1296,8 +1297,7 @@ body.resizing .mail-body{user-select:none}
    Attachment previews are fetched on click from GET /api/attachments/{path}.
    ========================================================================= */
 const API = "";                       /* same origin as the ShipSync backend */
-/* No static inbox is bundled: ShipMail only ever shows mail from an account
-   the user actually connected. */
+const DATA = "data/";                 /* static demo inbox, served as files */
 
 const $  = id => document.getElementById(id);
 const esc = s => (s ?? "").toString().replace(/[&<>"']/g,
@@ -1374,7 +1374,7 @@ const state = {
   box: "inbox", label: null, q: "", status: "", kind: "",
   activeId: null, shipTouched: false, lastAct: null,
   account: null,     /* address of the connected mailbox, null until linked */
-  source: "none"     /* "none" (no account connected, inbox empty) | "real" (linked Gmail account) */
+  source: "sim"      /* "sim" (bundled demo) | "real" (linked Gmail) | "none" (no account) */
 };
 const attText = Object.create(null);
 const results = Object.create(null);      /* email_id → stored /api/process result */
@@ -1563,7 +1563,7 @@ function renderList(){
   $("listCount").textContent = fmt(rows.length) + (rows.length === 1 ? " conversation" : " conversations");
   const el = $("list");
   if(!rows.length){
-    if(state.source !== "real"){
+    if(state.source === "none"){
       /* With no account linked an empty list is the correct state, not a
          filter that happens to exclude everything. Say so, and offer the fix. */
       el.innerHTML = `<div class="empty">
@@ -1624,7 +1624,7 @@ function renderEmptyDetail(){
   const recHtml = rec.length
     ? '<div class="rec-list">' + rec.map(r => '<button class="rec-item" type="button" data-tip="Open message" data-tip-desc="Jump back to this message" data-tip-pos="right" onclick="openMailById(\''+esc(r.id)+'\')"><span class="rec-from">'+esc(r.fromName)+'</span><span class="rec-sub">'+esc(r.subject)+'</span></button>').join("") + '</div>'
     : '<div class="muted small" style="color:var(--muted-2);font-size:12px">The messages you open will show up here.</div>';
-  if(state.source !== "real"){
+  if(state.source === "none"){
     $("mail").innerHTML =
       '<div class="empty rich">' + I.inbox +
         '<span class="big">No mailbox connected</span>' +
@@ -2172,10 +2172,9 @@ function docKind(name){
   return "";
 }
 function sourceRowHighlight(){
-  /* ShipMail is a client for a real account. Until one is connected the inbox
-     is empty on purpose, so nothing is highlighted in the default state. */
-  const g = $("gmailRow");
-  if(g) g.classList.toggle("active", state.source === "real");
+  const sim = $("simRow"), g = $("gmailRow");
+  if(sim) sim.classList.toggle("active", state.source === "sim");
+  if(g)   g.classList.toggle("active", state.source === "real");
 }
 async function loadRealMailbox(){
   try{
@@ -2213,10 +2212,10 @@ async function switchSource(src){
   state.activeId = null;
   state.box = "inbox"; state.label = null; state.q = ""; state.status = ""; state.kind = "";
   if(src === "real"){
-    /* A failed pull drops back to the disconnected state rather than leaving
-       the console pointed at an account it cannot actually read. */
+    /* A failed pull drops back to the simulated inbox rather than leaving the
+       console pointed at an account it cannot actually read. */
     if(!(await loadRealMailbox())){
-      state.source = "none";
+      state.source = "sim";
       await boot(true);
       return;
     }
@@ -2237,7 +2236,7 @@ async function refreshGmailStatus(){
     state.account = gmailOn ? (st.account || null) : null;
     const chip = $("connChip"), txt = $("connTxt");
     if(chip) chip.classList.toggle("live", !!gmailOn);
-    if(txt) txt.textContent = gmailOn ? "Gmail linked" : "Not connected";
+    if(txt) txt.textContent = gmailOn ? "Gmail linked" : "Simulated";
     const you = $("youMailbox");
     if(you) you.textContent = gmailOn ? ("Signed in as " + (st.account || "Gmail")) : "No mailbox connected";
     if(g) g.querySelector("i").style.background = gmailOn ? "var(--ok)" : (st.credentials_configured ? "var(--warn)" : "var(--muted-2)");
@@ -2253,7 +2252,7 @@ async function refreshGmailStatus(){
     state.account = null;
     const chip = $("connChip"), txt = $("connTxt");
     if(chip) chip.classList.remove("live");
-    if(txt) txt.textContent = "Not connected";
+    if(txt) txt.textContent = "Simulated";
     const you = $("youMailbox");
     if(you) you.textContent = "No mailbox connected";
   }
@@ -2279,15 +2278,39 @@ async function syncGmail(){
 
 /* ------------------------------------------------------------ boot / data */
 async function boot(refresh){
-  /* ShipMail reads a real mailbox, so with no account connected there is
-     nothing to read. The inbox stays empty on purpose until Gmail is linked:
-     showing mail nobody signed in for would be misleading. */
-  state.emails = [];
-  state.ships = {};
-  state.activeId = null;
-  renderKPIs(); renderRail(); renderList(); renderEmptyDetail();
+  try{
+    const [mail, ships] = await Promise.all([
+      fetch(DATA + "emails.json", {cache:refresh ? "reload" : "default"}).then(r => r.json()),
+      fetch(DATA + "shipments.json", {cache:refresh ? "reload" : "default"}).then(r => r.json()).catch(() => ({shipments:[]}))
+    ]);
+    state.emails = (mail.emails || []).map(e => Object.assign(e, {
+      starred: e.starred || starOf(e.id),
+      unread: !isRead(e.id)
+    }));
+    state.ships = Object.fromEntries((ships.shipments || []).map(s => [s.shipment_id, s]));
+  }catch(_){
+    state.emails = []; state.ships = {};
+  }
+  renderKPIs(); renderRail(); renderList();
+  const h = decodeURIComponent(location.hash.slice(1));
+  if(h && allItems().some(i => i.id === h)) openMailById(h);
+  else { state.activeId = null; renderEmptyDetail(); renderList(); }
+  enrich();
   refreshGmailStatus();
   sourceRowHighlight();
+}
+/* One read-only call, purely so rows / KPIs / filters can show the STORED
+   verdict. Failure is not fatal — the console just shows mail without verdicts. */
+async function enrich(){
+  try{
+    const r = await fetch(API + "/api/emails?limit=500");
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    state.by = {}; (d.items || []).forEach(x => { state.by[x.email_id] = x; });
+    renderKPIs(); renderRail(); renderList();
+    const it = activeItem();
+    if(it && isShipOpen() && !results[it.id]) loadVerdict(it.id);
+  }catch(_){ state.by = null; }
 }
 
 /* ------------------------------------------------------------ theme / rail */
@@ -2965,8 +2988,10 @@ $("gmailConnect").addEventListener("click", connectGmail);
 $("gmailSync").addEventListener("click", syncGmail);
 /* One row, so it toggles: click to read the linked Gmail account, click again
    to go back to the disconnected state. */
-$("gmailRow").addEventListener("click", () => switchSource(state.source === "real" ? "none" : "real"));
-$("gmailRow").addEventListener("keydown", e => { if(e.key === "Enter") switchSource(state.source === "real" ? "none" : "real"); });
+$("simRow").addEventListener("click", () => switchSource("sim"));
+$("gmailRow").addEventListener("click", () => switchSource("real"));
+$("simRow").addEventListener("keydown", e => { if(e.key === "Enter") switchSource("sim"); });
+$("gmailRow").addEventListener("keydown", e => { if(e.key === "Enter") switchSource("real"); });
 window.addEventListener("hashchange", () => {
   const h = decodeURIComponent(location.hash.slice(1));
   if(h && h !== state.activeId && allItems().some(i => i.id === h)) openMailById(h);
