@@ -1330,8 +1330,9 @@ body.resizing .mail-body{user-select:none}
 
     <!-- RAIL -->
     <aside class="sidebar" data-page-node-id="cvps9qaMLezIx45Aa6Fu8k">
-      <!-- MODE SWITCH (Demoted: primary focus is Gmail inbox entry point) -->
-      <div class="rv-switch" id="rvSwitch" role="tablist" aria-label="Workspace mode" style="display:none">
+      <!-- MODE SWITCH. The rail owns it, so Review is a view of this workspace
+           rather than a doorway into a second product. -->
+      <div class="rv-switch" id="rvSwitch" role="tablist" aria-label="Workspace mode">
         <button class="rv-sw-btn active" id="rvModeMail" type="button" role="tab" aria-selected="true"
                 data-tip="Mail" data-tip-desc="Read the mailbox: conversation list, reading pane and the ShipSync verdict" data-tip-pos="right">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>

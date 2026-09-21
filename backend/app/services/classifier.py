@@ -82,6 +82,10 @@ def classify(email: dict) -> Classification:
     attachments = [a.lower() for a in (email.get("attachments") or [])]
 
     # --- 1. spam -----------------------------------------------------------
+    # Explicit spam markers in subject (e.g. "I am SPAM", phishing notifications)
+    if re.search(r"\b(?:spam|phishing|malware|scam)\b", subject, re.IGNORECASE):
+        return Classification("SPAM", 0.99, "explicit spam/malware subject marker")
+
     # A throwaway / phishing sender domain is, by itself, enough to flag spam.
     # These never carry real shipping documents and always sit before the
     # intent rules, so catching them can only *help* (it also removes the

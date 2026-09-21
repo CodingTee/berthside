@@ -11,7 +11,6 @@
   let gatewayIncludeQuar = false; // 'Include quarantine' toggle
   let gatewayMatrix = [];       // rendered source list  [{mb,role,mode,inherit,staged,custom}]
   let matrixSearch = "";        // active Source Trust Matrix search query
-  const MX_COLLAPSE_KEY = "sdoc-mx-collapsed";   // "1" = source list collapsed
   const MX_SOURCES_KEY  = "sdoc-mx-sources";     // {mailbox: role} registry of UI-added sources
   const INB_COLLAPSE_KEY = "sdoc-inb-collapsed"; // "1" = Inbound Stream table collapsed
 
@@ -43,6 +42,22 @@
     return (window.hubPolicy && window.hubPolicy.ingest_mode) || "auto";
   }
 
+  function renderDistBar(stats){
+    if(!stats) return;
+    const segs = [
+      ["distSegSafe", stats.safe_ingested],
+      ["distSegPending", stats.pending_approval],
+      ["distSegSpam", stats.quarantined_spam],
+      ["distSegBlocked", stats.blocked_malware],
+    ];
+    const total = segs.reduce((a, s) => a + (Number(s[1]) || 0), 0);
+    segs.forEach(([id, v]) => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.style.flexGrow = total > 0 ? String(Number(v) || 0) : "1";
+    });
+  }
+
   async function loadStatus(){
     try{
       const res = await fetch("/api/v1/gateway/status");
@@ -59,6 +74,7 @@
       if(elBlocked) elBlocked.textContent = data.statistics.blocked_malware;
       if(elSpam) elSpam.textContent = data.statistics.quarantined_spam;
       if(elPending) elPending.textContent = data.statistics.pending_approval;
+      renderDistBar(data.statistics);
 
       const selEng = document.getElementById("selEngine");
       const selMd = document.getElementById("selMode");
@@ -364,25 +380,19 @@
   function mxRoleOf(mb){ return SRC_ROLES[mb] || mxExtra()[mb] || "Mailbox source"; }
 
   function applyMatrixCollapse(){
-    const body = document.getElementById("mxBody");
-    const btn = document.getElementById("mxToggle");
-    if(!body) return;
-    const collapsed = localStorage.getItem(MX_COLLAPSE_KEY) === "1";
-    body.hidden = collapsed;
-    if(btn){
-      btn.textContent = collapsed ? "\u25B8" : "\u25BE";
-      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-      btn.title = collapsed ? "Expand the source list" : "Collapse the source list";
-    }
-  }
-  function setMatrixCollapsed(collapsed){
-    try{ localStorage.setItem(MX_COLLAPSE_KEY, collapsed ? "1" : "0"); }catch(e){}
-    applyMatrixCollapse();
+    return;   // the matrix lives in a modal now; nothing to collapse inline
   }
   function toggleMatrix(){
-    const body = document.getElementById("mxBody");
-    if(!body) return;
-    setMatrixCollapsed(!body.hidden);
+    openMatrixModal();
+  }
+  function openMatrixModal(){
+    const m = document.getElementById("mxModal");
+    if(m) m.classList.remove("hidden");
+    loadStatus();   // refresh matrix rows and the kebab summary
+  }
+  function closeMatrixModal(){
+    const m = document.getElementById("mxModal");
+    if(m) m.classList.add("hidden");
   }
 
   /* ---- Inbound Stream panel · the same collapse affordance as the matrix --- */
@@ -495,9 +505,9 @@
   }
 
   function updateMatrixSummary(shown){
-    const el = document.getElementById("mxSummary");
-    if(!el) return;
     const total = gatewayMatrix.length;
+    const auto = gatewayMatrix.filter(it => it.mode === "auto").length;
+    const manual = total - auto;
     const over = gatewayMatrix.filter(it => !it.inherit).length;
     const waiting = gatewayMatrix.reduce((a, it) => a + it.staged, 0);
     const q = matrixSearch.trim();
@@ -506,15 +516,14 @@
       : total + (total === 1 ? " source" : " sources");
     s += " \u00B7 " + over + " overridden";
     if(waiting) s += " \u00B7 " + waiting + " awaiting triage";
-    el.textContent = s;
+    const el = document.getElementById("mxSummary");
+    if(el) el.textContent = s;
+    const kebab = document.getElementById("mxKebabSum");
+    if(kebab) kebab.textContent = total + " src \u00B7 " + auto + " auto / " + manual + " manual";
   }
 
   function onMatrixSearch(v){
     matrixSearch = v || "";
-    if(matrixSearch.trim()){
-      const body = document.getElementById("mxBody");
-      if(body && body.hidden) setMatrixCollapsed(false);
-    }
     renderMatrixRows();
   }
   function clearMatrixSearch(){
@@ -527,7 +536,6 @@
   function openAddSource(){
     const box = document.getElementById("mxAdd");
     if(!box) return;
-    setMatrixCollapsed(false);
     box.hidden = false;
     const err = document.getElementById("mxAddErr"); if(err) err.textContent = "";
     const mb = document.getElementById("mxAddMb"); if(mb){ mb.value = ""; mb.focus(); }
@@ -871,6 +879,8 @@
     setSourcePolicy,
     reapplyPolicy,
     toggleMatrix,
+    openMatrixModal,
+    closeMatrixModal,
     toggleInbound,
     onMatrixSearch,
     clearMatrixSearch,

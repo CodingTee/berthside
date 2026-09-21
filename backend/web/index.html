@@ -17,15 +17,26 @@
    Master Console Router & Workspace Switcher Logic
    ========================================================================== */
 function switchView(name){
+  const queue = name === "outstream" ? "reply" : name;
+  const workbench = ["review", "reply", "failed", "history", "outstream"].includes(name);
+  const header = document.getElementById("reviewReplyHeader");
+  if(header) header.hidden = !workbench;
+  document.querySelectorAll("[data-review-queue]").forEach(b => {
+    b.classList.toggle("primary", b.dataset.reviewQueue === queue);
+    b.setAttribute("aria-pressed", String(b.dataset.reviewQueue === queue));
+  });
+  if(["reply", "failed", "history"].includes(queue)) name = "outstream";
   const navGateway = document.getElementById("navGateway");
   const navReview = document.getElementById("navReview");
   const navLifecycle = document.getElementById("navLifecycle");
+  const navOutstream = document.getElementById("navOutstream");
   const viewGateway = document.getElementById("viewGateway");
   const viewReview = document.getElementById("viewReview");
   const viewLifecycle = document.getElementById("viewLifecycle");
+  const viewOutstream = document.getElementById("viewOutstream");
 
-  [navGateway, navReview, navLifecycle].forEach(btn => btn && btn.classList.remove("active"));
-  [viewGateway, viewReview, viewLifecycle].forEach(v => v && (v.hidden = true));
+  [navGateway, navReview, navLifecycle, navOutstream].forEach(btn => btn && btn.classList.remove("active"));
+  [viewGateway, viewReview, viewLifecycle, viewOutstream].forEach(v => v && (v.hidden = true));
 
   if(name === "gateway"){
     if(navGateway) navGateway.classList.add("active");
@@ -35,10 +46,16 @@ function switchView(name){
   } else if(name === "lifecycle"){
     if(navLifecycle) navLifecycle.classList.add("active");
     if(viewLifecycle) viewLifecycle.hidden = false;
-    // Don't override lifecycle module's own hashes (#/, #/s/<id>)
+    // Lifecycle owns its own hashes (#/, #/s/<id>); don't clobber them
     const h = window.location.hash;
-    if(!h.startsWith("#/") && !h.startsWith("#lifecycle")) history.replaceState(null, "", "#/");
+    if(!h.startsWith("#/") && !h.startsWith("#lifecycle")) history.replaceState(null, "", "#lifecycle");
     if(window.Lifecycle && window.Lifecycle.init) window.Lifecycle.init();
+  } else if(name === "outstream"){
+    if(navReview) navReview.classList.add("active");
+    if(viewOutstream) viewOutstream.hidden = false;
+    history.replaceState(null, "", "#" + queue);
+    if(window.Outstream) window.Outstream.setQueue(queue);
+    if(window.Outstream && window.Outstream.init) window.Outstream.init();
   } else {
     if(navReview) navReview.classList.add("active");
     if(viewReview) viewReview.hidden = false;
@@ -74,30 +91,29 @@ document.addEventListener("keydown", e => {
   if(e.key === "0"){ e.preventDefault(); switchView("gateway"); }
   else if(e.key === "1"){ e.preventDefault(); switchView("review"); }
   else if(e.key === "2"){ e.preventDefault(); switchView("lifecycle"); }
-  else if(e.key === "b" || e.key === "B"){ e.preventDefault(); location.hash="#/"; }
+  else if(e.key === "3"){ e.preventDefault(); switchView("outstream"); }
+  else if(e.key === "b" || e.key === "B"){ e.preventDefault(); switchView("review"); }
 });
 
 // Initial tab routing based on hash
 window.addEventListener("hashchange", () => {
   const h = window.location.hash;
   if(h === "#gateway") switchView("gateway");
+  else if(h.startsWith("#lifecycle")) switchView("lifecycle");
+  else if(["#outstream", "#reply", "#failed", "#history"].includes(h)) switchView(h.slice(1));
   else if(h === "#review") switchView("review");
-  else {
-    // #/, #/s/<id>, #lifecycle, or bare → Shipments / Lifecycle
-    switchView("lifecycle");
-    if(window.Lifecycle && window.Lifecycle.route) window.Lifecycle.route();
-  }
+  else if(h.startsWith("#/")) switchView("lifecycle");
 });
 
 window.addEventListener("DOMContentLoaded", () => {
   wireWorkspaceSwitcher();
   const h = window.location.hash;
   if(h === "#gateway") switchView("gateway");
+  else if(h.startsWith("#lifecycle")) switchView("lifecycle");
+  else if(["#outstream", "#reply", "#failed", "#history"].includes(h)) switchView(h.slice(1));
   else if(h === "#review") switchView("review");
-  else {
-    // Default: Shipments Hub (lifecycle view)
-    switchView("lifecycle");
-  }
+  else if(h.startsWith("#/")) switchView("lifecycle");
+  else switchView("review");
 });
 
 </script>
@@ -837,6 +853,31 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .main-wrapper { flex: 1; display: flex; flex-direction: column; padding: 18px 22px; gap: 16px; overflow-y: auto; overflow-x: hidden; }
 
 /* KPI Strip */
+.dist-panel { display: flex; flex-direction: column; gap: 7px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); flex-shrink: 0; box-shadow: var(--shadow); }
+.dist-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--surface-3); }
+.dist-seg { flex-basis: 0; min-width: 0; display: block; transition: flex-grow .35s ease; }
+.dist-seg.d-ok { background: var(--ok); }
+.dist-seg.d-pending { background: #a855f7; }
+.dist-seg.d-spam { background: var(--warn); }
+.dist-seg.d-warn { background: var(--warn); }
+.dist-seg.d-bad { background: var(--bad); }
+.dist-seg.d-other { background: var(--border-strong); }
+.dist-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); }
+.dl-item { display: inline-flex; align-items: center; gap: 6px; }
+.dl-item b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; }
+.dl-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
+.dl-dot.d-ok { background: var(--ok); }
+.dl-dot.d-pending { background: #a855f7; }
+.dl-dot.d-spam { background: var(--warn); }
+.dl-dot.d-warn { background: var(--warn); }
+.dl-dot.d-bad { background: var(--bad); }
+.dl-dot.d-other { background: var(--border-strong); }
+/* Trust-matrix kebab + modal, channel chips */
+.mx-kebab { white-space: nowrap; font-family: var(--mono); font-size: 11px; }
+.mx-modal-box { width: 880px; max-height: 86vh; overflow-y: auto; gap: 12px; }
+.mx-tools-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.mx-tools-row .gw-search { min-width: 220px; margin-left: auto; }
+.chan-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 9px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; flex-shrink: 0; }
 .kpi-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
 .kpi-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); opacity: 0.8; }
@@ -1030,7 +1071,7 @@ table.list tbody tr{cursor:pointer;transition:.15s}
 table.list tbody tr:hover{background:var(--surface-hover)}
 table.list tbody tr:last-child td{border-bottom:0}
 /* Keyboard / click selection: the arrow keys need something visible to move,
-   so the highlight mirrors the inbox rows on the Review Console. */
+   so the highlight mirrors the inbox rows on the Review &amp; Reply. */
 table.list tbody tr.sel{background:color-mix(in srgb,var(--accent) 11%,transparent)}
 table.list tbody tr.sel:hover{background:color-mix(in srgb,var(--accent) 17%,transparent)}
 table.list tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
@@ -1224,6 +1265,11 @@ table.list tbody tr.sel .key{color:var(--accent)}
 .lc-content.dash-mode .panel{display:flex;flex-direction:column;flex:1;min-height:0;margin-bottom:0}
 .btn:hover .hk{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 
+
+.rr-header{padding:16px 20px;margin-bottom:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.rr-header[hidden]{display:none}.rr-header h2{margin:0 0 5px;font-size:20px}.rr-header p{color:var(--muted);margin:0 0 14px;font-size:13px}
+.rr-header nav{display:flex;gap:8px;flex-wrap:wrap}.rr-actions{padding:14px;border:1px solid var(--border);border-radius:10px;margin:12px 0}
+.rr-history pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:12px}.rr-history article{padding:12px 0;border-top:1px solid var(--border)}
 </style>
 </head>
 <body data-page-node-id="wzcVVSuVBtDzNxMgWcXGVQ">
@@ -1283,9 +1329,9 @@ table.list tbody tr.sel .key{color:var(--accent)}
         <span>Gateway &amp; Sandbox</span>
         <span class="hk">0</span>
       </button>
-      <button class="navlink" id="navReview" type="button" onclick="switchView('review')" data-tip="Review Console" data-tip-desc="Email-centric console: process 520 inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console">
+      <button class="navlink active" id="navReview" type="button" onclick="switchView('review')" data-tip="Review &amp; Reply" data-tip-desc="Email-centric console: process 520 inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review &amp; Reply">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-        <span>Review Console</span>
+        <span>Review &amp; Reply</span>
         <span class="hk">1</span>
       </button>
       <button class="navlink active" id="navLifecycle" type="button" onclick="switchView('lifecycle')" data-tip="Shipment Lifecycle" data-tip-desc="Shipment-centric console: version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Shipment Lifecycle">
@@ -1293,6 +1339,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
         <span>Shipment Lifecycle</span>
         <span class="hk">2</span>
       </button>
+
     </div>
 
     <div class="spacer" data-page-node-id="8GaQGna3ShnGc9SVq9PsI6"></div>
@@ -1308,27 +1355,20 @@ table.list tbody tr.sel .key{color:var(--accent)}
     
     <!-- VIEW 1: GATEWAY & SANDBOX -->
     <div id="viewGateway" class="console-view" hidden>
-      <!-- KPI Row -->
-      <div class="kpi-row">
-        <div class="kpi-card">
-          <span class="kpi-num" id="kpiTotal">520</span>
-          <span class="kpi-lbl">📥 Total Ingested Emails</span>
+      <!-- Inbound outcome distribution bar (compact KPI) -->
+      <div class="dist-panel">
+        <div class="dist-bar" role="img" aria-label="Inbound email outcome distribution">
+          <span class="dist-seg d-ok" id="distSegSafe" style="flex-grow:1"></span>
+          <span class="dist-seg d-pending" id="distSegPending" style="flex-grow:0"></span>
+          <span class="dist-seg d-spam" id="distSegSpam" style="flex-grow:0"></span>
+          <span class="dist-seg d-bad" id="distSegBlocked" style="flex-grow:0"></span>
         </div>
-        <div class="kpi-card ok">
-          <span class="kpi-num" id="kpiSafe">520</span>
-          <span class="kpi-lbl">✅ Clean &amp; Ingested</span>
-        </div>
-        <div class="kpi-card bad">
-          <span class="kpi-num" id="kpiBlocked">1</span>
-          <span class="kpi-lbl">⛔ Malware &amp; Trojans Blocked</span>
-        </div>
-        <div class="kpi-card warn">
-          <span class="kpi-num" id="kpiSpam">2</span>
-          <span class="kpi-lbl">🚫 Spam &amp; Phishing Quarantined</span>
-        </div>
-        <div class="kpi-card purple">
-          <span class="kpi-num" id="kpiPending">1</span>
-          <span class="kpi-lbl">⏳ Awaiting Manual Triage</span>
+        <div class="dist-legend">
+          <span class="dl-item"><i class="dl-dot" style="background:var(--text)"></i>Total Ingested <b id="kpiTotal">520</b></span>
+          <span class="dl-item"><i class="dl-dot d-ok"></i>Clean &amp; Ingested <b id="kpiSafe">520</b></span>
+          <span class="dl-item"><i class="dl-dot d-pending"></i>Awaiting Manual Triage <b id="kpiPending">1</b></span>
+          <span class="dl-item"><i class="dl-dot d-spam"></i>Spam &amp; Phishing <b id="kpiSpam">2</b></span>
+          <span class="dl-item"><i class="dl-dot d-bad"></i>Malware Blocked <b id="kpiBlocked">1</b></span>
         </div>
       </div>
 
@@ -1353,6 +1393,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
               <option value="auto">⚡ Smart Auto-Ingest (Auto-pass verified clean docs)</option>
               <option value="manual">🛡️ Strict Manual Triage (Operator approval required)</option>
             </select>
+            <button class="btn btn-sm mx-kebab" id="mxKebab" type="button" data-tip="Per-source trust overrides" onclick="Gateway.openMatrixModal()">&#8943; <span id="mxKebabSum">sources</span></button>
           </div>
 
           <!-- Mailbox Source Filter -->
@@ -1371,64 +1412,10 @@ table.list tbody tr.sel .key{color:var(--accent)}
         </div>
 
         <div style="display:flex;gap:8px;align-items:center;">
+          <span class="chan-chip" title="Inbound channel (IMAP)">📥 <span id="imapChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></span>
+          <span class="chan-chip" title="Outbound channel (SMTP)">📤 <span id="smtpChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></span>
           <button class="btn" type="button" onclick="Gateway.pollImap()" title="Check live IMAP inbox for new emails sent from your Gmail">📥 Poll IMAP Inbox</button>
           <button class="btn btn-primary" type="button" onclick="Gateway.openSimModal()">⚡ Simulate Incoming Email</button>
-        </div>
-      </div>
-
-      <!-- Live Channel Status Bar -->
-      <div id="channelBar" style="display:flex;justify-content:space-between;align-items:center;padding:7px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--border);margin-bottom:12px;font-size:12px;color:var(--muted);flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
-          <div><span style="font-weight:600;color:var(--text);">📥 Inbound (IMAP):</span> <span id="imapChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></div>
-          <div><span style="font-weight:600;color:var(--text);">📤 Outbound (SMTP):</span> <span id="smtpChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></div>
-        </div>
-        <div style="font-size:11.5px;color:var(--muted-2);">
-          💡 Configure <code style="background:var(--surface-3);padding:2px 5px;border-radius:4px;border:1px solid var(--border-strong);">.env</code> (IMAP_HOST / SMTP_HOST) to activate real email ingestion from your private Gmail.
-        </div>
-      </div>
-
-      <!-- Source Trust Matrix -->
-      <div class="matrix-panel">
-        <div class="matrix-head">
-          <div class="matrix-head-l">
-            <button class="matrix-toggle" id="mxToggle" type="button" aria-expanded="true" aria-controls="mxBody" title="Collapse the source list" onclick="Gateway.toggleMatrix()">&#9662;</button>
-            <div class="matrix-title">&#128225; Source Trust Matrix <span class="matrix-sub">&#183; per-mailbox ingest policy</span></div>
-            <span class="matrix-sum" id="mxSummary"></span>
-          </div>
-          <div class="matrix-tools">
-            <div class="gw-search">
-              <span class="gw-search-ico">&#128269;</span>
-              <input id="mxSearch" type="text" placeholder="Search source or role&#8230;" oninput="Gateway.onMatrixSearch(this.value)" />
-              <button id="mxSearchClear" class="gw-search-clear" type="button" onclick="Gateway.clearMatrixSearch()" title="Clear search" hidden>&#10005;</button>
-            </div>
-            <button class="btn btn-sm" type="button" id="mxAddBtn" onclick="Gateway.toggleAddSource()">&#65291; Add source</button>
-            <button class="btn btn-sm" type="button" onclick="Gateway.reapplyPolicy()">&#9889; Re-apply Policy to Backlog</button>
-          </div>
-        </div>
-        <div class="matrix-body" id="mxBody">
-          <div class="matrix-hint">Set a source to <b>Auto</b> and verified mail flows straight through; <b>Manual</b> holds it for operator triage. <b>Inherit</b> follows the global policy above.</div>
-          <div class="mx-add" id="mxAdd" hidden>
-            <span class="mx-add-lbl">New source</span>
-            <input class="mx-in-mb" id="mxAddMb" type="text" placeholder="source@averis.com" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
-            <input class="mx-in-role" id="mxAddRole" type="text" placeholder="Role label (optional)" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
-            <button class="btn btn-sm btn-primary" type="button" onclick="Gateway.addSource()">Add source</button>
-            <button class="btn btn-sm" type="button" onclick="Gateway.closeAddSource()">Cancel</button>
-            <span class="mx-add-err" id="mxAddErr"></span>
-          </div>
-          <div class="mx-tbl-wrap">
-            <table class="mx-tbl">
-              <thead>
-                <tr>
-                  <th>Mailbox Source</th>
-                  <th>Trust Policy</th>
-                  <th data-tip="The policy actually applied &#8212; the per-source override when one is set, otherwise the global ingestion mode">Effective</th>
-                  <th data-tip="Emails from this source still waiting for operator triage">Awaiting</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="matrixGrid"></tbody>
-            </table>
-          </div>
         </div>
       </div>
 
@@ -1473,8 +1460,17 @@ table.list tbody tr.sel .key{color:var(--accent)}
       </div>
     </div>
 
-    <!-- VIEW 2: REVIEW CONSOLE (LEGACY / SECONDARY) -->
-    <div id="viewReview" class="console-view" hidden>
+<section id="reviewReplyHeader" class="rr-header" hidden>
+  <div><h2>Review &amp; Reply</h2><p>Inspect the evidence, prepare a reply, and keep the delivery history.</p></div>
+  <nav aria-label="Review and reply queues">
+    <button class="btn" data-review-queue="review" onclick="switchView('review')">Review</button>
+    <button class="btn" data-review-queue="reply" onclick="switchView('reply')">Awaiting reply</button>
+    <button class="btn" data-review-queue="failed" onclick="switchView('failed')">Failed</button>
+    <button class="btn" data-review-queue="history" onclick="switchView('history')">History</button>
+  </nav>
+</section>
+    <!-- VIEW 2: REVIEW CONSOLE (DEFAULT ACTIVE) -->
+    <div id="viewReview" class="console-view">
       <div class="kpi-bar" id="kpis" data-page-node-id="MnDL1ijvY4PaZZpApCVFPI"></div>
       <div class="workspace" data-page-node-id="xr4E9BDPd4SXGX5HsNUsrU">
         <!-- INBOX -->
@@ -1520,12 +1516,94 @@ table.list tbody tr.sel .key{color:var(--accent)}
             Search
             <span class="hk">Ctrl K</span>
           </button>
-          <button class="btn" id="lcBackShipmentsBtn" type="button" onclick="location.hash='#/'" data-tip="Shipment List" data-tip-desc="Return to the shipments overview list" data-tip-kbd="Esc" data-tip-pos="bottom" aria-label="Back to Shipments">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Shipments<span class="hk">Esc</span>
+          <button class="btn" type="button" onclick="switchView('review')" data-tip="Back to Review &amp; Reply" data-tip-desc="Return to the email-centric verification console" data-tip-kbd="B" data-tip-pos="bottom" aria-label="Back to Review &amp; Reply">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to Review<span class="hk">B</span>
           </button>
         </div>
       </div>
       <div class="lc-content" id="lcView"></div>
+    </div>
+
+    <!-- VIEW 4: OUTSTREAM BUFFER (post-classification disposition) -->
+    <div id="viewOutstream" class="console-view" hidden>
+      <!-- Reply outcome distribution bar (compact KPI) -->
+      <div class="dist-panel">
+        <div class="dist-bar" role="img" aria-label="Reply queue outcome distribution">
+          <span class="dist-seg d-warn" id="outSegAwaiting" style="flex-grow:0"></span>
+          <span class="dist-seg d-ok" id="outSegSent" style="flex-grow:0"></span>
+          <span class="dist-seg d-pending" id="outSegReview" style="flex-grow:0"></span>
+          <span class="dist-seg d-other" id="outSegOther" style="flex-grow:0"></span>
+        </div>
+        <div class="dist-legend">
+          <span class="dl-item"><i class="dl-dot" style="background:var(--text)"></i>Classified <b id="outKpiTotal">0</b></span>
+          <span class="dl-item"><i class="dl-dot d-warn"></i>Awaiting Reply <b id="outKpiAwaiting">0</b></span>
+          <span class="dl-item"><i class="dl-dot d-ok"></i>Sent (SMTP accepted) <b id="outKpiSent">0</b></span>
+          <span class="dl-item"><i class="dl-dot d-pending"></i>Needs Human Review <b id="outKpiReview">0</b></span>
+        </div>
+      </div>
+
+      <div class="control-bar">
+        <div class="cg-left">
+          <div class="cg-item">
+            <span>📬 Mailbox Source:</span>
+            <select class="select-ctl" id="outSelMailbox" onchange="Outstream.render()">
+              <option value="ALL">All Sources (Unified Outstream)</option>
+              <option value="sdoc-hackathon-bundle@averis.com">Carrier EDI / API Webhook (Benchmark)</option>
+              <option value="operations@shipsync.demo">Direct Mail Influx (Live Ops)</option>
+              <option value="docs.export@averis.com">docs.export@averis.com</option>
+              <option value="booking@averis.com">booking@averis.com</option>
+              <option value="april.shipping@averis.com">april.shipping@averis.com</option>
+              <option value="finance@averis.com">finance@averis.com</option>
+              <option value="transpacific@averis.com">transpacific@averis.com</option>
+            </select>
+          </div>
+          <div class="cg-item">
+            <span>↩️ Response Policy:</span>
+            <select class="select-ctl" id="outSelMode" onchange="Outstream.setGlobalDisposition()">
+              <option value="manual">🛡️ Manual (queue for human)</option>
+              <option value="auto">⚡ Auto (send reply automatically)</option>
+            </select>
+            <button class="btn btn-sm mx-kebab" id="outKebab" type="button" data-tip="Per-source reply policy" onclick="Outstream.openMatrixModal()">&#8943; <span id="outKebabSum">sources</span></button>
+          </div>
+          <div class="cg-item">
+            <span>🔎 Search:</span>
+            <input id="outSearch" class="select-ctl" type="text" placeholder="subject, sender or id…" oninput="Outstream.onSearch()" style="min-width:200px;">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="reply-counter" id="outReplyCounter" style="font-weight:700;color:var(--warn);font-size:13px;">↩ Reply needed: 0</span>
+          <button class="btn btn-sm" type="button" onclick="Outstream.reload()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div class="table-panel">
+        <div class="table-header">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>📨 <span id="replyQueueTitle">Awaiting reply</span></span>
+            <span id="outCountBadge" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
+          </div>
+          <div class="bulk-bar">
+            <button class="btn btn-sm btn-primary" id="replyBulkSend" type="button" onclick="Outstream.bulkReplyEligible()">⚡ Auto-reply all eligible</button>
+            <button class="btn btn-sm" type="button" onclick="Outstream.reload()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="table-body">
+          <table class="staged-tbl">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Category / Status</th>
+                <th>Mismatch (SI ↔ BL)</th>
+                <th>Source</th>
+                <th>Disposition</th>
+                <th>Reply</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="outList"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
   </main>
@@ -1562,6 +1640,61 @@ table.list tbody tr.sel .key{color:var(--accent)}
 <script src="/ui/js/review.js"></script>
 
 <!-- ===================== GATEWAY MODALS ===================== -->
+<!-- Response Disposition Policy modal (opened from the Response Policy kebab) -->
+<div class="modal-overlay hidden" id="outMatrixModal">
+  <div class="modal-box mx-modal-box">
+    <div class="modal-head">
+      <span>📡 Response Disposition Policy <span class="matrix-sub">&middot; per-mailbox auto / manual</span></span>
+      <button class="btn btn-sm" type="button" onclick="Outstream.closeMatrixModal()">&#10005;</button>
+    </div>
+    <div class="matrix-hint">Auto sends the reply automatically; Manual parks it for a human. Inherit follows the global policy above. Single-item overrides on each row win over everything.</div>
+    <div class="matrix-grid" id="outMatrixGrid"></div>
+  </div>
+</div>
+
+<!-- Source Trust Matrix modal (opened from the Ingestion Policy kebab) -->
+<div class="modal-overlay hidden" id="mxModal">
+  <div class="modal-box mx-modal-box">
+    <div class="modal-head">
+      <span>📵 Source Trust Matrix <span class="matrix-sub">&middot; per-mailbox ingest policy</span></span>
+      <button class="btn btn-sm" type="button" onclick="Gateway.closeMatrixModal()">&#10005;</button>
+    </div>
+    <div class="mx-tools-row">
+      <span class="matrix-sum" id="mxSummary"></span>
+      <div class="gw-search">
+        <span class="gw-search-ico">&#128269;</span>
+        <input id="mxSearch" type="text" placeholder="Search source or role&#8230;" oninput="Gateway.onMatrixSearch(this.value)" />
+        <button id="mxSearchClear" class="gw-search-clear" type="button" onclick="Gateway.clearMatrixSearch()" title="Clear search" hidden>&#10005;</button>
+      </div>
+      <button class="btn btn-sm" type="button" id="mxAddBtn" onclick="Gateway.toggleAddSource()">&#65291; Add source</button>
+      <button class="btn btn-sm" type="button" onclick="Gateway.reapplyPolicy()">&#9889; Re-apply Policy to Backlog</button>
+    </div>
+    <div class="matrix-hint">Set a source to <b>Auto</b> and verified mail flows straight through; <b>Manual</b> holds it for operator triage. <b>Inherit</b> follows the global policy above.</div>
+    <div class="mx-add" id="mxAdd" hidden>
+      <span class="mx-add-lbl">New source</span>
+      <input class="mx-in-mb" id="mxAddMb" type="text" placeholder="source@averis.com" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
+      <input class="mx-in-role" id="mxAddRole" type="text" placeholder="Role label (optional)" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
+      <button class="btn btn-sm btn-primary" type="button" onclick="Gateway.addSource()">Add source</button>
+      <button class="btn btn-sm" type="button" onclick="Gateway.closeAddSource()">Cancel</button>
+      <span class="mx-add-err" id="mxAddErr"></span>
+    </div>
+    <div class="mx-tbl-wrap">
+      <table class="mx-tbl">
+        <thead>
+          <tr>
+            <th>Mailbox Source</th>
+            <th>Trust Policy</th>
+            <th data-tip="The policy actually applied &#8212; the per-source override when one is set, otherwise the global ingestion mode">Effective</th>
+            <th data-tip="Emails from this source still waiting for operator triage">Awaiting</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="matrixGrid"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- Simulation Modal -->
 <div class="modal-overlay hidden" id="simModal">
   <div class="modal-box">
@@ -1645,6 +1778,39 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
 <script src="/ui/js/gateway.js"></script>
 <script src="/ui/js/lifecycle.js"></script>
+<script src="/ui/js/outstream.js"></script>
+<script src="/ui/js/review_reply.js"></script>
 
+<!-- Outstream Return Modal (post-classification reply / clarification) -->
+<div class="modal-overlay hidden" id="outReturnModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>↩ Outstream Reply / Clarification Request</span>
+      <button class="btn btn-sm" type="button" onclick="Outstream.closeReturnModal()">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5;">
+      Dispatch the post-classification reply. The message is routed back to the sender via the email's origin mailbox channel.
+    </div>
+    <div style="display:flex;gap:12px;font-size:12px;padding:8px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+      <div><b>Routing via:</b> <span id="outRetVia" style="color:var(--accent);">-</span></div>
+      <div><b>To:</b> <span id="outRetTo">-</span></div>
+      <div id="outRetDelivery" style="color:var(--muted-2);"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:12px;color:var(--muted);">Subject</label>
+      <input id="outRetSub" style="background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:var(--sans);font-size:12.5px;outline:none;">
+    </div>
+    <textarea id="outRetBody" style="width:100%;height:150px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+      <a id="outRetMailtoBtn" href="#" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.4);" target="_blank">
+        🚀 Open Local Email (mailto)
+      </a>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" type="button" onclick="Outstream.closeReturnModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="Outstream.confirmReturn()">📨 Dispatch Reply</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

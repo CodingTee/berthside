@@ -52,6 +52,7 @@ class EmailRecord(Base):
     received_at = Column(DateTime, nullable=True)
     first_seen_at = Column(DateTime, default=utcnow)
     source_mailbox = Column(String(128), index=True, nullable=True)  # origin inbox
+    disposition_override = Column(String(16), default="INHERIT")  # INHERIT | AUTO | MANUAL
 
 
 class ReportRecord(Base):
@@ -299,6 +300,13 @@ class GatewayPolicyRecord(Base):
     engine = Column(String(32), default="cascade")  # "cascade" | "ollama" | "rule"
     ingest_mode = Column(String(32), default="auto")  # "auto" | "manual"
     source_policies = Column(JSON, default=dict)  # {mailbox: "auto" | "manual"}
+    # Response/disposition policy (post-classification, the outstream buffer):
+    # "auto" sends the SIMULATED reply, "manual" parks the email for a human.
+    # Resolution mirrors source_policies: a per-source override map over a
+    # global default. This is deliberately separate from ingest_mode, which
+    # governs the *classification* intake (the instream buffer).
+    disposition_mode = Column(String(32), default="manual")  # "auto" | "manual"
+    disposition_policies = Column(JSON, default=dict)  # {mailbox: "auto" | "manual"}
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
@@ -315,6 +323,7 @@ class DispatchRecord(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     stage_id = Column(String(64), index=True, nullable=False)
+    email_id = Column(String(128), index=True, nullable=True)  # link back to the replied email
     source_mailbox = Column(String(128), index=True, nullable=False)  # return path
     recipient = Column(String(255), nullable=True)  # original sender
     decision = Column(String(32), nullable=False)  # VERIFIED | REJECTED
@@ -323,4 +332,5 @@ class DispatchRecord(Base):
     channel = Column(String(128), nullable=True)  # "sdoc-hackathon-bundle@averis.com" etc.
     delivery = Column(String(32), default="SIMULATED")  # SIMULATED | SENT | FAILED
     gmail_message_id = Column(String(128), nullable=True)
+    error = Column(String(512), nullable=True)  # transport failure reason, when delivery = FAILED
     created_at = Column(DateTime, default=utcnow, onupdate=utcnow)
