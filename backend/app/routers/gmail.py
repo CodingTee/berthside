@@ -146,8 +146,20 @@ RESULT_PAGE_BACK = (
     "Back to ShipMail</a>"
 )
 
+# On a successful connect the callback writes a marker into localStorage. The
+# ShipMail page (a different tab/window of the same origin) hears it via the
+# `storage` event and runs the single initial sync — so Connect Gmail performs
+# the sync automatically, with no manual "Sync Mail" click. window.close() is
+# allowed here because the tab was opened by window.open().
+RESULT_PAGE_CONNECT_JS = (
+    "<script>try{localStorage.setItem(\"sdoc-gmail-connected\", "
+    "String(Date.now()));}catch(_){}"
+    "try{setTimeout(function(){window.close();},1200);}catch(_){}</script>"
+)
 
-def result_page(title: str, body: str, ok: bool = False) -> HTMLResponse:
+
+def result_page(title: str, body: str, ok: bool = False,
+                extra_js: str = "") -> HTMLResponse:
     """A themed result page using the product's own design tokens.
 
     `ok` picks the status color (green success / red failure); the rest of the
@@ -169,6 +181,7 @@ def result_page(title: str, body: str, ok: bool = False) -> HTMLResponse:
   <div class="body">{body}</div>
   {RESULT_PAGE_BACK}
 </div>
+{extra_js}
 {RESULT_PAGE_THEME_JS}
 </body>
 </html>""")
@@ -177,8 +190,9 @@ def result_page(title: str, body: str, ok: bool = False) -> HTMLResponse:
 @router.get("/oauth-callback", response_class=HTMLResponse,
             summary="OAuth callback for Google Gmail authorization")
 def gmail_oauth_callback(code: str | None = None, error: str | None = None):
-    def page(title: str, body: str, ok: bool = False) -> HTMLResponse:
-        return result_page(title, body, ok)
+    def page(title: str, body: str, ok: bool = False,
+             extra_js: str = "") -> HTMLResponse:
+        return result_page(title, body, ok, extra_js)
 
     if error:
         return page("Gmail authorization failed",
@@ -198,7 +212,8 @@ def gmail_oauth_callback(code: str | None = None, error: str | None = None):
                     False)
     return page("ShipMail connected to Gmail",
                 f"Account: <b>{result['account']}</b><br>"
-                "Close this tab, then click <b>Sync now</b> in ShipMail.", True)
+                "Gmail is connected — your inbox is syncing now. You can close "
+                "this tab.", True, RESULT_PAGE_CONNECT_JS)
 
 
 @router.post("/poll", summary="Poll Gmail inbox and process unseen messages")
