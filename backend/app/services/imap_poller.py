@@ -352,37 +352,28 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
                     f"Shipping Documentation Operations Desk"
                 )
                 mailto_link = f"mailto:{target_client}?{urllib.parse.urlencode({'subject': client_subj, 'body': client_reply_text})}"
-                # Direct Gmail Web Compose link (pre-fills To, Subject, and Body inside browser - 0 typing!)
-                gmail_web_compose = f"https://mail.google.com/mail/u/0/?view=cm&fs=1&{urllib.parse.urlencode({'to': target_client, 'su': client_subj, 'body': client_reply_text})}"
-
-                # Construct precise Gmail operator searches:
-                # 1) from:customer@example.com subject:(keywords) -> pinpoints exact thread
-                # 2) from:customer@example.com -> all emails sent by this client
+                # Construct pinpoint Gmail operator search: from:source_email + subject:(keywords)
                 safe_subj_kw = re.sub(r'[^\w\s-]', ' ', clean_subj).strip()
                 if safe_subj_kw:
                     thread_query = f"from:{target_client} subject:({safe_subj_kw})"
                 else:
                     thread_query = f"from:{target_client}"
                 gmail_thread_search = f"https://mail.google.com/mail/u/0/#search/{urllib.parse.quote_plus(thread_query)}"
-                gmail_client_all_search = f"https://mail.google.com/mail/u/0/#search/{urllib.parse.quote_plus(f'from:{target_client}')}"
 
                 action_block_text = ""
                 if orig_client and orig_client != sender_email:
                     action_block_text = (
                         f"\n----------------------------------------------------------------------\n"
-                        f"🚀 【快捷回信客户通道 (免手动打字 · 自动排版)】\n"
-                        f"检测到原客户邮箱：{orig_client}\n\n"
-                        f"[方式 1: 网页版 Gmail 拟信 (0 手打 · 自动填入客户、主题与审核正文)]\n"
-                        f"👉 {gmail_web_compose}\n\n"
-                        f"[方式 2: 唤起本地邮件客户端发信 (Mailto)]\n"
+                        f"🚀 [Fast Client Reply Gateway (Zero Manual Forwarding · Direct Re:)]\n"
+                        f"Original client detected: {orig_client}\n\n"
+                        f"✉️ [Option 1: One-Click Reply (Auto-filled mailto)]:\n"
                         f"👉 {mailto_link}\n\n"
-                        f"[方式 3: 在 Gmail 网页原 Thread 中回复]\n"
-                        f"第一步：点击定位原 Thread：\n"
-                        f"👉 {gmail_thread_search}\n"
-                        f"第二步：在原 Thread 点击 Reply，直接复制粘贴以下文案（无需手打）：\n"
-                        f"--------------------- 📋 对客回复文案 ---------------------\n"
+                        f"🔍 [Option 2: Locate Exact Thread in Gmail (from:{orig_client} + Subject)]:\n"
+                        f"👉 {gmail_thread_search}\n\n"
+                        f"📋 [Pre-formatted Client Reply (Copy & paste into thread)]:\n"
+                        f"----------------------------------------------------------------------\n"
                         f"{client_reply_text}\n"
-                        f"-----------------------------------------------------------\n"
+                        f"----------------------------------------------------------------------\n"
                         f"----------------------------------------------------------------------\n"
                     )
 
@@ -400,23 +391,20 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
                     f"{staged.source_mailbox}"
                 )
 
-                # Rich HTML representation with 1-click action button
+                # Rich HTML representation with 1-click action button and copyable draft box
                 html_btn_html = ""
                 if orig_client and orig_client != sender_email:
                     html_btn_html = f"""
                     <div style="margin: 20px 0; padding: 16px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
-                        <h4 style="margin: 0 0 8px 0; color: #166534; font-size: 15px;">🚀 对客快捷回复通道（0 手打 · 自动排版）</h4>
-                        <p style="margin: 0 0 12px 0; color: #374151; font-size: 13px;">检测到原客户邮箱：<strong>{orig_client}</strong>。请选择您偏好的回复方式：</p>
-                        <div style="margin-bottom: 12px;">
-                            <a href="{gmail_web_compose}" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">🌐 方式一：网页版 Gmail 拟信（0 手打 · 自动填入正文）</a>
-                            &nbsp;
-                            <a href="{mailto_link}" style="display: inline-block; background-color: #4b5563; color: #ffffff; padding: 9px 16px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">💻 方式二：本地客户端 (Mailto)</a>
+                        <h4 style="margin: 0 0 8px 0; color: #166534; font-size: 15px;">🚀 Fast Client Reply Gateway (Direct Re: · No Fwd: Noise)</h4>
+                        <p style="margin: 0 0 14px 0; color: #374151; font-size: 13px; line-height: 1.5;">Original client identified: <strong>{orig_client}</strong>. Select an action below:</p>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                            <a href="{mailto_link}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; margin: 4px 8px 6px 0; text-align: center;">✉️ One-Click Reply to Client</a>
+                            <a href="{gmail_thread_search}" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; margin: 4px 0 6px 0; text-align: center;">🔍 Locate Exact Thread in Gmail (from:{orig_client})</a>
                         </div>
-                        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
-                            <p style="margin: 0 0 6px 0; font-size: 13px; color: #1e293b;"><strong>📌 方式三：若您习惯在 Gmail 原 Thread 中点击原生 Reply：</strong></p>
-                            <p style="margin: 0 0 8px 0; font-size: 12px; color: #64748b;">先点击直达原 Thread，然后直接<strong>复制下方已排版好的文案</strong>粘贴进去（2 秒搞定，无需手打）：</p>
-                            <a href="{gmail_thread_search}" target="_blank" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: 500; font-size: 12px; margin-bottom: 8px;">🔍 打开原 Thread (from:{orig_client})</a>
-                            <div style="background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px 12px; font-family: monospace; font-size: 12px; color: #334155; white-space: pre-wrap; line-height: 1.5; user-select: all;">{client_reply_text}</div>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+                            <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #475569;">📋 Pre-formatted Client Reply (Copy & paste into thread):</p>
+                            <div style="background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #1e293b; white-space: pre-wrap; line-height: 1.5; user-select: all;">{client_reply_text}</div>
                         </div>
                     </div>
                     """

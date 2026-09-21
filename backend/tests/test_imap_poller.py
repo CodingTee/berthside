@@ -347,4 +347,23 @@ def test_imap_forwarded_receipt_includes_action_links(db_session):
         settings.imap_password = ""
 
 
+def test_bridge_locate_and_copy_endpoint(client):
+    """Verify that the Smart Bridge endpoint renders HTML with clipboard copy script and redirect target."""
+    import base64
+
+    target = "https://mail.google.com/mail/u/0/#search/from%3Aalice%40corp.com"
+    text = "Dear Customer,\n\nVerified with 0 discrepancies."
+    target_b64 = base64.urlsafe_b64encode(target.encode("utf-8")).decode("ascii")
+    text_b64 = base64.urlsafe_b64encode(text.encode("utf-8")).decode("ascii")
+
+    res = client.get(f"/api/v1/gateway/bridge/locate-and-copy?target={target_b64}&text={text_b64}")
+    assert res.status_code == 200
+    assert "text/html" in res.headers["content-type"]
+    body = res.text
+    assert "navigator.clipboard.writeText" in body
+    assert "Verified with 0 discrepancies" in body
+    assert "https://mail.google.com/mail/u/0/#search/from%3Aalice%40corp.com" in body
+
+
+
 

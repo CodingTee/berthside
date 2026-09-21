@@ -11,11 +11,14 @@ from __future__ import annotations
 
 import base64
 import datetime as dt
+import html
+import json
 import logging
 import threading
 import time
 from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -419,7 +422,9 @@ def _return_staged(staged: StagedEmailRecord, db: Session, subject=None, body=No
         subject=subject,
         body=body,
         channel=staged.source_mailbox,
-        delivery=smtp_res.get("delivery", "SIMULATED"),
+        delivery="FAILED" if smtp_res.get("status") == "ERROR" else smtp_res.get("delivery", "SIMULATED"),
+        gmail_message_id=smtp_res.get("message_id"),
+        error=(smtp_res.get("error") or "")[:512] or None,
     )
     db.add(rec)
     db.commit()
@@ -910,3 +915,151 @@ def _seed_demo_staged_records(db: Session):
         )
         db.add(r)
     db.commit()
+
+
+@router.get("/bridge/locate-and-copy", response_class=HTMLResponse, summary="Smart Bridge: Copy reply draft and redirect to Gmail")
+def bridge_locate_and_copy(
+    target: str = Query(..., description="Target Gmail URL (base64 encoded or raw URL)"),
+    text: str = Query(..., description="Draft text to copy to clipboard (base64 encoded or raw text)"),
+):
+    """Interstitial bridge that copies pre-formatted customer reply text to the user's OS clipboard
+
+    and immediately redirects the user to the destination Gmail thread.
+    """
+    try:
+        raw_target = base64.urlsafe_b64decode(target.encode("ascii")).decode("utf-8")
+    except Exception:
+        raw_target = target
+
+    try:
+        raw_text = base64.urlsafe_b64decode(text.encode("ascii")).decode("utf-8")
+    except Exception:
+        raw_text = text
+
+    js_text = json.dumps(raw_text)
+    js_target = json.dumps(raw_target)
+    safe_preview = html.escape(raw_text)
+    safe_target = html.escape(raw_target)
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Averis Smart Bridge - Copying & Redirecting</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }}
+    .card {{
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 28px 24px;
+      max-width: 460px;
+      width: 100%;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      text-align: center;
+    }}
+    .badge {{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 14px;
+    }}
+    h3 {{
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }}
+    p {{
+      font-size: 13px;
+      line-height: 1.5;
+      color: #475569;
+      margin: 0 0 16px 0;
+    }}
+    .preview {{
+      background-color: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      color: #334155;
+      text-align: left;
+      white-space: pre-wrap;
+      max-height: 140px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }}
+    .btn {{
+      display: inline-block;
+      background-color: #059669;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: background-color 0.15s;
+    }}
+    .btn:hover {{
+      background-color: #047857;
+    }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge" id="status-badge">📋 Text Copied to Clipboard!</div>
+    <h3>Redirecting to Gmail Thread...</h3>
+    <p>The client verification draft has been copied to your clipboard. Simply press <strong>Ctrl + V</strong> inside the Gmail reply box.</p>
+    <div class="preview">{safe_preview}</div>
+    <a id="redirect-btn" class="btn" href="{safe_target}">Continue to Gmail Thread ➔</a>
+  </div>
+  <script>
+    const textToCopy = {js_text};
+    const targetUrl = {js_target};
+
+    async function executeCopyAndRedirect() {{
+      try {{
+        await navigator.clipboard.writeText(textToCopy);
+      }} catch (err) {{
+        console.warn("Auto clipboard copy failed, falling back to user gesture", err);
+      }}
+      setTimeout(() => {{
+        window.location.replace(targetUrl);
+      }}, 150);
+    }}
+
+    document.getElementById("redirect-btn").addEventListener("click", async (e) => {{
+      try {{
+        await navigator.clipboard.writeText(textToCopy);
+      }} catch (err) {{}}
+    }});
+
+    executeCopyAndRedirect();
+  </script>
+</body>
+</html>"""
+    return HTMLResponse(content=html_content, status_code=200)
+

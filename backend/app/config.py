@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     environment: str = "development"  # development | production
     cors_origins: str = "*"  # comma-separated list; "*" allows all (dev only)
+    public_base_url: str = "http://127.0.0.1:8000"
 
     # -- data --------------------------------------------------------------
     # Either a local folder containing inbox/ + attachments/ (static bundle),
