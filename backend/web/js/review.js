@@ -414,8 +414,8 @@ function renderKPIs(){
         <button class="btn ghost sm" type="button" data-tip="Refresh inbox" data-tip-desc="Re-fetch emails and KPIs" data-tip-kbd="R" data-tip-pos="bottom" onclick="loadSummary();loadList();toast('Inbox refreshed')">&#8635; Refresh</button>
       </div>
     </div>`;
-  $("#relNum").textContent=fmt(nr);
-  $("#relPulse").style.background = nr>0 ? "var(--warn)" : "var(--ok)";
+  const _relNum=$("#relNum"); if(_relNum) _relNum.textContent=fmt(nr);
+  const _relPulse=$("#relPulse"); if(_relPulse) _relPulse.style.background = nr>0 ? "var(--warn)" : "var(--ok)";
   const ua=document.getElementById("updatedAt"); if(ua) ua.textContent="Updated "+new Date().toLocaleTimeString();
 }
 
@@ -626,7 +626,7 @@ function toggleRail(){
   clearTimeout(railAnimT);
   railAnimT=setTimeout(()=>appEl.classList.remove("rail-anim"),480);
 }
-$("#collapseBtn").addEventListener("click",toggleRail);
+const _collapseBtn=$("#collapseBtn"); if(_collapseBtn) _collapseBtn.addEventListener("click",toggleRail);
 
 /* ---------- responsive Ctrl+K chip on the search button ----------
    The inbox panel is resizable and the layout settles after fonts load, so we

@@ -84,7 +84,7 @@ function wireWorkspaceSwitcher(){
   });
 }
 
-// Keyboard navigation for workflows (0, 1, 2, 3, B)
+// Keyboard navigation for workflows (0 = Gateway, 1 = Review Console, 2 = Shipment Lifecycle)
 document.addEventListener("keydown", e => {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
   if(e.ctrlKey || e.metaKey || e.altKey) return;
@@ -177,7 +177,12 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .app{position:relative;z-index:1;display:flex;height:100vh}
 .sidebar{width:268px;flex:0 0 268px;display:flex;flex-direction:column;
   background:linear-gradient(180deg,var(--surface-2),var(--bg-2));
-  border-right:1px solid var(--border);padding:16px 14px;gap:11px;overflow-y:auto;overflow-x:hidden;
+  /* overflow:visible is LOAD-BEARING - do not "tidy" it back to auto/hidden. The 320px
+     #wsDropdown lives in here; clipping the rail squeezed it into the 268px rail and hid its
+     whole right third behind .main (the footer read "…Ph" and the panel had no right edge).
+     The rail still scrolls on very short windows - see the max-height fallback right after the
+     .sidebar::-webkit-scrollbar rule further down. */
+  border-right:1px solid var(--border);padding:16px 14px;gap:11px;overflow:visible;
   scrollbar-width:none;-ms-overflow-style:none;
   transition:width .3s cubic-bezier(.4,0,.2,1),flex-basis .3s cubic-bezier(.4,0,.2,1),
     padding .3s cubic-bezier(.4,0,.2,1),gap .3s cubic-bezier(.4,0,.2,1)}
@@ -771,8 +776,13 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 }
 .help-sec{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted-2);font-weight:700;margin:14px 0 5px;padding-bottom:5px;border-bottom:1px solid var(--border)}
 .help-sec:first-child{margin-top:0}
-/* The sidebar may still scroll on very short windows, but it never shows a track. */
+/* The rail may still scroll on very short windows, but it never shows a track. */
 .sidebar::-webkit-scrollbar{width:0;height:0;display:none}
+/* Short-window fallback for the .sidebar overflow:visible above: below ~360px of viewport
+   height the rail's content no longer fits, so bring the scroll container back or the theme
+   toggle would be pushed off-screen with no way to scroll to it. Under that height the
+   dropdown clips again - the accepted trade-off on a window this short. */
+@media(max-height:360px){.sidebar{overflow-y:auto;overflow-x:hidden}}
 
 /* ---------- Workspace Switcher ---------- */
 .brand-row{display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative}
@@ -871,19 +881,39 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .btn-danger:hover { background: var(--bad); color: #fff; }
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 
-/* Source Trust Matrix */
-.matrix-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; box-shadow: var(--shadow); }
+/* Source Trust Matrix — one row per source (table) */
+.matrix-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; box-shadow: var(--shadow); }
 .matrix-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.matrix-head-l { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap; }
 .matrix-title { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
 .matrix-sub { font-size: 12px; color: var(--muted); font-weight: 400; }
-.matrix-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
-.mx-card { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
-.mx-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.mx-mb { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--text); word-break: break-all; }
-.mx-role { font-size: 11px; color: var(--muted-2); }
-.mx-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.mx-count { font-size: 11px; color: var(--muted); }
-.mx-count b { color: var(--warn); font-family: var(--mono); }
+.matrix-sum { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.matrix-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.matrix-toggle, .tb-toggle { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 10px; line-height: 1; padding: 0; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; flex: 0 0 auto; }
+.matrix-toggle:hover, .tb-toggle:hover { color: var(--text); background: var(--surface-3); }
+.matrix-body { display: flex; flex-direction: column; gap: 10px; }
+.matrix-body[hidden] { display: none; }
+.matrix-hint { font-size: 11.5px; color: var(--muted-2); line-height: 1.55; }
+.matrix-hint b { color: var(--muted); font-weight: 600; }
+.mx-tbl-wrap { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); overflow-x: auto; }
+table.mx-tbl { width: 100%; min-width: 900px; border-collapse: collapse; text-align: left; table-layout: fixed; }
+table.mx-tbl th { background: var(--surface-3); padding: 8px 14px; font-size: 10.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+table.mx-tbl td { padding: 6px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.mx-tbl tbody tr:last-child td { border-bottom: none; }
+table.mx-tbl tbody tr:hover { background: rgba(255,255,255,.03); }
+table.mx-tbl th:nth-child(1), table.mx-tbl td:nth-child(1) { width: 33%; }
+table.mx-tbl th:nth-child(2), table.mx-tbl td:nth-child(2) { width: 24%; }
+table.mx-tbl th:nth-child(3), table.mx-tbl td:nth-child(3) { width: 15%; }
+table.mx-tbl th:nth-child(4), table.mx-tbl td:nth-child(4) { width: 9%; }
+table.mx-tbl th:nth-child(5), table.mx-tbl td:nth-child(5) { width: 19%; }
+table.mx-tbl td:nth-child(1) { overflow: hidden; }
+.mx-mb { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mx-role { font-size: 11px; color: var(--muted-2); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mx-eff { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mx-eff b { font-family: var(--mono); font-size: 11.5px; }
+.mx-cnt { font-family: var(--mono); font-size: 12.5px; font-weight: 700; color: var(--warn); }
+.mx-cnt.zero { color: var(--muted-2); font-weight: 600; }
+.mx-none { padding: 20px 14px; text-align: center; color: var(--muted-2); font-size: 12.5px; }
 /* Segmented 3-state control: Inherit / Auto / Manual */
 .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
 .seg button { background: transparent; border: none; color: var(--muted); padding: 4px 9px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: all .12s; }
@@ -893,7 +923,15 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .seg button.active.inherit { background: var(--muted-2); }
 .seg button.active.auto { background: var(--ok); }
 .seg button.active.manual { background: var(--warn); }
-.mx-actions { display: flex; gap: 6px; }
+.mx-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.mx-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface-3); }
+.mx-add[hidden] { display: none; }
+.mx-add-lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.mx-add input { background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text); font-size: 12.5px; font-family: var(--sans); padding: 5px 10px; outline: none; }
+.mx-add input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(45,212,191,.18); }
+.mx-add input.mx-in-mb { width: 250px; font-family: var(--mono); }
+.mx-add input.mx-in-role { width: 210px; }
+.mx-add-err { font-size: 11.5px; color: var(--bad); }
 .mx-pill { font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 700; font-family: var(--mono); text-transform: uppercase; }
 .mx-pill.inherit { background: rgba(148,163,184,.16); color: var(--muted); }
 .mx-pill.forced { background: rgba(56,189,248,.14); color: #7dd3fc; border: 1px solid rgba(56,189,248,.35); }
@@ -906,12 +944,39 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 
 /* Table Container */
 .table-panel { flex: 1 1 auto; min-height: 420px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
-.table-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 650; font-size: 14px; }
-.table-body { flex: 1; overflow-y: auto; }
-table.staged-tbl { width: 100%; border-collapse: collapse; text-align: left; }
-table.staged-tbl th { background: var(--surface-3); padding: 10px 16px; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
-table.staged-tbl td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-table.staged-tbl tr:hover { background: rgba(255,255,255,.02); }
+.table-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 14px; font-weight: 650; font-size: 14px; flex-wrap: wrap; }
+.table-body { flex: 1; overflow: auto; }              /* x+y: the Actions column can never be clipped */
+.table-body[hidden] { display: none; }                /* set by the inbound-stream collapse toggle */
+.table-panel.collapsed { flex: 0 0 auto; min-height: 0; }   /* collapsed = the header row only, so the matrix gets the room */
+table.staged-tbl { width: 100%; min-width: 1020px; border-collapse: collapse; text-align: left; table-layout: fixed; }
+table.staged-tbl th { background: var(--surface-3); padding: 10px 14px; font-size: 11.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+table.staged-tbl td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; overflow: hidden; }
+table.staged-tbl tr:hover { background: rgba(255,255,255,.03); }
+/* pinned column widths (fixed layout) — sum = 100% */
+table.staged-tbl th:nth-child(1), table.staged-tbl td:nth-child(1) { width: 12%; }
+table.staged-tbl th:nth-child(2), table.staged-tbl td:nth-child(2) { width: 15%; }
+table.staged-tbl th:nth-child(3), table.staged-tbl td:nth-child(3) { width: 24%; }
+table.staged-tbl th:nth-child(4), table.staged-tbl td:nth-child(4) { width: 15%; }
+table.staged-tbl th:nth-child(5), table.staged-tbl td:nth-child(5) { width: 12%; }
+table.staged-tbl th:nth-child(6), table.staged-tbl td:nth-child(6) { width: 10%; }
+table.staged-tbl th:nth-child(7), table.staged-tbl td:nth-child(7) { width: 22%; overflow: visible; white-space: normal; }
+/* ellipsise the two long text columns instead of letting them wrap raggedly */
+table.staged-tbl td:nth-child(3) > div, table.staged-tbl td:nth-child(2) .pill-src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.act-wrap { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+/* Table header sub-elements */
+.th-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.th-count { font-size: 12px; color: var(--muted); font-weight: 400; }
+.gw-search { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 9px; padding: 4px 10px; min-width: 260px; }
+.gw-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(45,212,191,.18); }
+.gw-search-ico { font-size: 12px; opacity: .7; }
+.gw-search input { border: none; outline: none; background: transparent; color: var(--text); font-size: 12.5px; font-family: var(--sans); width: 100%; }
+.gw-search input::placeholder { color: var(--muted-2); }
+.gw-search-clear { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0 2px; }
+.gw-search-clear:hover { color: var(--text); }
+.chk-quar { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); cursor: pointer; user-select: none; }
+.chk-quar input { accent-color: var(--accent); }
+.bulk-scope { opacity: .8; font-weight: 400; }
+
 
 /* Status Badges */
 .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 6px; font-size: 11.5px; font-weight: 650; text-transform: uppercase; font-family: var(--mono); }
@@ -1232,16 +1297,6 @@ table.list tbody tr.sel .key{color:var(--accent)}
       </button>
     </div>
 
-    <div data-page-node-id="OmrnvHcXdFzmDFMHbcWVCB">
-      <div class="wf-title" data-page-node-id="Cctt2017hDQ197iHOjEmK9">Pipeline</div>
-      <div class="steps" id="steps" data-page-node-id="6JmNgsRGrTR0WPehwDx7AZ">
-        <div class="step" data-step="classify" data-tip="Classify" data-tip-desc="Triage every inbound mail: SI, invoice or spam: before extraction runs" data-tip-pos="right" data-page-node-id="7SKEs8PuPMblULhhXrt4lR"><div class="dot" data-page-node-id="gZrYYa1GvYHBweVNgYNtcc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="CBdB8vAWCktL7uogXzdTsv"><path d="M4 6h16M4 12h16M4 18h10" data-page-node-id="hAHYT4oLgHKVieEXIwVGYe"/></svg></div><div class="stxt" data-page-node-id="HuWBXBiVDDwX5CS7T2nDkg"><b data-page-node-id="3nrFpxEIvw0lAxKUuX5emW">Classify</b><span data-page-node-id="lmCcFT2AxSKNezw07SgkE5">Triage inbox: SI, invoice, spam…</span></div><div class="line" data-page-node-id="iQjZya6KZgGMhb5HFqtyMy"></div></div>
-        <div class="step" data-step="extract" data-tip="Extract" data-tip-desc="Pull the 7 shipment fields out of the SI and the BL attachments" data-tip-pos="right" data-page-node-id="2uuWxgf3GjGOWBhWwR95cK"><div class="dot" data-page-node-id="C8rv6QTg9tCRDBmAJ6m3QU"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="5v35TqVixpyyNx8uPrELlw"><path d="M4 7V5a1 1 0 0 1 1-1h3l2 2h7a1 1 0 0 1 1 1v3" data-page-node-id="ihHh1hWmuIEHlcRER0kkqY"/><path d="M4 7v12a1 1 0 0 0 1 1h12" data-page-node-id="nQiH8Q8xK9u5XiAwXepXAY"/></svg></div><div class="stxt" data-page-node-id="954lqmcxmeM6CU7V6DE88w"><b data-page-node-id="H0Se1wKRmeM8zMm1K6DKTA">Extract</b><span data-page-node-id="JhUeGsVgn6AwHYwtG8TEzl">Pull 7 shipment fields from SI &amp; BL</span></div><div class="line" data-page-node-id="swbiVn1JZ8Ny4mZxLKeC1D"></div></div>
-        <div class="step" data-step="compare" data-tip="Compare" data-tip-desc="Diff the extracted fields and surface every SI ↔ BL mismatch" data-tip-pos="right" data-page-node-id="XBCY5f0ARmsBiE69oIMCgK"><div class="dot" data-page-node-id="rQjhHYYByoJFa6PyIR58Hh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="UCYLKWWfIZNpofjkj1Ffoe"><path d="M3 12h7M14 12h7M12 3v7M12 14v7" data-page-node-id="Mtrdl1wfrp0lnzDRzBWthh"/><circle cx="12" cy="12" r="2" data-page-node-id="MecBV5PKagmEpSUjKaUEVa"/></svg></div><div class="stxt" data-page-node-id="cwoa9n5Syjo4kxaGids2SW"><b data-page-node-id="NaQGQ8S7BucK2j6HI410jS">Compare</b><span data-page-node-id="9aLfW8s2t5RQECP1gSKTYg">Surface mismatches, SI ↔ BL</span></div><div class="line" data-page-node-id="3fAphiRfIORilcmMxJuAWg"></div></div>
-        <div class="step" data-step="escalate" data-tip="Escalate" data-tip-desc="Route ambiguous or low-confidence cases to a human reviewer" data-tip-pos="right" data-page-node-id="1IaOpFGgb7gwbsCRqk0Qs1"><div class="dot" data-page-node-id="KqBBjilHTViJd6fh47EPzX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="BdBmjdCgA7Lh8p5a0wUsJ8"><path d="M12 3l9 16H3z" data-page-node-id="cvFdrYy33Khp0RJHLdijGv"/><path d="M12 10v4M12 17h.01" data-page-node-id="WZmVI5E3zuFm769OKbUFA9"/></svg></div><div class="stxt" data-page-node-id="vCOVII7gkbu0qChjSr9417"><b data-page-node-id="geJNeUZxLUiFG6FkQ7AhkE">Escalate</b><span data-page-node-id="BimdHyQBMMVevjyTZlU6WJ">Route ambiguity to human review</span></div></div>
-      </div>
-    </div>
-
     <div class="nav-sec">
       <div class="wf-title">Workflows</div>
       <button class="navlink" id="navGateway" type="button" onclick="switchView('gateway')" data-tip="Enterprise Hub Gateway" data-tip-desc="Multi-inbox intake, AI triage, trust matrix & security quarantine" data-tip-kbd="0" data-tip-pos="right" aria-label="Gateway & Sandbox">
@@ -1254,49 +1309,12 @@ table.list tbody tr.sel .key{color:var(--accent)}
         <span>Review &amp; Reply</span>
         <span class="hk">1</span>
       </button>
-      <button class="navlink" id="navLifecycle" type="button" onclick="switchView('lifecycle')" data-tip="Shipment Lifecycle" data-tip-desc="Shipment-centric console: version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Shipment Lifecycle">
+      <button class="navlink active" id="navLifecycle" type="button" onclick="switchView('lifecycle')" data-tip="Shipment Lifecycle" data-tip-desc="Shipment-centric console: version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Shipment Lifecycle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
         <span>Shipment Lifecycle</span>
         <span class="hk">2</span>
       </button>
 
-    </div>
-
-    <div class="panel-box" data-page-node-id="TGnqw11nrbhOZG9Nn4vgFP">
-      <h4 data-page-node-id="10jT2bZM7bWgb3T0VkmfFZ">Human-in-the-loop</h4>
-      <div class="reliability" data-page-node-id="q7FmZjqTLcB24orikAAF9P">
-        <div class="pulse" id="relPulse" data-page-node-id="J6LFWrlva5wG7vKm9ktPhw"></div>
-        <div data-page-node-id="CDbsFmXD3CB6Om0tOuL0sU">
-          <div class="big" id="relNum" data-page-node-id="2LdKmDiEC4TUywZCtOJYuu">0</div>
-          <div class="sub" data-page-node-id="LFEh0Z5vSQbgIDCgr3q6ZR">awaiting review</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===================== INTEGRATION (ShipMail / real Gmail) ===========
-         Reads the SAME stored results the ShipMail side panel shows. It never
-         re-runs classification, extraction or verification. -->
-    <div class="panel-box">
-      <h4>Integrations</h4>
-      <div class="legend">
-        <div id="intgSummary" style="color:var(--muted)">Reading stored results…</div>
-      </div>
-      <div id="intgList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
-      <div style="font-size:10.5px;color:var(--muted-2);margin-top:8px;line-height:1.5">
-        Emails processed through <b>POST /api/process</b> by the ShipMail
-        side panel. Loaded once from storage: opening the Dashboard does not
-        reprocess anything.
-      </div>
-    </div>
-
-    <div class="panel-box" data-page-node-id="0x9Ipk771UlkphWFIA8se7">
-      <h4 data-page-node-id="Bixl3xaEZBd6YYoElwSehn">Status legend</h4>
-      <div class="legend" data-page-node-id="FNycn5z0VwpTbaRjfT5DzG">
-        <div data-page-node-id="k1eqv2CvBiJ8ZKkI8ADmS5"><i style="background:var(--ok)" data-page-node-id="GR7go3LdfHqq8HAKjgfTC1"></i> OK · no mismatch</div>
-        <div data-page-node-id="LAInzWMH2kJzvSlTO4t6yj"><i style="background:var(--bad)" data-page-node-id="OQnWqEQo8JF4qbh7pgHsBd"></i> Mismatch · fields differ</div>
-        <div data-page-node-id="8iwBlfygBajmXT38njRaEx"><i style="background:var(--warn)" data-page-node-id="gsBUYBUTRMmnM3VHk4W302"></i> Needs review · uncertain</div>
-        <div><i style="background:var(--muted-2)"></i> Skipped · not actionable</div>
-      </div>
     </div>
 
     <div class="spacer" data-page-node-id="8GaQGna3ShnGc9SVq9PsI6"></div>
@@ -1394,40 +1412,79 @@ table.list tbody tr.sel .key{color:var(--accent)}
       <!-- Source Trust Matrix -->
       <div class="matrix-panel">
         <div class="matrix-head">
-          <div>
-            <div class="matrix-title">📡 Source Trust Matrix <span class="matrix-sub">· per-mailbox ingest policy</span></div>
-            <div class="matrix-sub">Set a source to Auto and verified mail flows straight through; Manual holds it for operator triage. Inherit follows the global policy above.</div>
+          <div class="matrix-head-l">
+            <button class="matrix-toggle" id="mxToggle" type="button" aria-expanded="true" aria-controls="mxBody" title="Collapse the source list" onclick="Gateway.toggleMatrix()">&#9662;</button>
+            <div class="matrix-title">&#128225; Source Trust Matrix <span class="matrix-sub">&#183; per-mailbox ingest policy</span></div>
+            <span class="matrix-sum" id="mxSummary"></span>
           </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-sm" type="button" onclick="Gateway.reapplyPolicy()">⚡ Re-apply Policy to Backlog</button>
+          <div class="matrix-tools">
+            <div class="gw-search">
+              <span class="gw-search-ico">&#128269;</span>
+              <input id="mxSearch" type="text" placeholder="Search source or role&#8230;" oninput="Gateway.onMatrixSearch(this.value)" />
+              <button id="mxSearchClear" class="gw-search-clear" type="button" onclick="Gateway.clearMatrixSearch()" title="Clear search" hidden>&#10005;</button>
+            </div>
+            <button class="btn btn-sm" type="button" id="mxAddBtn" onclick="Gateway.toggleAddSource()">&#65291; Add source</button>
+            <button class="btn btn-sm" type="button" onclick="Gateway.reapplyPolicy()">&#9889; Re-apply Policy to Backlog</button>
           </div>
         </div>
-        <div class="matrix-grid" id="matrixGrid"></div>
+        <div class="matrix-body" id="mxBody">
+          <div class="matrix-hint">Set a source to <b>Auto</b> and verified mail flows straight through; <b>Manual</b> holds it for operator triage. <b>Inherit</b> follows the global policy above.</div>
+          <div class="mx-add" id="mxAdd" hidden>
+            <span class="mx-add-lbl">New source</span>
+            <input class="mx-in-mb" id="mxAddMb" type="text" placeholder="source@averis.com" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
+            <input class="mx-in-role" id="mxAddRole" type="text" placeholder="Role label (optional)" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
+            <button class="btn btn-sm btn-primary" type="button" onclick="Gateway.addSource()">Add source</button>
+            <button class="btn btn-sm" type="button" onclick="Gateway.closeAddSource()">Cancel</button>
+            <span class="mx-add-err" id="mxAddErr"></span>
+          </div>
+          <div class="mx-tbl-wrap">
+            <table class="mx-tbl">
+              <thead>
+                <tr>
+                  <th>Mailbox Source</th>
+                  <th>Trust Policy</th>
+                  <th data-tip="The policy actually applied &#8212; the per-source override when one is set, otherwise the global ingestion mode">Effective</th>
+                  <th data-tip="Emails from this source still waiting for operator triage">Awaiting</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="matrixGrid"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- Staged & Quarantine Stream Table -->
-      <div class="table-panel">
+      <div class="table-panel" id="inbPanel">
         <div class="table-header">
-          <div style="display:flex;align-items:center;gap:6px;">
+          <div class="th-left">
+            <button class="tb-toggle" id="inbToggle" type="button" aria-expanded="true" aria-controls="inbBody" title="Collapse the inbound stream" onclick="Gateway.toggleInbound()">&#9662;</button>
             <span>📨 Inbound Stream, Review &amp; Dispatch</span>
-            <span id="stagedCountBadge" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
+            <span id="stagedCountBadge" class="th-count"></span>
+            <div class="gw-search">
+              <span class="gw-search-ico">🔍</span>
+              <input id="gwSearch" type="text" placeholder="Search stage ID, sender, subject, mailbox…" oninput="Gateway.onSearch(this.value)" />
+              <button id="gwSearchClear" class="gw-search-clear" type="button" onclick="Gateway.clearSearch()" title="Clear" hidden>✕</button>
+            </div>
           </div>
           <div class="bulk-bar">
-            <button class="btn btn-sm btn-primary" type="button" onclick="Gateway.bulkApprove('source')">✅ Approve all <span id="bulkSrcLabel" style="opacity:.8;"></span></button>
-            <button class="btn btn-sm btn-primary" type="button" onclick="Gateway.bulkApprove('visible')">✅ Approve all (incl. quarantine)</button>
-            <button class="btn btn-sm" type="button" onclick="Gateway.bulkReturn('visible')">↩ Return all visible</button>
+            <label class="chk-quar" title="When checked, bulk approve also releases quarantined items">
+              <input type="checkbox" id="gwIncQuar" onchange="Gateway.onIncQuar(this.checked)" /> Include quarantine
+            </label>
+            <button class="btn btn-sm btn-primary" type="button" id="gwApproveAll" onclick="Gateway.bulkApprove()">✅ Approve all <span id="bulkScopeLabel" class="bulk-scope"></span></button>
+            <button class="btn btn-sm" type="button" id="gwReturnAll" onclick="Gateway.bulkReturn()">↩ Return all <span id="retScopeLabel" class="bulk-scope"></span></button>
             <button class="btn btn-sm" type="button" onclick="Gateway.loadStagedEmails()">🔄 Refresh</button>
           </div>
         </div>
-        <div class="table-body">
+        <div class="table-body" id="inbBody">
           <table class="staged-tbl">
             <thead>
               <tr>
                 <th>Stage ID</th>
-                <th>Target Mailbox</th>
+                <th data-tip="Destination mailbox the document is ingested into">Target Mailbox</th>
                 <th>Sender &amp; Subject</th>
-                <th>Antivirus &amp; Malware Scan</th>
-                <th>AI Intent Classification</th>
+                <th data-tip="Sandbox antivirus / malware verdict">Antivirus &amp; Malware Scan</th>
+                <th data-tip="AI model's predicted document intent / category">AI Intent Classification</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -1483,8 +1540,8 @@ table.list tbody tr.sel .key{color:var(--accent)}
       </div>
     </div>
 
-    <!-- VIEW 3: SHIPMENT LIFECYCLE -->
-    <div id="viewLifecycle" class="console-view" hidden>
+    <!-- VIEW 3: SHIPMENT LIFECYCLE (PRIMARY OPERATIONAL WORKSPACE) -->
+    <div id="viewLifecycle" class="console-view">
       <div class="lc-topbar">
         <div class="crumbs" id="lcCrumbs"></div>
         <nav class="subnav" id="lcSubnav" hidden aria-label="Sections on this shipment"></nav>

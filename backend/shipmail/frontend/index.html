@@ -712,18 +712,23 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .topbar .right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto}
 
 /* ---------- Workspace Switcher ---------- */
-.ws-switcher{position:relative;display:flex;align-items:center}
+.ws-switcher{position:relative;display:flex;align-items:center;flex:0 0 auto}
 .ws-trigger{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);
-  border-radius:11px;padding:5px 11px 5px 7px;cursor:pointer;color:var(--text);font:inherit;transition:.18s;
-  text-align:left;user-select:none;max-width:240px}
+  border-radius:11px;padding:5px 10px 5px 6px;cursor:pointer;color:var(--text);font:inherit;transition:.18s;
+  /* Fixed 205x42 ON PURPOSE - must be the same size as the Enterprise Hub rail switcher
+     (backend/web/index.html, .ws-trigger). There it computes to exactly 205px =
+     .brand-row 239 (268 rail -2x14 padding -1 border) - 8 gap - 26 collapse button,
+     and 42px tall = icon 30 + padding 5+5 + border 1+1. Never let this shrink to fit
+     again: that is exactly what made the two cards different sizes. */
+  text-align:left;user-select:none;width:205px;flex:0 0 205px}
 .ws-trigger:hover{border-color:var(--accent);background:var(--surface-hover)}
 .ws-trigger:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus-ring)}
 .ws-icon{width:30px;height:30px;border-radius:8px;background:var(--grad);display:grid;place-items:center;flex:0 0 auto;box-shadow:0 6px 16px -6px rgba(45,212,191,.7)}
 .ws-icon svg{width:16px;height:16px}
 .ws-meta{display:flex;flex-direction:column;min-width:0;flex:1}
-.ws-name{font-size:13px;font-weight:750;letter-spacing:-.1px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-name{font-size:12.5px;font-weight:750;letter-spacing:-.1px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ws-tag{font-size:9.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-weight:600;line-height:1.2}
-.ws-arrow{width:13px;height:13px;color:var(--muted-2);margin-left:4px;flex:0 0 auto;transition:transform .2s ease}
+.ws-arrow{width:13px;height:13px;color:var(--muted-2);margin-left:auto;flex:0 0 auto;transition:transform .2s ease}
 .ws-trigger[aria-expanded="true"] .ws-arrow{transform:rotate(180deg);color:var(--accent)}
 .ws-dropdown{position:absolute;top:calc(100% + 8px);left:0;width:340px;background:var(--surface-2);border:1px solid var(--border-strong);
   border-radius:14px;box-shadow:0 20px 50px -10px rgba(0,0,0,.65);z-index:100;overflow:hidden;display:flex;flex-direction:column;
@@ -1083,7 +1088,7 @@ body.resizing .mail-body{user-select:none}
 @media(max-width:1300px){.mail-app{--rail-w:226px;--inbox-w:320px}}
 /* the top bar sheds its lowest-value items first: rail toggle, then the source chip */
 @media(max-width:1240px){.topbar .conn-chip{display:none}}
-@media(max-width:1120px){.topbar .ws-trigger .ws-meta{display:none}}
+@media(max-width:1120px){.topbar .ws-trigger{width:auto;flex:0 0 auto}.topbar .ws-trigger .ws-meta{display:none}}
 @media(max-width:1020px){.topbar .avatar{display:none}}
 @media(max-width:1180px){
   .mail-app .mail-body,.mail-app.focus .mail-body,
