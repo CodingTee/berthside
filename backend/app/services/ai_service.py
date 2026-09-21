@@ -33,8 +33,9 @@ from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
 
 from app.config import get_settings
-from app.services import extractor
+from app.services import cad, edi, extractor, json_doc, office_formats, photo
 from app.services.classifier import Classification, classify as rule_classify
+from app.services.labels import label_from_key
 
 log = logging.getLogger(__name__)
 settings = get_settings()
@@ -60,6 +61,11 @@ def classify_email(email: dict) -> Classification:
 
 def extract_document(doc_type: str, filename: str, content: bytes) -> extractor.ExtractionResult:
     """Extract fields from one attachment, via AI provider or rules."""
+    # A HEIC photo is converted once, here, so every reader and provider below
+    # sees a format it can actually open. The vision providers cannot describe
+    # HEIF: their mime map has no entry for it and would label the bytes
+    # image/jpeg, which reads as a corrupt JPEG on the far side.
+    filename, content = photo.normalize_image(filename, content)
     provider = settings.ai_provider
     if provider in ("remote", "hybrid", "cascade"):
         try:
@@ -128,8 +134,8 @@ def _merge_with_local(remote: extractor.ExtractionResult, doc_type: str,
 def _rule_extract(doc_type: str, filename: str, content: bytes) -> extractor.ExtractionResult:
     name = filename.lower()
     if name.endswith(".txt"):
-        return extractor.extract_fields(
-            content.decode("utf-8", errors="replace"), doc_type)
+        text, _ = _text_document(name, content)
+        return extractor.extract_fields(text or "", doc_type)
 
     # Non-plain-text attachments (xlsx/pdf/docx) — parsed when the optional
     # reader library is installed; otherwise escalated for review, where a
@@ -344,6 +350,15 @@ def _try_read_binary(filename: str, content: bytes,
             joined = _clean_extracted("\n".join(rows))
             return (joined or None), "csv"
 
+        if json_doc.is_json(filename, content):
+            # An ERP export is a document like any other only if it reads as
+            # labelled fields, which is what the JSON reader produces.
+            got = json_doc.read_json_text(filename, content)
+            if got:
+                return got[0], got[1]
+            log.info("json read produced no fields for %s", filename)
+            return None
+
         if filename.endswith(".xml"):
             # Tag names are the labels ("<Shipper>ACME</Shipper>"), so the
             # element tree maps straight onto the extractor's label|value form.
@@ -418,7 +433,23 @@ def _try_read_binary(filename: str, content: bytes,
                 log.info("olefile failed for %s: %s", filename, exc)
                 return None
 
-        image_exts = (".tif", ".tiff", ".png", ".jpg", ".jpeg", ".bmp", ".webp")
+        # ---- formats that carry their own labels ---------------------------
+        # Each reader below returns text already shaped as "label | value" (or
+        # "LABEL value" lines), so the extractor needs no knowledge of them.
+        got = office_formats.read_office_text(filename, content)
+        if got:
+            return got[0], got[1]
+
+        got = edi.read_edi_text(filename, content)
+        if got:
+            return got[0], got[1]
+
+        got = cad.read_cad_text(filename, content)
+        if got:
+            return got[0], got[1]
+
+        image_exts = (".tif", ".tiff", ".png", ".jpg", ".jpeg", ".bmp", ".webp",
+                      ".heic", ".heif")
         if any(filename.endswith(ext) for ext in image_exts):
             try:
                 from app.services.ocr import ocr_image
@@ -435,6 +466,21 @@ def _try_read_binary(filename: str, content: bytes,
 
 
 
+def _text_document(filename: str, content: bytes) -> tuple[str, str]:
+    """Decode a text attachment, reading it as EDI when that is what it is.
+
+    A carrier's EDI message arrives as ``.txt`` as often as ``.edi``, and its
+    segments carry no label the extractor recognises, so a plain decode reports
+    every field as missing. Detection is by header (``UNA`` / ``UNB`` / ``ISA``),
+    so an ordinary SI comes back byte-identical to before.
+    """
+    if edi.is_edi(filename, content):
+        got = edi.read_edi_text(filename, content)
+        if got:
+            return got
+    return content.decode("utf-8", errors="replace"), "txt"
+
+
 def document_text(filename: str, content: bytes) -> tuple[Optional[str], str]:
     """Best-effort plain text for any attachment the readers can open.
 
@@ -445,7 +491,7 @@ def document_text(filename: str, content: bytes) -> tuple[Optional[str], str]:
     """
     name = (filename or "").lower()
     if name.endswith(".txt"):
-        return content.decode("utf-8", errors="replace"), "txt"
+        return _text_document(name, content)
     got = _try_read_binary(name, content, None)
     if got and got[0]:
         return got[0], got[1]
@@ -455,20 +501,10 @@ def document_text(filename: str, content: bytes) -> tuple[Optional[str], str]:
 def _xml_tag_to_label(tag: str) -> str:
     """Turn a camel-case XML tag into words the extractor recognises.
 
-    XML element names cannot contain spaces, so a shipping-document schema has
-    to spell its labels ``<PortOfLoading>``. The extractor's label rules are
-    written against how those labels are *printed* — "Port of Loading" — so
-    without this the tag never matches and every field silently reads as null.
-
-    Only word boundaries are inserted; nothing is renamed or guessed, so a tag
-    that already matches (``<Shipper>``) is passed through unchanged.
+    The rule itself lives in `labels.label_from_key` because the JSON reader
+    needs exactly the same mapping; see that module for what it does and why.
     """
-    import re as _re
-
-    spaced = _re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", tag)
-    spaced = _re.sub(r"(?<=[A-Z])(?=[A-Z][a-z])", " ", spaced)
-    spaced = spaced.replace("_", " ")
-    return _re.sub(r"\s+", " ", spaced).strip()
+    return label_from_key(tag)
 
 
 def _clean_extracted(text: str) -> str:

@@ -31,6 +31,14 @@ from typing import Optional
 DOC_SUFFIXES = frozenset({
     "txt", "pdf", "docx", "xlsx", "doc", "xls", "csv", "rtf",
     "png", "jpg", "jpeg", "tif", "tiff", "msg", "eml",
+    # Structured exports and the other office containers a forwarder sends.
+    "json", "jsonl", "ndjson", "xml",
+    "odt", "ods", "odp", "ott", "ots", "otp",
+    "pages", "numbers", "key",
+    # Carrier messages and drawings.
+    "edi", "edifact", "x12", "edifile", "ifcsum", "iftmin", "dxf", "dwg",
+    # Phone photographs of a stamped document.
+    "heic", "heif", "hif", "avif", "bmp", "webp",
 })
 
 # A type is claimed either by a whole token in the name ("Draft_BL_v2") or by a

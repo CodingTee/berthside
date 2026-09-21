@@ -9,6 +9,7 @@ Protects the SDOC verification pipeline against:
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +39,75 @@ EXECUTABLE_EXTENSIONS = DANGEROUS_EXTENSIONS - {".com", ".bin"}
 
 # Maximum allowed file size for attachments (30 MB)
 MAX_ATTACHMENT_SIZE = 30 * 1024 * 1024
+
+# Leading bytes each container/document format must carry. Grouped by the
+# suffixes that claim them, because several suffixes share one format (an .odt
+# and an .ods are both ZIPs; .pages is a ZIP too).
+_CONTAINER_HEADERS: tuple[tuple[tuple[str, ...], tuple[bytes, ...], str], ...] = (
+    ((".zip",), (b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08"), "ZIP archive"),
+    ((".odt", ".ods", ".odp", ".ott", ".ots", ".otp"),
+     (b"PK\x03\x04",), "OpenDocument document"),
+    ((".pages", ".numbers", ".key"), (b"PK\x03\x04",), "iWork package"),
+    ((".7z",), (b"7z\xbc\xaf\x27\x1c",), "7-Zip archive"),
+    ((".rar",), (b"Rar!\x1a\x07",), "RAR archive"),
+    ((".gz", ".tgz"), (b"\x1f\x8b",), "gzip stream"),
+    ((".msg",), (b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",), "Outlook message"),
+    ((".rtf",), (b"{\\rtf",), "RTF document"),
+)
+
+# A tar header carries its marker 257 bytes in, so it cannot be a leading magic.
+_TAR_OFFSET = 257
+_TAR_MARKER = b"ustar"
+
+# AutoCAD writes the version at the very front ("AC1027" is R2013). Every
+# version since R11 begins with these four bytes.
+_DWG_PREFIX = b"AC10"
+
+# ISO base media format: a "ftyp" box at offset 4, then the brand.
+_FTYP = b"ftyp"
+
+# An RFC 822 header block: a field name, a colon, and whatever follows. Used to
+# confirm that a file called .eml is actually a message rather than a payload
+# someone hoped the mail reader would process.
+_MAIL_HEADER = re.compile(rb"(?m)^[A-Za-z][A-Za-z0-9-]{1,40}:")
+
+
+def _header_mismatch(suffix: str, content: bytes) -> Optional[str]:
+    """Name the format a suffix claims, when the bytes do not back it up.
+
+    Returns None when the header is right (or when this suffix has no header
+    rule). A suffix is only a claim; the bytes are the evidence. This is the
+    same test the PDF and OpenXML branches already apply, extended to the
+    formats the readers now accept.
+    """
+    for suffixes, magics, label in _CONTAINER_HEADERS:
+        if suffix in suffixes:
+            return None if content.startswith(magics) else label
+
+    if suffix == ".tar":
+        if content[_TAR_OFFSET:_TAR_OFFSET + len(_TAR_MARKER)] == _TAR_MARKER:
+            return None
+        return "tar archive"
+
+    if suffix == ".dwg":
+        return None if content.startswith(_DWG_PREFIX) else "DWG drawing"
+
+    if suffix == ".dxf":
+        # ASCII DXF opens with a SECTION group; binary DXF announces itself.
+        head = content[:1024]
+        if b"SECTION" in head or b"AutoCAD Binary DXF" in head:
+            return None
+        return "DXF drawing"
+
+    if suffix in (".heic", ".heif", ".hif", ".avif"):
+        if content[4:8] == _FTYP:
+            return None
+        return "HEIF image"
+
+    if suffix == ".eml":
+        return None if _MAIL_HEADER.search(content[:4096]) else "MIME message"
+
+    return None
 
 
 def encoded_size_exceeds_cap(encoded: str | None = None,
@@ -115,5 +185,9 @@ def verify_file_safety(filename: str, content: bytes) -> tuple[bool, str]:
         # Modern Office OpenXML files are ZIP archives starting with PK\x03\x04
         if not content.startswith(b"PK\x03\x04"):
             return False, f"Spoofed or corrupted Office OpenXML container: '{clean_name}'"
+
+    mismatched = _header_mismatch(suffix, content)
+    if mismatched:
+        return False, f"Spoofed or corrupted {mismatched} header: '{clean_name}'"
 
     return True, "SAFE"

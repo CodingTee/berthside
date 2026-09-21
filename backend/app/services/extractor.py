@@ -555,6 +555,12 @@ def _is_label_line(line: str) -> bool:
     return _resolve_line_field(_match_line(line)) is not None
 
 
+# Readers that recover text rather than parse a known layout (the CAD scavenger,
+# the iWork store) need this same test to tell a document field from the style
+# noise that surrounds it, so the name is public for them to share.
+is_label_line = _is_label_line
+
+
 def _value_or_none(value: Any) -> Any:
     """Blank strings and placeholders ("TBA", "N/A", "____MT") are not values.
 

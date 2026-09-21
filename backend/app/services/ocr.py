@@ -279,7 +279,8 @@ def ocr_pdf(content: bytes) -> str | None:
 def ocr_image(content: bytes, filename: str = "") -> str | None:
     """Read a single image or multi-page TIFF image and OCR each frame/page.
 
-    Supports .png, .jpg, .jpeg, .tif, .tiff, .bmp, .webp. At most ``_MAX_PAGES``
+    Supports .png, .jpg, .jpeg, .tif, .tiff, .bmp, .webp, plus .heic / .heif
+    once `photo.register` has taught Pillow the format. At most ``_MAX_PAGES``
     frames are read, so a multi-frame TIFF cannot hold a request open.
     Returns concatenated extracted text, or None if unreadable / OCR unavailable.
     """
@@ -289,6 +290,11 @@ def ocr_image(content: bytes, filename: str = "") -> str | None:
     try:
         import io
         from PIL import Image, ImageSequence
+
+        from app.services import photo
+
+        # A phone camera writes HEIC, which Pillow cannot open on its own.
+        photo.register()
 
         # Defend against decompression bomb DOS attacks
         Image.MAX_IMAGE_PIXELS = 50_000_000

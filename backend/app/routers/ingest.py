@@ -17,6 +17,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -31,7 +32,7 @@ from app.schemas import (
     EmailIngestResponse,
     FieldResult,
 )
-from app.services import archive, workflow
+from app.services import archive, nested_mail, workflow
 from app.services.security import (MAX_ATTACHMENT_SIZE, encoded_size_exceeds_cap,
                                    verify_file_safety)
 
@@ -59,16 +60,76 @@ def _decode_attachment(att: AttachmentPayload) -> bytes:
     return b""
 
 
+def expand_payloads(
+    payloads: list[tuple[str, bytes]],
+    budget: Optional[archive.Budget] = None,
+) -> tuple[list[tuple[str, bytes]], list[str]]:
+    """Expand containers and forwarded messages into comparable documents.
+
+    Returns ``(documents, security_alerts)``. A container is only a carrier: its
+    members become the attachments the engine compares, which is why the
+    container itself is never kept as a separate document. A forwarded message
+    behaves the same way, with one addition: its body becomes a synthetic
+    document carrying the ``.frombody`` marker, so it can fill a genuine gap but
+    can never displace a real attachment.
+
+    Carriers nest, so this recurses. Every level spends from one shared
+    :class:`archive.Budget` and the depth is capped by ``archive.MAX_LEVELS``:
+    otherwise "wrap it in a zip" would be a way to multiply the size caps.
+
+    Public because both entry points need it. An attachment that arrives over
+    HTTP and one pulled in from Gmail must be expanded the same way, or the same
+    zip is readable through one door and unreadable through the other.
+    """
+    documents: list[tuple[str, bytes]] = []
+    security_alerts: list[str] = []
+    budget = budget if budget is not None else archive.Budget()
+    seen: set[str] = set()
+
+    def absorb(name: str, data: bytes, depth: int) -> None:
+        if archive.detect_container(name, data) is not None:
+            if depth >= archive.MAX_LEVELS:
+                log.info("archive %s: nesting limit reached, not expanded", name)
+                return
+            expansion = archive.expand_archive(name, data, budget)
+            security_alerts.extend(expansion.blocked)
+            for member, payload in expansion.members:
+                absorb(member, payload, depth + 1)
+            if not expansion.members:
+                security_alerts.append(
+                    f"{name}: no readable shipping documents inside")
+            elif expansion.notes:
+                log.info("archive %s: %s", name, "; ".join(expansion.notes))
+            return
+
+        if nested_mail.is_nested_mail(name, data):
+            expansion = nested_mail.expand_mail(name, data, budget)
+            security_alerts.extend(expansion.blocked)
+            for member, payload in expansion.members:
+                absorb(member, payload, depth + 1)
+            if expansion.notes:
+                log.info("message %s: %s", name, "; ".join(expansion.notes))
+            return
+
+        if name in seen:
+            # Two carriers produced the same base name. Keeping the first and
+            # saying so beats silently replacing a document that was already
+            # accepted with an unrelated one of the same name.
+            log.info("attachment %s: duplicate name, the first copy is kept", name)
+            return
+        seen.add(name)
+        documents.append((name, data))
+
+    for name, data in payloads:
+        absorb(name, data, 0)
+    return documents, security_alerts
+
+
 def _decode_all_attachments(
     attachments: list[AttachmentPayload],
 ) -> tuple[dict[str, bytes], list[str]]:
-    """Decode every attachment and expand ZIP archives into their members.
-
-    Returns ``(decoded, security_alerts)``. A ZIP is only a container: its
-    members become the attachments the engine compares, which is why the
-    archive itself is not kept as a separate document.
-    """
-    decoded: dict[str, bytes] = {}
+    """Decode every attachment, then expand the carriers among them."""
+    checked: list[tuple[str, bytes]] = []
     security_alerts: list[str] = []
 
     for att in attachments:
@@ -83,20 +144,13 @@ def _decode_all_attachments(
         if not is_safe:
             security_alerts.append(f"{att.filename}: {reason}")
             continue
+        checked.append((att.filename, content))
 
-        if archive.is_archive(att.filename):
-            members, notes = archive.expand_archive(att.filename, content)
-            for note in notes:
-                log.info("archive %s", note)
-            for name, data in members:
-                decoded[name] = data
-            if not members:
-                security_alerts.append(
-                    f"{att.filename}: no readable shipping documents inside")
-            continue
+    documents, alerts = expand_payloads(checked)
+    security_alerts.extend(alerts)
+    return dict(documents), security_alerts
 
-        decoded[att.filename] = content
-    return decoded, security_alerts
+
 
 
 def _suggested_action(verdict: workflow.EmailVerdict) -> str:

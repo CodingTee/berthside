@@ -22,7 +22,8 @@ from app.models import (
     infer_source_mailbox,
     utcnow,
 )
-from app.routers.ingest import _decode_attachment, _portable_path, _safe_segment
+from app.routers.ingest import (_decode_attachment, _portable_path, _safe_segment,
+                                expand_payloads)
 from app.services import doc_types, result_cache, workflow
 from app.services.security import verify_file_safety
 

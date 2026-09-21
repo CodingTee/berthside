@@ -147,11 +147,14 @@ def main() -> int:
         text, source = ai_service.document_text(name, (att / name).read_bytes())
         check(f"{name} read as {want}", bool(text) and source == want,
               f"source={source} chars={len(text or '')}")
-    members, notes = archive.expand_archive(
+    expansion = archive.expand_archive(
         "SHP-005_shipment_documents.zip",
         (att / "SHP-005_shipment_documents.zip").read_bytes())
+    members = expansion.members
     check("ZIP expanded into documents", len(members) >= 3,
-          f"members={[m for m, _ in members]} notes={notes}")
+          f"members={[m for m, _ in members]} notes={expansion.notes}")
+    check("no member was blocked by the safety gate", not expansion.blocked,
+          f"blocked={expansion.blocked}")
     check("ZIP members are readable",
           all(ai_service.document_text(n, c)[0] for n, c in members))
 
