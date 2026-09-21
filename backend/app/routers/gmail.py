@@ -258,6 +258,7 @@ def gmail_messages(
     simulated one. No polling, no reprocessing — just what is in the DB."""
     rows = (
         db.query(GmailMessageRecord)
+        .filter(GmailMessageRecord.email_id.like("GMAIL-%"))
         .order_by(GmailMessageRecord.created_at.desc())
         .limit(limit)
         .all()
@@ -279,8 +280,11 @@ def gmail_messages(
         ship_key = str(ex.get("shipment_key") or "")
         shipment_display = (ship_key.split(":")[-1] if ship_key
                             else ex.get("shipment_id"))
+        recip = get_settings().gmail_demo_account or "Gmail"
         items.append({
             "email_id": rec.email_id,
+            "provider": "gmail",
+            "to": recip,
             "gmail_message_id": rec.gmail_message_id,
             "sender": rec.sender or (email.sender if email else None),
             "subject": rec.subject or (email.subject if email else None),

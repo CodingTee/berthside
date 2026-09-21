@@ -95,7 +95,18 @@ def process_email(db: Session, email_id: str) -> ReportRecord:
     """Run the full pipeline for one email. Always returns a report row."""
     email = inbox_service.get_email(email_id)
     if email is None:
-        raise KeyError(f"email not found in inbox: {email_id}")
+        row = db.query(EmailRecord).filter_by(email_id=email_id).first()
+        if row:
+            email = {
+                "email_id": row.email_id,
+                "from": row.sender or "",
+                "subject": row.subject or "",
+                "body": row.body or "",
+                "attachments": row.attachments or [],
+                "received_at": row.received_at,
+            }
+        else:
+            raise KeyError(f"email not found in inbox: {email_id}")
 
     _upsert_email_record(db, email)
 
