@@ -22,7 +22,12 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models import ReportRecord, ReviewRecord
+from app.models import (
+    DocumentVersionRecord,
+    ReportRecord,
+    ReviewRecord,
+    ShipmentRecord,
+)
 from app.services import inbox_service, workflow
 
 settings = get_settings()
@@ -187,6 +192,13 @@ def email_detail(email_id: str, db: Session = Depends(get_db)):
         }
 
     received = email.get("received_at")
+    dv = db.query(DocumentVersionRecord).filter_by(email_id=email_id).first()
+    shipment_id = dv.shipment_id if dv else None
+    shipment_key = None
+    if shipment_id:
+        sh = db.query(ShipmentRecord).filter_by(id=shipment_id).first()
+        shipment_key = sh.shipment_key if sh else None
+
     return {
         "email": {
             "email_id": email_id,
@@ -211,6 +223,8 @@ def email_detail(email_id: str, db: Session = Depends(get_db)):
         } if report else None,
         "comparisons": comparisons,
         "human_review": human_review,
+        "shipment_id": shipment_id,
+        "shipment_key": shipment_key,
     }
 
 

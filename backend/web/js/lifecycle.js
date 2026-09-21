@@ -15,8 +15,47 @@ const FIELDS = [
 ];
 const FMAP = Object.fromEntries(FIELDS.map(f => [f[0], f[1]]));
 const RESOLVE_STATES = ["VERIFIED","NEEDS_REVIEW","IN_PROGRESS","PENDING_APPROVAL","RESOLVED"];
+const SEV = {consignee:"high", notify_party:"high", gross_weight_kg:"med", container_count:"med", port_of_loading:"low", port_of_discharge:"low", shipper:"low"};
+function sevOf(f){ return SEV[f] || "low"; }
+const SEV_TITLE = {high:"High customs risk: party name or entity code mismatch", med:"Medium risk: tally or weight discrepancy", low:"Low risk: routing descriptor difference"};
 
-let state = { shipments: [], current: null, versions: [], issues: [], status: null, diff: null, draft: null, dashSel: 0 };
+function tokenize(v){
+  return String(v==null?"":v).match(/[A-Za-z0-9]+(?:[.'’\/-][A-Za-z0-9]+)*|\s+|[^\sA-Za-z0-9]+/g) || [];
+}
+function lcsDiff(a,b){
+  const n=a.length, m=b.length;
+  if(!n||!m) return null;
+  if(n*m>60000) return null;
+  const dp=[];
+  for(let i=0;i<=n;i++) dp.push(new Uint16Array(m+1));
+  for(let i=n-1;i>=0;i--)
+    for(let j=m-1;j>=0;j--)
+      dp[i][j] = a[i]===b[j] ? dp[i+1][j+1]+1 : (dp[i+1][j]>=dp[i][j+1]?dp[i+1][j]:dp[i][j+1]);
+  const out=[]; let i=0,j=0;
+  while(i<n&&j<m){
+    if(a[i]===b[j]){ out.push(["same",a[i]]); i++; j++; }
+    else if(dp[i+1][j]>=dp[i][j+1]){ out.push(["del",a[i]]); i++; }
+    else { out.push(["ins",b[j]]); j++; }
+  }
+  while(i<n) out.push(["del",a[i++]]);
+  while(j<m) out.push(["ins",b[j++]]);
+  return out;
+}
+function diffCells(si,bl){
+  const ops = lcsDiff(tokenize(si),tokenize(bl));
+  if(!ops) return [ esc(si==null?"-":si), esc(bl==null?"-":bl) ];
+  let L="",R="";
+  for(let k=0;k<ops.length;k++){
+    const t=ops[k][0], raw=ops[k][1], h=esc(raw);
+    const blank=/^\s+$/.test(raw);
+    if(t==="same"){ L+=h; R+=h; }
+    else if(t==="del") L+= blank?h:'<span class="tk del">'+h+'</span>';
+    else R+= blank?h:'<span class="tk ins">'+h+'</span>';
+  }
+  return [ L||"-", R||"-" ];
+}
+
+let state = { shipments: [], current: null, overview: null, versions: [], issues: [], status: null, diff: null, draft: null, dashSel: 0, dashFilterWork: "all" };
 const view = document.getElementById("lcView");
 
 /* ---------- helpers ---------- */
@@ -239,8 +278,19 @@ function errorCard(title, msg){
 function route(){
   const h = location.hash || "#/";
   if(h.indexOf("#/s/")===0){
-    const id = parseInt(h.slice(4),10);
-    if(id>0){ openShipment(id); return; }
+    const seg = h.slice(4).trim();
+    const id = parseInt(seg, 10);
+    if(id>0 && String(id)===seg){ openShipment(id); return; }
+    // If string key like SHP-002, resolve by key
+    api("/shipments/by-key/" + encodeURIComponent(seg)).then(ov => {
+      if(ov && ov.id) openShipment(ov.id);
+      else if(id>0) openShipment(id);
+      else renderDashboard();
+    }).catch(() => {
+      if(id>0) openShipment(id);
+      else renderDashboard();
+    });
+    return;
   }
   state.dashSel = 0;
   renderDashboard();
@@ -274,13 +324,43 @@ function paintDashboard(){
     return;
   }
   const total=s.length;
+  state.dashFilterWork = state.dashFilterWork || "all";
   state.dashFilter = state.dashFilter || {ver:"all", res:"all"};
   state.dashSort   = state.dashSort   || {key:"id", dir:1};
   state.dashUpdated = new Date();
 
+  function matchesWorkFilter(sh, f) {
+    if (!f || f === "all") return true;
+    if (f === "needs_attention") {
+      return (sh.status === "NEEDS_ATTENTION" || (sh.mismatch_count || 0) > 0 ||
+        (sh.missing_documents || []).length > 0 || (sh.reasons || []).length > 0);
+    }
+    if (f === "mismatch") {
+      return (sh.mismatch_count || 0) > 0;
+    }
+    if (f === "needs_review") {
+      return (sh.status === "NEEDS_REVIEW") ||
+        (sh.reasons || []).some(r => /needs review|manual/i.test(r)) ||
+        (sh.actions || []).includes("MANUAL_REVIEW");
+    }
+    if (f === "resolved") {
+      const res = resolutionState(sh);
+      return res.label === "Resolved" || sh.resolution_state === "RESOLVED" ||
+        ((sh.resolved_count || 0) > 0 && (sh.pending_count || 0) === 0 && (sh.mismatch_count || 0) === 0);
+    }
+    return true;
+  }
+
+  const cAll = s.length;
+  const cAttn = s.filter(x => matchesWorkFilter(x, "needs_attention")).length;
+  const cMis = s.filter(x => matchesWorkFilter(x, "mismatch")).length;
+  const cRev = s.filter(x => matchesWorkFilter(x, "needs_review")).length;
+  const cRes = s.filter(x => matchesWorkFilter(x, "resolved")).length;
+
   // ---- filter ----
   const fv=state.dashFilter.ver, fr=state.dashFilter.res;
   let rowsArr = s.filter(sh=>{
+    if (!matchesWorkFilter(sh, state.dashFilterWork)) return false;
     const res=resolutionState(sh);
     if(fv==="ok"    && sh.mismatch_count>0) return false;
     if(fv==="review"&& sh.mismatch_count===0) return false;
@@ -301,6 +381,7 @@ function paintDashboard(){
   const withMismatch=s.filter(x=>x.mismatch_count>0).length;
   const pending=s.filter(x=>x.pending_count>0).length;
   const resolved=s.filter(x=>x.resolved_count>0).length;
+  const needsAttention=s.filter(x=>(x.status==="NEEDS_ATTENTION"||x.status==="NEEDS_REVIEW"||x.mismatch_count>0)).length;
 
   const sm=k=> (state.dashSort.key===k ? (state.dashSort.dir>0?" ▲":" ▼") : "");
   /* Each chip carries its own shortcut + hover bubble, sourced from FILTER_KEYS. */
@@ -312,6 +393,12 @@ function paintDashboard(){
       ' data-tip-kbd="'+esc(meta[0])+'" data-tip-pos="bottom" aria-label="Filter: '+esc(axis)+" "+esc(label)+'">'+
       esc(label)+'</button>';
   };
+
+  const curW = state.dashFilterWork || "all";
+  const wChip = (val, label, count) =>
+    '<button class="chip'+(curW===val?" on":"")+'" data-act="fwork" data-val="'+val+'" style="display:inline-flex;align-items:center;gap:6px">'+
+      esc(label)+' <span style="background:rgba(255,255,255,0.12);padding:1px 6px;border-radius:10px;font-size:11px;font-weight:600">'+count+'</span>'+
+    '</button>';
 
   /* Clamp the keyboard highlight to the rows that survived the filter, so the
      arrow keys can never point at a row that is no longer on screen. */
@@ -337,10 +424,9 @@ function paintDashboard(){
 
   view.classList.add("dash-mode");
   view.innerHTML =
-    '<div class="kpi-bar">'+
-      kpi(total,"Shipments","accent")+
-      kpi(withMismatch,"With mismatches")+
-      kpi(pending,"Pending resolution")+
+    '<div class="kpi-bar" style="grid-template-columns:repeat(3,1fr)">'+
+      kpi(total,"Active","accent")+
+      kpi(needsAttention,"Needs Attention")+
       kpi(resolved,"Resolved")+
     '</div>'+
     '<div class="panel"><div class="panel-head"><div class="ttl">'+icon("ship")+'Shipment Dashboard</div>'+
@@ -349,9 +435,12 @@ function paintDashboard(){
       '<span class="updated" id="dashUpdated"></span>'+
       '<button class="btn ghost sm" data-act="refresh-dash" aria-label="Refresh shipments"'+actAttrs("refresh-dash")+'>'+icon("refresh")+'Refresh</button></div>'+
       '</div>'+
-      '<div class="dash-tools">'+
-        '<div class="dt-group"><span class="dt-label">Verification</span>'+chip("ver","all","All")+chip("ver","ok","Verified")+chip("ver","review","Needs review")+'</div>'+
-        '<div class="dt-group"><span class="dt-label">Resolution</span>'+chip("res","all","All")+chip("res","clear","Clear")+chip("res","unresolved","Unresolved")+chip("res","pending","Pending")+chip("res","resolved","Resolved")+'</div>'+
+      '<div class="dash-tools" style="flex-wrap:wrap;gap:12px">'+
+        '<div class="dt-group" style="flex-wrap:wrap;gap:6px"><span class="dt-label" style="font-weight:600">Worklist:</span>'+
+          wChip("all","All",cAll)+wChip("needs_attention","Needs Attention",cAttn)+wChip("mismatch","Mismatch",cMis)+wChip("needs_review","Needs Review",cRev)+wChip("resolved","Resolved",cRes)+
+        '</div>'+
+        '<div class="dt-group" style="display:none"><span class="dt-label">Verification</span>'+chip("ver","all","All")+chip("ver","ok","Verified")+chip("ver","review","Needs review")+'</div>'+
+        '<div class="dt-group" style="display:none"><span class="dt-label">Resolution</span>'+chip("res","all","All")+chip("res","clear","Clear")+chip("res","unresolved","Unresolved")+chip("res","pending","Pending")+chip("res","resolved","Resolved")+'</div>'+
       '</div>'+
       '<div class="dash-scroll" id="dashScroll">'+
       '<table class="list"><thead><tr>'+
@@ -380,12 +469,14 @@ async function openShipment(id){
   view.classList.remove("dash-mode");
   view.innerHTML = emptyCard("Loading shipment #"+id+"…","",icon("layers"));
   try{
-    const [det, iss, st] = await Promise.all([
+    const [det, iss, st, ov] = await Promise.all([
       api("/shipments/"+id),
       api("/shipments/"+id+"/issues"),
-      api("/shipments/"+id+"/resolution-status").catch(()=>({status:"UNKNOWN",total_issues:0,resolved:0,pending_approval:0,rejected:0}))
+      api("/shipments/"+id+"/resolution-status").catch(()=>({status:"UNKNOWN",total_issues:0,resolved:0,pending_approval:0,rejected:0})),
+      api("/shipments/"+id+"/overview").catch(()=>null)
     ]);
     state.current = det;
+    state.overview = ov;
     recordRecentShip(det.id);
     state.versions = (det.documents||[]).flatMap(d=>d.versions||[]);
     state.issues = iss||[];
@@ -393,7 +484,17 @@ async function openShipment(id){
     state.diff = null;
     state.draft = null;
     for(const it of state.issues){
-      try{ const d = await api("/issues/"+it.id); it._res = d.resolution; }
+      try{
+        const d = await api("/issues/"+it.id);
+        it._res = d.resolution;
+        if(d.resolution && d.resolution.corrected_draft_path && !state.draft){
+          state.draft = {
+            corrected_draft_path: d.resolution.corrected_draft_path,
+            applied_resolutions: [d.resolution.id],
+            source_bl_version_id: "-"
+          };
+        }
+      }
       catch(_){ it._res = null; }
     }
     renderDetail();
@@ -513,6 +614,35 @@ if(subnavEl){
   window.addEventListener("resize", scrollSpy);
 }
 
+async function sendShipmentReview(act){
+  const sh = state.current;
+  if(!sh) return;
+  const noteEl = document.getElementById("ship-rev-note");
+  const note = (noteEl && noteEl.value.trim()) || null;
+  const emails = (state.overview && state.overview.source_emails) || [];
+  const emailId = emails[0] && emails[0].email_id;
+
+  const kind = act.replace("rev-", ""); // confirm, pass, mismatch, back
+  if(emailId){
+    const body = { action: kind==="confirm" ? "confirm" : "override" };
+    if(kind==="pass") body.status = "OK";
+    else if(kind==="mismatch"){
+      body.status = "MISMATCH";
+      body.defect_fields = (state.overview && state.overview.mismatch_fields) || [];
+    }
+    else if(kind==="back") body.status = "NEEDS_REVIEW";
+    if(note) body.note = note;
+    try{
+      await fetch(API + "/api/emails/" + encodeURIComponent(emailId) + "/review", {
+        method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)
+      });
+    }catch(_){}
+  }
+  const msgMap = {confirm:"Verdict confirmed.", pass:"Marked as passed.", mismatch:"Discrepancy flagged.", back:"Sent back for carrier review."};
+  toast(msgMap[kind] || "Review decision recorded.", "ok");
+  await openShipment(sh.id);
+}
+
 function renderDetail(){
   view.classList.remove("dash-mode");
   const sh = state.current;
@@ -520,58 +650,135 @@ function renderDetail(){
     '<a href="#/" data-tip="Shipment Dashboard" data-tip-desc="Back to the shipment list" data-tip-kbd="G" data-tip-pos="bottom">Shipments</a>'+
     ' <span class="muted">/</span> <b>'+esc(sh.shipment_key)+'</b>';
 
-  // ---- header ----
   const si=sh.si_latest, bl=sh.bl_latest;
   const res = resolutionState(sh);
+  const rt  = routeOf(si,bl);
+  const ov  = state.overview;
+
+  // ---- 1. Shipment Header ----
   const header =
-    '<div class="panel"><div class="panel-body">'+
-      '<div class="flex" style="justify-content:space-between">'+
-        '<div><div class="key" style="font-size:15px">'+esc(sh.shipment_key)+'</div>'+
-          '<div class="sub">Reference: '+esc(sh.reference_number||"-")+'</div></div>'+
-        '<div class="flex">'+statusPill(sh.status||"VERIFIED")+'</div>'+
+    '<div class="panel" id="sec-header"><div class="panel-body">'+
+      '<div class="flex" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'+
+        '<div><div class="key" style="font-size:16px;font-weight:700;letter-spacing:-0.2px">'+esc(sh.shipment_key)+'</div>'+
+          '<div class="sub" style="margin-top:2px;font-size:12.5px;color:var(--muted)">Reference: <b>'+esc(sh.reference_number||"-")+'</b>'+(rt?' · Trade Lane: <b>'+esc(rt)+'</b>':'')+'</div></div>'+
+        '<div class="flex" style="gap:8px;align-items:center">'+statusPill(sh.status||"VERIFIED")+pill(res.label,res.kind)+'</div>'+
       '</div>'+
       '<div style="height:10px"></div>'+
-      '<div class="kv"><span class="k">Latest SI</span><span class="v mono">'+esc(fmtFile(si?si.filename:null))+'</span></div>'+
-      '<div class="kv"><span class="k">Latest BL</span><span class="v mono">'+esc(fmtFile(bl?bl.filename:null))+'</span></div>'+
-      '<div class="kv"><span class="k">Mismatches detected</span><span class="v">'+sh.mismatch_count+'</span></div>'+
-      '<div class="kv"><span class="k">Resolution</span><span class="v">'+pill(res.label,res.kind)+'</span></div>'+
-      '<div class="kv"><span class="k">Pending / Resolved</span><span class="v">'+sh.pending_count+' / '+sh.resolved_count+'</span></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;padding-top:8px;border-top:1px solid var(--border)">'+
+        '<div class="kv"><span class="k">Current SI</span><span class="v mono">'+esc(fmtFile(si?si.filename:null))+'</span></div>'+
+        '<div class="kv"><span class="k">Current BL</span><span class="v mono">'+esc(fmtFile(bl?bl.filename:null))+'</span></div>'+
+        '<div class="kv"><span class="k">Discrepancies</span><span class="v" style="'+(sh.mismatch_count>0?'color:var(--bad);font-weight:600':'')+'">'+(sh.mismatch_count||0)+' detected</span></div>'+
+        '<div class="kv"><span class="k">Pending / Resolved</span><span class="v">'+sh.pending_count+' / '+sh.resolved_count+'</span></div>'+
+      '</div>'+
     '</div></div>';
 
-  // ---- version history ----
+  // ---- 2. Current SI ↔ Current BL Comparison (Primary Operational Table) ----
+  let cmpTableHtml = "";
+  if(si && bl){
+    const fResults = (ov && ov.verification && ov.verification.field_results) || [];
+    const siFields = si.extracted_fields || {};
+    const blFields = bl.extracted_fields || {};
+    let rows = "";
+    for(const [fKey, fLabel] of FIELDS){
+      const fr = fResults.find(x => x.field === fKey);
+      const siVal = fr ? fr.si_value : siFields[fKey];
+      const blVal = fr ? fr.bl_value : blFields[fKey];
+      const isMissing = (siVal == null || siVal === "") || (blVal == null || blVal === "");
+      const isMatch = fr ? fr.match : (siVal != null && blVal != null && String(siVal).trim().toLowerCase() === String(blVal).trim().toLowerCase());
+
+      const cls = isMissing ? "miss" : (isMatch ? "match" : "diff");
+      const mark = isMissing ? '<span class="vpill miss">⚠ missing</span>'
+        : (isMatch ? '<span class="vpill ok">✓ match</span>'
+        : '<span class="vpill bad">✕ differs</span>');
+
+      const sv = (isMatch && !isMissing) ? null : sevOf(fKey);
+      const sevBadge = sv ? '<span class="sev '+sv+'" title="'+esc(SEV_TITLE[sv])+'">'+sv.toUpperCase()+'</span>' : "";
+
+      const pair = (isMatch || isMissing)
+        ? [esc(fmtVal(fKey, siVal)), esc(fmtVal(fKey, blVal))]
+        : diffCells(fmtVal(fKey, siVal), fmtVal(fKey, blVal));
+
+      rows += '<tr class="cmp-row '+cls+'">'+
+        '<td class="f">'+esc(fLabel)+'<small>'+esc(fKey)+'</small>'+sevBadge+'</td>'+
+        '<td class="val si">'+pair[0]+'</td>'+
+        '<td class="op">→</td>'+
+        '<td class="val bl">'+pair[1]+'</td>'+
+        '<td>'+mark+'</td>'+
+      '</tr>';
+    }
+    cmpTableHtml =
+      '<table class="cmp"><thead><tr>'+
+        '<th>Field</th>'+
+        '<th>Current Shipping Instruction (v'+si.version_number+')</th>'+
+        '<th></th>'+
+        '<th>Current Draft Bill of Lading (v'+bl.version_number+')</th>'+
+        '<th>Verdict</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table>'+
+      '<div class="note-foot" style="margin-top:10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">'+
+        '<span>Differing tokens are highlighted: <span class="tk del">Current SI</span> vs <span class="tk ins">Current BL</span>. Severity (HIGH / MED / LOW) reflects customs risk.</span>'+
+      '</div>';
+  } else {
+    cmpTableHtml =
+      '<div class="note warn" style="margin:4px 0">'+
+        '<b>Incomplete Document Set:</b> Both a current SI and a current BL are required for field comparison.'+
+        ((ov && ov.missing_documents && ov.missing_documents.length)?'<br>Missing documents: <b>'+esc(ov.missing_documents.join(", "))+'</b>':'')+
+      '</div>';
+  }
+
+  const currentComparison =
+    '<div class="panel" id="sec-comparison"><div class="panel-head">'+
+      '<div class="ttl">'+icon("compare")+'Current SI ↔ Current BL · Field Comparison</div>'+
+      '<span class="count">'+((sh.mismatch_count > 0)? sh.mismatch_count+" discrepancies" : "Verified OK")+'</span>'+
+    '</div><div class="panel-body">'+cmpTableHtml+'</div></div>';
+
+  // ---- 3. Unified Review & Resolution Hub ----
+  const reviewResolutionHub = renderReviewResolutionHub();
+
+  // ---- 4. Document Version History & Version Diff ----
   const byType={SI:[],BL:[]};
   state.versions.forEach(v=>{ (byType[v.doc_type]||(byType[v.doc_type]=[])).push(v); });
   function verList(type){
-    const arr=byType[type]||[];
-    if(arr.length===0) return '<div class="muted small" style="padding:6px 2px">No '+type+' versions found.</div>';
+    const rawArr=byType[type]||[];
+    if(rawArr.length===0) return '<div class="muted small" style="padding:6px 2px">No '+type+' versions found.</div>';
+    const uniqueMap = new Map();
+    let dupCount = 0;
+    for(const v of rawArr){
+      if(v.duplicate_of_version_id != null){
+        dupCount++;
+        continue;
+      }
+      if(!uniqueMap.has(v.version_number)){
+        uniqueMap.set(v.version_number, v);
+      }
+    }
+    const arr = uniqueMap.size > 0 ? Array.from(uniqueMap.values()) : rawArr;
     let h="";
     for(const v of arr){
       const tags=[];
       if(v.is_latest) tags.push('<span class="tag-latest">LATEST DETECTED VERSION</span>');
-      if(v.duplicate_of_version_id!=null) tags.push('<span class="tag-dup">DUPLICATE</span>');
       h += '<div class="ver"><span class="vn">v'+v.version_number+'</span>'+
         '<span class="fn">'+esc(v.filename)+'</span>'+
         '<span class="meta">'+(v.received_at?esc(String(v.received_at).slice(0,10)):"-")+'</span>'+
-        '<span class="ix">'+tags.join(" ")+(v.duplicate_of_version_id!=null?'<span class="muted small">copy of v'+esc(findVer(v.duplicate_of_version_id)?.version_number||"?")+'</span>':'')+'</span></div>';
+        '<span class="ix">'+tags.join(" ")+'</span></div>';
+    }
+    if(dupCount > 0){
+      h += '<div class="muted small" style="padding:4px 6px;color:var(--muted-2)">('+dupCount+' duplicate transmission'+(dupCount>1?'s':'')+' hidden)</div>';
     }
     return h;
   }
   const versionHistory =
-    '<div class="panel" id="sec-history"><div class="panel-head"><div class="ttl">'+icon("layers")+'Document Version History</div></div>'+
+    '<div class="panel" id="sec-history"><div class="panel-head"><div class="ttl">'+icon("layers")+'Document Version History (V1 → V2 → V3)</div></div>'+
       '<div class="panel-body grid2">'+
-        '<div><div class="wf-title" style="margin-bottom:8px">SI</div>'+verList("SI")+'</div>'+
-        '<div><div class="wf-title" style="margin-bottom:8px">BL</div>'+verList("BL")+'</div>'+
+        '<div><div class="wf-title" style="margin-bottom:8px">SI Lineage</div>'+verList("SI")+'</div>'+
+        '<div><div class="wf-title" style="margin-bottom:8px">BL Lineage</div>'+verList("BL")+'</div>'+
       '</div></div>';
 
-  // ---- version diff ----
   let opts="";
   for(const type of ["SI","BL"]){
     const arr=byType[type]||[];
     if(arr.length===0) continue;
     opts += '<optgroup label="'+type+'">';
     for(const v of arr){
-      /* The tile header already states the document type, so the option label
-         only needs to disambiguate versions inside that group. */
       opts += '<option value="'+v.id+'" data-type="'+esc(v.doc_type)+'">'+
         esc("v"+v.version_number+" · "+fmtFile(v.filename))+'</option>';
     }
@@ -599,55 +806,50 @@ function renderDetail(){
             cmpTile("toSel","To",defTo,opts)+
           '</div>'+
         '</div>'+
-        '<div class="note">Field-by-field comparison of the 7 tracked fields. This is deterministic: no AI interpretation is applied.</div>'+
+        '<div class="note">Field-by-field comparison of document evolution between two versions. This is deterministic: no AI interpretation is applied.</div>'+
         '<div style="height:10px"></div>'+
         '<div id="diffOut"></div>'+
       '</div></div>';
 
-  // ---- latest verification ----
-  let verNote;
-  if(si && bl){
-    verNote =
-      '<div class="kv"><span class="k">Latest SI version</span><span class="v">v'+si.version_number+'</span></div>'+
-      '<div class="kv"><span class="k">Latest BL version</span><span class="v">v'+bl.version_number+'</span></div>'+
-      '<div class="note" style="margin-top:8px">Compared against latest detected BL version. '+
-      'The system detects discrepancies; a human decides the authoritative value.</div>';
-  }else{
-    verNote = '<div class="note warn" style="margin-top:4px">Insufficient version data: need both a latest SI and a latest BL to compare.</div>';
+  // ---- 5. Source Email Context (Secondary / Collapsible) ----
+  const sourceEmails = (ov && ov.source_emails) || [];
+  let emailCards = "";
+  if(sourceEmails.length === 0){
+    emailCards = '<div class="muted small" style="padding:4px 0">No source emails recorded for this shipment.</div>';
+  } else {
+    for(const em of sourceEmails){
+      const attLinks = (em.attachments||[]).map(a=>{
+        const nm = a.split("/").pop();
+        return '<a class="pill neu" href="/api/attachments/'+encodeURIComponent(a)+'" target="_blank" style="text-decoration:none;font-size:11.5px;padding:3px 8px">'+icon("doc")+' '+esc(nm)+'</a>';
+      }).join(" ");
+      emailCards +=
+        '<div style="padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">'+
+            '<div style="font-weight:600;font-size:13px">'+esc(em.subject||"(no subject)")+'</div>'+
+            '<span class="badge" style="font-family:var(--mono);font-size:11px">'+esc(em.email_id)+'</span>'+
+          '</div>'+
+          '<div style="font-size:12px;color:var(--muted);margin:4px 0 6px">From: <b>'+esc(em.sender||"unknown")+'</b>'+(em.received_at?' · '+esc(em.received_at.slice(0,19).replace("T"," ")):'')+'</div>'+
+          (attLinks ? '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'+attLinks+'</div>' : '')+
+        '</div>';
+    }
   }
-  const verification =
-    '<div class="panel" id="sec-verification"><div class="panel-head"><div class="ttl">'+icon("check")+'Latest Verification</div></div>'+
-      '<div class="panel-body">'+verNote+'</div></div>';
+  const sourceEmailSection =
+    '<details class="panel" id="sec-emails" style="margin-top:14px">'+
+      '<summary style="cursor:pointer;padding:12px 16px;font-weight:600;display:flex;align-items:center;gap:8px;user-select:none">'+
+        icon("mail")+'Source Email Context ('+sourceEmails.length+' email'+(sourceEmails.length>1?'s':'')+')'+
+        '<span class="muted small" style="margin-left:auto;font-weight:normal">Click to expand raw email messages &amp; attachments</span>'+
+      '</summary>'+
+      '<div class="panel-body" style="border-top:1px solid var(--border);padding:14px 16px">'+emailCards+'</div>'+
+    '</details>';
 
-  // ---- resolution center ----
-  const resolutionCenter = renderResolutionCenter();
-
-  // ---- resolution status ----
-  const resolutionStatus = renderResolutionStatus();
-
-  // ---- AI placeholder ----
-  const aiPlaceholder =
-    '<div class="panel ai-card" id="sec-ai"><div class="panel-head"><div class="ttl">'+icon("bolt")+'AI Assistance</div>'+
-      '<span class="count">coming soon</span></div>'+
-      '<div class="panel-body">'+
-        '<div class="coming">'+
-          '<div>Natural-language explanation of discrepancies</div>'+
-          '<div>Correction-request email draft for human review</div>'+
-          '<div>Ambiguous OCR / transcription assistance</div>'+
-          '<div>Confidence indicators on extracted fields</div>'+
-        '</div>'+
-        '<div class="ai-note">AI assistance can improve explanation wording. It is never the source of truth and never approves or overwrites a document.</div>'+
-      '</div></div>';
-
-  /* The section nav is rendered into the topbar (#subnav), NOT into #view: it sits
-     outside the scroll container so it never overlaps the panel underneath. */
-  view.innerHTML = header+versionHistory+diffPanel+verification+resolutionCenter+resolutionStatus+aiPlaceholder;
+  view.innerHTML = header + currentComparison + reviewResolutionHub + versionHistory + diffPanel + sourceEmailSection;
   setSubnav([
-    ["sec-history",      "History",      "Document Version History"],
-    ["sec-diff",         "Diff",         "Version Diff"],
-    ["sec-verification", "Verification", "Latest Verification"],
-    ["sec-resolution",   "Resolution",   "Resolution Center"],
-    ["sec-ai",           "AI",           "AI Assistance"]
+    ["sec-header",            "Header",              "Shipment Header"],
+    ["sec-comparison",        "Current SI ↔ BL",     "Current SI ↔ Current BL Comparison"],
+    ["sec-review-resolution", "Review & Resolution", "Unified Review & Resolution Hub"],
+    ["sec-history",           "Version Lineage",     "Document Version History (V1 → V2 → V3)"],
+    ["sec-diff",              "Version Diff",        "Two-Version Comparison Diff Tool"],
+    ["sec-emails",            "Source Emails",       "Source Email Context"]
   ]);
 
   // defaults + auto compare
@@ -658,53 +860,160 @@ function renderDetail(){
   if(fs && ts && fs.value && ts.value) compareVersions();
 }
 
-function renderResolutionCenter(){
-  let body;
-  if(state.issues.length===0){
-    body = emptyCard("No open issues for this shipment","All 7 tracked fields matched, or no comparison data available.",icon("check"));
-  }else{
-    let cards="";
-    for(const it of state.issues){
-      cards += issueCard(it);
-    }
-    body = cards;
+function renderReviewResolutionHub(){
+  const sh = state.current;
+  const issues = state.issues || [];
+  const isClean = (sh.mismatch_count === 0 && issues.length === 0);
+
+  if(isClean){
+    return '<div class="panel" id="sec-review-resolution" style="margin-top:14px;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.03)">'+
+      '<div class="panel-head" style="border-bottom:1px solid rgba(16,185,129,0.2)">'+
+        '<div class="ttl" style="color:var(--ok);font-weight:700">'+icon("check")+'Review &amp; Resolution · Verified Match</div>'+
+        '<span class="count" style="color:var(--ok);background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25)">0 Discrepancies</span>'+
+      '</div>'+
+      '<div class="panel-body" style="padding:16px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">'+
+          '<div>'+
+            '<div style="font-size:13.5px;font-weight:600;color:var(--text);margin-bottom:3px">'+
+              'All 7 tracked fields match between Current SI and Current BL.'+
+            '</div>'+
+            '<div style="font-size:12px;color:var(--muted)">'+
+              'Verification completed successfully. No discrepancy detected. Ready for operational clearance.'+
+            '</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+            '<button class="btn primary" style="background:#059669;border-color:#047857;padding:7px 18px;font-size:13px;font-weight:650" data-act="rev-pass" data-tip="Approve & Release" data-tip-desc="Mark shipment verified and release" data-tip-kbd="A" data-tip-pos="top">'+
+              icon("check")+' Approve &amp; Release <span class="k" style="background:rgba(255,255,255,0.25);padding:1px 5px;border-radius:3px;margin-left:4px">A</span>'+
+            '</button>'+
+            '<button class="btn" data-act="rev-back" data-tip="Send back" data-tip-desc="Return for carrier document update" data-tip-kbd="R" data-tip-pos="top">'+
+              '↩ Send Back <span class="k">R</span>'+
+            '</button>'+
+            '<input type="text" class="note-in" id="ship-rev-note" placeholder="Reviewer note (optional)" maxlength="240" autocomplete="off" style="min-width:180px">'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   }
-  return '<div class="panel" id="sec-resolution"><div class="panel-head"><div class="ttl">'+icon("alert")+'Resolution Center</div>'+
-    '<span class="count">'+(state.issues.filter(i=>(i._res && (i._res.status==="PENDING_APPROVAL"))||i.status==="PENDING_APPROVAL"||i.status==="SUGGESTED").length)+' open</span></div>'+
-    '<div class="panel-body">'+body+'</div></div>';
+
+  let issueCards = "";
+  for(const it of issues){
+    issueCards += issueCard(it);
+  }
+
+  let draftHtml = "";
+  if(state.draft){
+    const d = state.draft;
+    draftHtml =
+      '<div class="draft-card" style="margin-top:14px;padding:12px 16px;background:var(--surface-3);border:1px solid var(--accent);border-radius:8px">'+
+        '<div class="dt" style="font-weight:700;color:var(--accent);display:flex;align-items:center;gap:6px;font-size:13px">'+
+          icon("doc")+' Corrected BL Draft Generated'+
+        '</div>'+
+        '<div class="kv" style="margin:6px 0 3px"><span class="k" style="font-weight:600">Draft Path:</span> <span class="v" style="font-family:var(--mono);font-size:11.5px">'+esc(d.corrected_draft_path)+'</span></div>'+
+        '<div class="kv" style="margin:3px 0"><span class="k" style="font-weight:600">Applied Resolutions:</span> <span class="v">'+esc((d.applied_resolutions||[]).join(", "))+'</span></div>'+
+        '<div class="note" style="margin-top:6px;font-size:11px;color:var(--muted)">This is a generated working draft reflecting approved corrections. Original carrier documents remain unchanged.</div>'+
+      '</div>';
+  }
+
+  const openCount = issues.filter(i => !i._res || i._res.status !== "APPROVED").length;
+  const countBadge = openCount > 0
+    ? '<span class="count" style="color:var(--bad);background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25)">'+openCount+' Open Action'+(openCount>1?'s':'')+'</span>'
+    : '<span class="count" style="color:var(--ok);background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25)">All Resolved</span>';
+
+  return '<div class="panel" id="sec-review-resolution" style="margin-top:14px;border:1px solid var(--border-strong);background:var(--surface)">'+
+    '<div class="panel-head">'+
+      '<div class="ttl" style="font-weight:700;color:var(--text)">'+icon("alert")+'Review &amp; Resolution Hub</div>'+
+      countBadge+
+    '</div>'+
+    '<div class="panel-body" style="padding:16px">'+
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">'+
+        'Field discrepancies detected between Current SI and Current BL. Click <b>Approve All &amp; Generate Corrected Draft</b> to adopt SI corrections in one click, or review individually.'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">'+issueCards+'</div>'+
+      '<div class="act-bar" style="margin:0;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">'+
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+          '<button class="btn primary" style="background:var(--accent);font-weight:650;padding:7px 18px;font-size:13px" data-act="quick-batch-resolve" data-tip="Approve all & generate draft" data-tip-desc="Batch approve SI suggestions and generate corrected BL draft" data-tip-kbd="D" data-tip-pos="top">'+
+            '🚀 Approve All &amp; Generate Corrected Draft <span class="k" style="background:rgba(255,255,255,0.25);padding:1px 5px;border-radius:3px;margin-left:4px">D</span>'+
+          '</button>'+
+          '<button class="btn" data-act="rev-back" data-tip="Send back to carrier" data-tip-desc="Return for carrier document update" data-tip-kbd="R" data-tip-pos="top">'+
+            '↩ Send Back to Carrier <span class="k">R</span>'+
+          '</button>'+
+        '</div>'+
+        '<div style="flex:1;min-width:200px;display:flex;gap:6px">'+
+          '<input type="text" class="note-in" id="ship-rev-note" placeholder="Reviewer note (optional)" maxlength="240" autocomplete="off" style="width:100%">'+
+        '</div>'+
+      '</div>'+
+      draftHtml+
+    '</div>'+
+  '</div>';
 }
+
 function issueCard(it){
   const field=it.field_name;
   const label=FMAP[field]||field;
   const res=it._res;
   let sugg;
-  if(res){
-    sugg = 'Update BL <b>'+esc(label)+'</b> to <b>'+esc(fmtVal(field,res.suggested_value))+'</b>';
+  if(res && res.suggested_value != null){
+    sugg = '💡 Suggestion: Update BL <b>'+esc(label)+'</b> to <b>'+esc(fmtVal(field,res.suggested_value))+'</b>';
+  }else if(it.si_value != null){
+    sugg = '💡 Suggestion: Adopt SI value <b>'+esc(fmtVal(field,it.si_value))+'</b>';
   }else{
-    sugg = 'No suggestion yet: click <b>Suggest</b> to generate a deterministic correction.';
+    sugg = 'No suggestion available.';
   }
-  const resStatus = res? statusPill(res.status) : '<span class="muted small">no resolution record</span>';
-  return '<div class="issue">'+
-    '<div class="issue-head"><span class="fld">'+esc(label)+'</span>'+statusPill(it.status)+resStatus+'</div>'+
-    '<div class="grid2x">'+
-      '<div class="valbox"><div class="l">SI value</div><div class="v">'+esc(fmtVal(field,it.si_value))+'</div></div>'+
-      '<div class="valbox"><div class="l">BL value</div><div class="v">'+esc(fmtVal(field,it.bl_value))+'</div></div>'+
+  const isApproved = (res && res.status==="APPROVED") || (it.status==="APPROVED");
+  const resStatus = isApproved ? statusPill("APPROVED") : (res ? statusPill(res.status) : statusPill(it.status));
+  return '<div class="issue" style="border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface-2)">'+
+    '<div class="issue-head" style="margin-bottom:8px"><span class="fld" style="font-weight:600">'+esc(label)+'</span>'+statusPill(it.status)+resStatus+'</div>'+
+    '<div class="grid2x" style="margin-bottom:8px">'+
+      '<div class="valbox"><div class="l">Current SI value</div><div class="v">'+esc(fmtVal(field,it.si_value))+'</div></div>'+
+      '<div class="valbox"><div class="l">Current BL value</div><div class="v">'+esc(fmtVal(field,it.bl_value))+'</div></div>'+
     '</div>'+
-    '<div class="explain"><b>Difference:</b> '+esc(it.difference||"-")+'<br><b>Explanation:</b> '+esc(it.explanation||"-")+'</div>'+
-    '<div class="suggest">'+sugg+'</div>'+
-    '<div class="issue-actions">'+
-      '<button class="btn" data-act="suggest" data-id="'+it.id+'"'+actAttrs("suggest")+'>Suggest</button>'+
-      '<button class="btn primary" data-act="approve" data-id="'+it.id+'"'+actAttrs("approve")+'>Approve</button>'+
-      '<button class="btn" data-act="reject" data-id="'+it.id+'"'+actAttrs("reject")+'>Reject</button>'+
-      '<input class="btn review-note" type="text" placeholder="optional review note…" />'+
+    '<div class="explain" style="font-size:12px;margin-bottom:8px"><b>Difference:</b> '+esc(it.difference||"-")+'<br><b>Explanation:</b> '+esc(it.explanation||"-")+'</div>'+
+    '<div class="suggest" style="font-size:12px;margin-bottom:8px;color:var(--accent)">'+sugg+'</div>'+
+    '<div class="issue-actions" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+
+      (isApproved ? '<span style="color:var(--ok);font-weight:600;font-size:12px">✓ Approved</span>' :
+        '<button class="btn primary sm" data-act="approve" data-id="'+it.id+'"'+actAttrs("approve")+'>Approve</button>'+
+        '<button class="btn sm" data-act="reject" data-id="'+it.id+'"'+actAttrs("reject")+'>Reject</button>'
+      )+
+      '<input class="btn review-note" type="text" placeholder="optional review note…" style="flex:1;min-width:140px;font-size:12px" />'+
     '</div>'+
   '</div>';
+}
+
+async function quickBatchResolveAndDraft(){
+  const sh = state.current;
+  if(!sh) return;
+  const noteEl = document.getElementById("ship-rev-note");
+  const note = (noteEl && noteEl.value.trim()) || null;
+  const emails = (state.overview && state.overview.source_emails) || [];
+  const emailId = emails[0] && emails[0].email_id;
+
+  try{
+    const res = await fetch("/shipments/" + sh.id + "/batch-resolve-draft", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        reviewed_by: "human",
+        review_comment: note,
+        email_id: emailId
+      })
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      throw new Error(err.detail || "Failed to batch resolve");
+    }
+    const d = await res.json();
+    state.draft = d.draft;
+    toast("Approved " + d.approved_count + " field(s) & generated corrected BL draft", "ok");
+    await openShipment(sh.id);
+  }catch(e){
+    toast("Action failed: " + e.message, "err");
+  }
 }
 
 async function compareVersions(){
   const fs=document.getElementById("fromSel"), ts=document.getElementById("toSel");
   const box=document.getElementById("diffOut");
-  if(!fs||!ts) return;
+  if(!fs||!ts||!box) return;
   const from=+fs.value, to=+ts.value;
   if(!from||!to){ box.innerHTML='<div class="muted small">Select two versions to compare.</div>'; return; }
   box.innerHTML='<div class="muted small">Comparing…</div>';
@@ -739,35 +1048,6 @@ async function doAction(act, id, comment){
   }
 }
 
-function renderResolutionStatus(){
-  const st=state.status||{status:"UNKNOWN",total_issues:0,resolved:0,pending_approval:0,rejected:0};
-  const overall = RESOLVE_STATES.includes(st.status)? st.status : (st.status||"UNKNOWN");
-  const canDraft = state.issues.some(i=>i._res && i._res.status==="APPROVED");
-  let draftHtml="";
-  if(state.draft){
-    const d=state.draft;
-    draftHtml='<div class="draft-card"><div class="dt">'+icon("doc")+'Generated Draft</div>'+
-      '<div class="kv"><span class="k">corrected_draft_path</span><span class="v">'+esc(d.corrected_draft_path)+'</span></div>'+
-      '<div class="kv"><span class="k">source_bl_version_id</span><span class="v">'+esc(d.source_bl_version_id)+'</span></div>'+
-      '<div class="kv"><span class="k">applied_resolutions</span><span class="v">'+esc((d.applied_resolutions||[]).join(", "))+'</span></div>'+
-      '<div class="note" style="margin-top:8px">This is a generated working draft only. It is not an official Bill of Lading, has not been sent to any party, and the original document is unchanged.</div>'+
-    '</div>';
-  }
-  return '<div class="panel"><div class="panel-head"><div class="ttl">'+icon("check")+'Resolution Status</div>'+
-    '<span class="count">'+statusPill(overall)+'</span></div>'+
-    '<div class="panel-body">'+
-      '<div class="kv"><span class="k">Total issues</span><span class="v">'+st.total_issues+'</span></div>'+
-      '<div class="kv"><span class="k">Resolved</span><span class="v">'+st.resolved+'</span></div>'+
-      '<div class="kv"><span class="k">Pending approval</span><span class="v">'+st.pending_approval+'</span></div>'+
-      '<div class="kv"><span class="k">Rejected</span><span class="v">'+st.rejected+'</span></div>'+
-      '<div class="kv"><span class="k">Overall</span><span class="v">'+statusPill(overall)+'</span></div>'+
-      '<div style="height:12px"></div>'+
-      '<button class="btn primary" data-act="draft" '+(canDraft?"":"disabled")+actAttrs("draft")+'>'+icon("doc")+'Generate Corrected BL Draft</button>'+
-      (canDraft?'':'<span class="muted small" style="margin-left:10px">Enable after approving at least one suggestion.</span>')+
-      draftHtml+
-    '</div></div>';
-}
-
 async function generateDraft(){
   try{
     const d = await api("/shipments/"+state.current.id+"/generate-corrected-draft",{method:"POST",body:"{}"});
@@ -789,9 +1069,23 @@ view.addEventListener("click", e=>{
     paintDashboard();
     return;
   }
-  const b=e.target.closest("[data-act]");
+  const b = e.target.closest("[data-act]");
   if(!b) return;
-  const act=b.dataset.act, id=+b.dataset.id;
+  const act = b.dataset.act, id = b.dataset.id;
+  if(act==="fwork"){
+    state.dashFilterWork = b.dataset.val;
+    state.dashSel = 0;
+    paintDashboard();
+    return;
+  }
+  if(act==="quick-batch-resolve"){
+    quickBatchResolveAndDraft();
+    return;
+  }
+  if(act==="rev-confirm"||act==="rev-pass"||act==="rev-mismatch"||act==="rev-back"){
+    sendShipmentReview(act);
+    return;
+  }
   if(act==="compare"){ compareVersions(); return; }
   if(act==="swap"){ swapCompare(); return; }
   if(act==="draft"){ generateDraft(); return; }
@@ -867,16 +1161,19 @@ document.addEventListener("keydown",e=>{
   if(k==="b"||k==="B"){ e.preventDefault(); switchView("review"); return; }
   if(k==="g"||k==="G"){ e.preventDefault(); goDashboard(); return; }
 
-  /* ---- detail view: resolution actions + compare / swap ---- */
+  /* ---- detail view: review actions + resolution actions + compare / swap ---- */
   if(state.current){
     /* Shift combos first. Shift+S reports e.key==="S", so the plain "S = swap"
        check must exclude shift or it would shadow "Shift+S = suggest". */
     if(e.shiftKey && (k==="s"||k==="S")){ e.preventDefault(); pressAct("suggest"); return; }
     if(!e.shiftKey && (k==="c"||k==="C") && document.getElementById("fromSel")){ e.preventDefault(); pressAct("compare"); return; }
     if(!e.shiftKey && (k==="s"||k==="S") && document.getElementById("fromSel")){ e.preventDefault(); swapCompare(); return; }
-    if(k==="a"||k==="A"){ e.preventDefault(); pressAct("approve"); return; }
+    if(k==="a"||k==="A"){ e.preventDefault(); ((state.issues&&state.issues.length===0) ? sendShipmentReview("rev-pass") : sendShipmentReview("rev-confirm")); return; }
+    if(k==="o"||k==="O"){ e.preventDefault(); sendShipmentReview("rev-pass"); return; }
+    if(k==="d"||k==="D"){ e.preventDefault(); ((state.issues&&state.issues.length>0) ? quickBatchResolveAndDraft() : generateDraft()); return; }
+    if(k==="r"||k==="R"){ e.preventDefault(); sendShipmentReview("rev-back"); return; }
+    if(k==="m"||k==="M"){ e.preventDefault(); sendShipmentReview("rev-mismatch"); return; }
     if(k==="x"||k==="X"){ e.preventDefault(); pressAct("reject"); return; }
-    if(k==="d"||k==="D"){ e.preventDefault(); pressAct("draft"); return; }
     return;
   }
 
@@ -927,4 +1224,13 @@ document.addEventListener("keydown",e=>{
       route();
     }
   };
+
+  // Auto-init on load if viewLifecycle is active
+  if(typeof window !== "undefined"){
+    const v = document.getElementById("viewLifecycle");
+    const h = window.location.hash;
+    if((v && !v.hidden) || h.startsWith("#lifecycle") || h.startsWith("#/s/") || h === "#/" || h === ""){
+      route();
+    }
+  }
 })();

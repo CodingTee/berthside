@@ -4,12 +4,16 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from pydantic import BaseModel
+
 from app.database import get_db
 from app.models import (
     DocumentRecord,
     DocumentVersionRecord,
     IssueRecord,
+    ReportRecord,
     ResolutionRecord,
+    ReviewRecord,
     ShipmentRecord,
 )
 from app.schemas import (
@@ -297,3 +301,69 @@ def get_resolution_status(shipment_id: int, db: Session = Depends(get_db)):
     if db.query(ShipmentRecord).filter_by(id=shipment_id).first() is None:
         raise HTTPException(404, "shipment not found")
     return versioning.resolution_status(db, shipment_id)
+
+
+class BatchResolveDraftIn(BaseModel):
+    reviewed_by: str = "human"
+    review_comment: str | None = None
+    email_id: str | None = None
+
+
+@router.post("/shipments/{shipment_id}/batch-resolve-draft",
+             summary="Batch approve all open resolution suggestions and generate corrected BL draft")
+@router.post("/api/shipments/{shipment_id}/batch-resolve-draft",
+             summary="Batch approve all open resolution suggestions and generate corrected BL draft (alias)")
+def batch_resolve_draft(
+    shipment_id: int,
+    payload: BatchResolveDraftIn | None = None,
+    db: Session = Depends(get_db),
+):
+    payload = payload or BatchResolveDraftIn()
+    shipment = db.query(ShipmentRecord).filter_by(id=shipment_id).first()
+    if not shipment:
+        raise HTTPException(404, "shipment not found")
+
+    issues = (
+        db.query(IssueRecord)
+        .filter_by(shipment_id=shipment_id)
+        .filter(IssueRecord.status != "SUPERSEDED")
+        .all()
+    )
+
+    approved_count = 0
+    for issue in issues:
+        versioning.approve_resolution(
+            db, issue.id, payload.reviewed_by, payload.review_comment
+        )
+        approved_count += 1
+
+    draft_info = None
+    if approved_count > 0:
+        try:
+            draft_info = versioning.generate_corrected_draft(db, shipment_id)
+        except Exception as exc:
+            pass
+
+    if payload.email_id:
+        report = db.query(ReportRecord).filter_by(email_id=payload.email_id).first()
+        if report:
+            report.reviewed = 1
+            db.add(ReviewRecord(
+                report_id=report.id,
+                email_id=payload.email_id,
+                reviewer=payload.reviewed_by or "human",
+                decision="CORRECT",
+                corrected_fields={},
+                notes=payload.review_comment or "Batch approved resolutions and generated corrected BL draft",
+            ))
+            db.commit()
+
+    versioning._update_shipment_status(db, shipment_id)
+    res_status = versioning.resolution_status(db, shipment_id)
+    return {
+        "shipment_id": shipment_id,
+        "approved_count": approved_count,
+        "draft": draft_info,
+        "resolution_status": res_status,
+    }
+

@@ -30,7 +30,15 @@ from app.services.comparison import compare
 from app.services.extractor import normalize
 
 REFERENCE_RE = re.compile(
-    r"\b(?:SDOC[-_ ]?)?\d{3,8}\b|\b[A-Z0-9]{3,8}[-_/][A-Z0-9]{3,8}\b",
+    # Letter-prefixed shipment number: SHP-001, OC12345, BL009, SDOC12345.
+    # A bare run of digits (a phone number, a container count, an invoice line)
+    # is no longer treated as a reference — that used to latch onto unrelated
+    # numbers and mint keys like REF:914 (audit B8).
+    r"\b(?:SDOC[-_ ]?)?[A-Z]{2,5}[-_ ]?\d{2,8}\b"
+    # Paired code with an alphabetic lead on the left: SHP-001, ABC123-XY.
+    # The left side must contain a letter, so `123-456` is never read as a
+    # reference.
+    r"|\b[A-Z]{2,8}[-_/][A-Z0-9]{2,8}\b",
     re.IGNORECASE,
 )
 
