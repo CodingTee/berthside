@@ -43,3 +43,5 @@ rapidocr-onnxruntime>=1.2    # bundled ONNX OCR models, works offline
 google-api-python-client>=2.0
 google-auth>=2.0
 google-auth-oauthlib>=1.0
+httpx>=0.24
+

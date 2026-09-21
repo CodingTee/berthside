@@ -33,6 +33,7 @@ from app.routers import (
     gmail,
     ingest,
     integration,
+    outlook,
     reports,
     reviews,
     shipments,
@@ -81,6 +82,7 @@ app.include_router(ai_assist.router)
 app.include_router(ingest.router)
 app.include_router(integration.router)
 app.include_router(gmail.router)
+app.include_router(outlook.router)
 app.include_router(frontend_compat.router)
 app.include_router(gateway.router)
 
@@ -403,6 +405,12 @@ def on_startup() -> None:
         "Heavy inbox processing skipped during startup."
     )
 
+    try:
+        from app.integrations.outlook import auth as outlook_auth
+        outlook_auth.ensure_callback_listener()
+    except Exception as exc:
+        logging.warning("Outlook callback listener failed: %s", exc)
+
     global gmail_poll_task, imap_poll_task
     if settings.gmail_polling_enabled:
         gmail_poll_task = asyncio.create_task(_gmail_poll_loop())
@@ -472,6 +480,13 @@ async def _gmail_poll_loop() -> None:
 
 @app.get("/", tags=["meta"])
 def root():
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse(url="/shipmail/")
+
+
+@app.get("/desk", include_in_schema=False)
+def desk():
     from fastapi.responses import RedirectResponse
 
     return RedirectResponse(url="/shipmail/")
