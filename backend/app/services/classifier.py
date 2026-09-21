@@ -86,8 +86,8 @@ def classify(email: dict) -> Classification:
     # These never carry real shipping documents and always sit before the
     # intent rules, so catching them can only *help* (it also removes the
     # false positives they otherwise create in BL_COMPARISON / INVOICE_QUERY).
-    if any(h in sender for h in SPAM_DOMAIN_HINTS):
-        return Classification("SPAM", 0.95, "throwaway/phishing sender domain")
+    if any(h in sender for h in SPAM_DOMAIN_HINTS) or "spam" in sender or "spam" in subject:
+        return Classification("SPAM", 0.95, "spam marker / domain detected")
 
     spam_score = 0
     if any(h in subject for h in SPAM_SUBJECT_HINTS):
@@ -97,10 +97,26 @@ def classify(email: dict) -> Classification:
     if spam_score >= 3:
         return Classification("SPAM", 0.9, f"spam score {spam_score}")
 
-    # --- 2. BL comparison: both SI and BL attached -------------------------
-    has_si = any("_si." in a for a in attachments)
-    has_bl = any("_bl." in a for a in attachments)
+    # System / Security / Cloud notifications -> GENERAL
+    system_notifications = (
+        "security alert", "2-step verification", "verification turned on",
+        "finish setting up", "welcome to google", "google cloud platform",
+        "project reinstated", "google ai studio"
+    )
+    if any(h in subject for h in system_notifications) or "accounts.google.com" in sender:
+        return Classification("GENERAL", 0.95, "system notification email")
+
+    # --- 2. BL comparison vs SI submission ---------------------------------
+    has_si = any("_si." in a or "_si_" in a or "si.frombody" in a for a in attachments)
+    has_bl = any("_bl." in a or "_bl_" in a or "bl.frombody" in a for a in attachments)
+    is_explicit_si = bool(re.search(r"shipping[\s_-]?instruction|\bsi\b|submit\s+si|si\s+request", subject))
+    is_explicit_bl = bool(re.search(r"bill[\s_-]?of[\s_-]?lading|draft[\s_-]?b[\/_]?l|\bb[\/_]l\b|\bbl\b", subject))
+
     if has_si and has_bl:
+        # In real workflow, Gmail sync links counterpart BL to an SI email for 7-field comparison.
+        # But if the email's subject is explicitly a Shipping Instruction, it is an SI submission!
+        if is_explicit_si and not is_explicit_bl:
+            return Classification("SI_REQUEST", 0.95, "explicit SI subject with linked documents")
         return Classification("BL_COMPARISON", 0.95, "SI + BL attachments present")
 
     # --- 3. subject/body intent -------------------------------------------

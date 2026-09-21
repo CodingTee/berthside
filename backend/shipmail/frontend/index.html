@@ -1625,8 +1625,11 @@ const I = {
   panelOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/><path d="M15.5 12h3M18.5 10.5L17 12l1.5 1.5"/></svg>',
   theme:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/></svg>',
-  undo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10H9"/><path d="M4 9l4-4M4 9l4 4"/></svg>',
-  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16.5V11M12 7.8h.01"/></svg>'
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16.5V11M12 7.8h.01"/></svg>',
+  bl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
+  si:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg>',
+  invoice:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><path d="M7 15h.01"/><path d="M12 15h2"/></svg>',
+  others:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>'
 };
 const themeIconSvg = t => t === "light"
   ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M2 12h2.4M19.6 12H22M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/></svg>'
@@ -1661,19 +1664,13 @@ const results = Object.create(null);      /* email_id → stored /api/gmail/proc
 
 /* ------------------------------------------------------------ helpers */
 const MAILBOXES = [
-  ["inbox",   "Inbox",    I.inbox],
-  ["starred", "Starred",  I.star],
-  ["sent",    "Sent",     I.sent],
-  ["drafts",  "Drafts",   I.draft],
-  ["spam",    "Spam",     I.spam],
-  ["trash",   "Trash",    I.trash],
-  ["all",     "All Mail", I.mail]
+  ["inbox",   "Inbox",    I.inbox,   "All inbound messages"],
+  ["bl",      "BL",       I.bl,      "Bill of Lading (BL) documents"],
+  ["si",      "SI",       I.si,      "Shipping Instructions (SI)"],
+  ["invoice", "Invoice",  I.invoice, "Freight charge invoices & billing"],
+  ["others",  "Others",   I.others,  "Other notifications, spam & general inquiries"]
 ];
-const LABELS = [
-  ["Shipping",      "var(--cat-SI_REQUEST)"],
-  ["Finance",       "var(--cat-INVOICE_QUERY)"],
-  ["Needs action",  "var(--warn)"]
-];
+const LABELS = [];
 const STATUSES = ["OK","MISMATCH","NEEDS_REVIEW","SKIPPED"];
 const STATUS_LABEL = {OK:"Cleared · OK", MISMATCH:"Mismatch", NEEDS_REVIEW:"Needs review", SKIPPED:"Skipped"};
 const STATUS_DOT   = {OK:"var(--ok)", MISMATCH:"var(--bad)", NEEDS_REVIEW:"var(--warn)", SKIPPED:"var(--muted-2)"};
@@ -1689,6 +1686,72 @@ const starOf  = id => !!flagsOf(id).star;
 const isRead  = id => !!flagsOf(id).read;
 const shipOf  = id => state.ships[id] || {};
 
+/* Document / Email classification helper matching problem statement: BL | SI | INVOICE | OTHERS */
+function categoryOf(it){
+  if(!it) return "OTHERS";
+  const cat = String(it.category || (it.raw && it.raw.category) || "").toUpperCase();
+  const kinds = it.kinds || [];
+  const subject = String(it.subject || "").toUpperCase();
+  const sender = String(it.from || it.fromName || "").toUpperCase();
+  const rawAtts = (it.raw && it.raw.attachments) || [];
+  const attNames = rawAtts.map(a => (typeof a === "string" ? a : (a.name || a.filename || a.path || ""))).join(" ").toUpperCase();
+
+  // 1. Spam & System alerts -> OTHERS
+  if(/\bSPAM\b/.test(subject) || /\bSPAM\b/.test(sender) || cat === "SPAM"){
+    return "OTHERS";
+  }
+  if(/SECURITY ALERT|2-STEP VERIFICATION|VERIFICATION TURNED ON|GOOGLE AI STUDIO|GOOGLE CLOUD|WELCOME TO GOOGLE|SETTING UP YOUR/i.test(subject)){
+    return "OTHERS";
+  }
+
+  // 2. Explicit Subject Intent (highest signal of what the sender is submitting)
+  const isSubjSI = /SHIPPING[\s_-]?INSTRUCTION|\bSI\b|SUBMIT[\s_-]?SI|SI[\s_-]?REQUEST|BOOKING[\s_-]?CONFIRMATION/i.test(subject);
+  const isSubjBL = /BILL[\s_-]?OF[\s_-]?LADING|DRAFT[\s_-]?B[\/_]?L|\bb[\/_]l\b|\bbl\b/i.test(subject);
+  const isSubjInv = /INVOICE|INV[._-]?\d|BILLING|FREIGHT[\s_-]?CHARGE|PAYMENT/i.test(subject);
+
+  if(isSubjSI && !isSubjBL) return "SI";
+  if(isSubjBL && !isSubjSI) return "BL";
+  if(isSubjInv) return "INVOICE";
+
+  // 3. Backend explicit verdict (when present and not overridden by explicit subject)
+  if(cat === "SI_REQUEST" || cat === "SI") return "SI";
+  if(cat === "BL_COMPARISON" || cat === "BL") return "BL";
+  if(cat === "INVOICE_QUERY" || cat === "INVOICE") return "INVOICE";
+  if(cat === "GENERAL") return "OTHERS";
+
+  // 4. Native attachments (originating directly from this email or body text)
+  const myId = String(it.id || "").toUpperCase();
+  const nativeAtts = rawAtts.filter(a => {
+    const p = String((typeof a === "string" ? a : (a.path || a.name || a.filename || ""))).toUpperCase();
+    return (myId && p.includes(myId)) || p.includes(".FROMBODY.");
+  });
+  const nativeNames = nativeAtts.map(a => (typeof a === "string" ? a : (a.name || a.filename || a.path || ""))).join(" ").toUpperCase();
+
+  if(/_SI[._\s]|SHIPPING[\s_-]?INSTRUCTION/i.test(nativeNames) && !/_BL[._\s]|BILL[\s_-]?OF[\s_-]?LADING/i.test(nativeNames)) return "SI";
+  if(/_BL[._\s]|BILL[\s_-]?OF[\s_-]?LADING/i.test(nativeNames) && !/_SI[._\s]|SHIPPING[\s_-]?INSTRUCTION/i.test(nativeNames)) return "BL";
+
+  // 5. General attachment kinds
+  if(kinds.includes("SI") && !kinds.includes("BL")) return "SI";
+  if(kinds.includes("BL") && !kinds.includes("SI")) return "BL";
+  if(kinds.includes("INVOICE") || /INVOICE|INV[._-]?\d/i.test(attNames)) return "INVOICE";
+
+  // 6. When both SI and BL are linked (e.g. counterpart pairing for 7-field check)
+  if(kinds.includes("SI") && kinds.includes("BL")){
+    if(isSubjSI) return "SI";
+    return "BL";
+  }
+
+  if(/_SI[._\s]|SHIPPING[\s_-]?INSTRUCTION/.test(attNames)) return "SI";
+  if(/_BL[._\s]|BILL[\s_-]?OF[\s_-]?LADING|\bB[\/_]?L\b/.test(attNames)) return "BL";
+
+  return "OTHERS";
+}
+
+function isShipDoc(it){
+  const c = categoryOf(it);
+  return c === "BL" || c === "SI";
+}
+
 /* The row shape every view shares, whether the message came from the inbox
    bundle or from the local outbox. */
 function rowOfMail(e){
@@ -1700,7 +1763,7 @@ function rowOfMail(e){
     unread:!isRead(e.id), starred:!!e.starred || starOf(e.id),
     kinds:[...new Set((e.attachments||[]).map(a => a.kind).filter(Boolean))],
     natt:(e.attachments||[]).length,
-    status:by ? by.status : null, category:by ? by.category : null,
+    status:by ? by.status : null, category:(by && by.category) ? by.category : (e.category || null),
     shipment:e.shipment_id || "", raw:e, box:boxOf(e.id),
     sent:false, draft:false
   };
@@ -1716,23 +1779,16 @@ function rowOfOut(o){
   };
 }
 function inBox(e, box){
-  const f = FLAGS[e.id] || {};
-  const placed = f.box || "";
-  switch(box){
-    case "inbox":   return placed !== "archive" && placed !== "spam" && placed !== "trash";
-    case "archive": return placed === "archive";
-    case "spam":    return placed === "spam";
-    case "trash":   return placed === "trash";
-    case "starred": return !!e.starred || !!f.star;
-    case "all":     return true;
-    default:        return false;
-  }
+  if(!box || box === "inbox" || box === "all") return true;
+  const it = (e.kinds !== undefined) ? e : rowOfMail(e);
+  const c = categoryOf(it);
+  if(box === "bl") return c === "BL";
+  if(box === "si") return c === "SI";
+  if(box === "invoice") return c === "INVOICE";
+  if(box === "others") return c === "OTHERS";
+  return true;
 }
 function matchesLabel(it, label){
-  if(!label) return true;
-  if(label === "Shipping")     return it.kinds.length > 0;
-  if(label === "Finance")      return it.category === "INVOICE_QUERY";
-  if(label === "Needs action") return it.status === "MISMATCH" || it.status === "NEEDS_REVIEW";
   return true;
 }
 function matchesQuery(it, q){
@@ -1749,16 +1805,16 @@ function matchesKind(it, kind){
 }
 /* The rows the current mailbox shows, before the panel filters. */
 function boxItems(box){
-  if(box === "sent")   return OUTBOX.filter(o => o.kind === "sent").map(rowOfOut);
-  if(box === "drafts") return OUTBOX.filter(o => o.kind === "draft").map(rowOfOut);
-  return state.emails.filter(e => inBox(e, box)).map(rowOfMail);
+  const all = state.emails.map(rowOfMail);
+  if(!box || box === "inbox" || box === "all") return all;
+  return all.filter(it => inBox(it, box));
 }
 function visibleItems(){
   return boxItems(state.box).filter(it =>
-    matchesLabel(it, state.label) && matchesKind(it, state.kind) &&
+    matchesKind(it, state.kind) &&
     (!state.status || it.status === state.status) && matchesQuery(it, state.q));
 }
-function inboxItems(){ return state.emails.filter(e => inBox(e, "inbox")); }
+function inboxItems(){ return state.emails.map(rowOfMail); }
 function countOf(box){ return boxItems(box).length; }
 function unreadOf(){
   return state.emails.filter(e => inBox(e, "inbox") && !isRead(e.id)).length;
@@ -1817,24 +1873,17 @@ function renderKPIs(){}
 
 /* ------------------------------------------------------------ rail lists */
 function renderRail(){
-  const unread = unreadOf();
-  $("mailboxes").innerHTML = MAILBOXES.slice(0, 4).concat(MAILBOXES.slice(6), MAILBOXES.slice(4, 6)).map(([k, label, ico]) => {
+  $("mailboxes").innerHTML = MAILBOXES.map(([k, label, ico, desc]) => {
     const on = state.box === k ? " active" : "";
-    const n = k === "inbox" ? unread : countOf(k);
-    const tip = k === "inbox"
-      ? `${unread} unread of ${countOf("inbox")} in the inbox`
-      : `${countOf(k)} message(s) in ${label}`;
-    return `<a class="navlink${on}" href="#" role="button" data-box="${k}" data-tip="${esc(label)}" data-tip-desc="${esc(tip)}" data-tip-pos="right" aria-label="${esc(label)}">
+    const n = countOf(k);
+    const tip = `${n} message(s) in ${label}`;
+    return `<a class="navlink${on}" href="#" role="button" data-box="${k}" data-tip="${esc(label)}" data-tip-desc="${esc(desc || tip)}" data-tip-pos="right" aria-label="${esc(label)}">
       ${ico}<span>${esc(label)}</span><span class="ct">${fmt(n)}</span></a>`;
   }).join("");
-  $("labels").innerHTML = LABELS.map(([label, c]) => {
-    const items = state.emails.map(rowOfMail).filter(it => matchesLabel(it, label));
-    const on = state.label === label ? " active" : "";
-    return `<a class="navlink${on}" href="#" role="button" data-label="${esc(label)}" data-tip="${esc(label)}" data-tip-desc="${items.length} message(s) carry this label" data-tip-pos="right" aria-label="${esc(label)}">
-      <span class="ldot" style="background:${c}"></span><span>${esc(label)}</span><span class="ct">${fmt(items.length)}</span></a>`;
-  }).join("");
+  const lblEl = $("labels");
+  if(lblEl && lblEl.closest(".nav-sec")) lblEl.closest(".nav-sec").style.display = "none";
   const box = (MAILBOXES.find(b => b[0] === state.box) || [null,"Inbox"])[1];
-  $("boxTitle").textContent = state.label ? box + " · " + state.label : box;
+  $("boxTitle").textContent = box;
 }
 
 /* ------------------------------------------------------------ inbox list */
@@ -1864,11 +1913,18 @@ function renderList(){
     </div>`;
     return;
   }
+  function catTag(it){
+    const c = categoryOf(it);
+    if(c === "BL") return '<span class="badge cat" style="--c:var(--cat-BL_COMPARISON);font-weight:600">BL</span>';
+    if(c === "SI") return '<span class="badge cat" style="--c:var(--cat-SI_REQUEST);font-weight:600">SI</span>';
+    if(c === "INVOICE") return '<span class="badge cat" style="--c:var(--cat-INVOICE_QUERY);font-weight:600">Invoice</span>';
+    return '<span class="badge cat" style="--c:var(--muted-2)">Others</span>';
+  }
   el.innerHTML = rows.map((it, i) => {
     const on = it.id === state.activeId ? " active" : "";
     const un = it.unread ? " unread" : "";
     const h = heatOf(it.status);
-    const tags = it.kinds.map(kindBadge).join("");
+    const tags = catTag(it);
     const placed = it.box === "archive" ? '<span class="badge cat" style="--c:var(--muted-2)">archived</span>' : "";
     /* The avatar carries what the old meta line used to spell out, so the row
        stays a three-line mail row instead of a field dump. */
@@ -1883,7 +1939,7 @@ function renderList(){
         <div class="r1">
           <span class="who">${esc(it.fromName)}${it.draft ? " · not sent" : ""}</span>
           ${tags}${placed}
-          ${it.kind === "mail" && it.status ? stBadge(it.status) : ""}
+          ${(it.kind === "mail" && isShipDoc(it) && it.status) ? stBadge(it.status) : ""}
           ${it.starred ? '<span class="star" title="Starred">'+I.starFill+'</span>' : ""}
         </div>
         <div class="subj">${esc(it.subject)}</div>
@@ -1968,6 +2024,8 @@ function renderMail(){
   /* The reading pane follows the mail-client layout: a toolbar of message
      actions with the shipment + verdict chips on the right, then subject,
      sender block, body and attachments. The verdict sentence rides on the chip. */
+  const cat = categoryOf(it);
+  const shipDoc = isShipDoc(it);
   const h = heatOf(it.status);
   const chipTxt = isOut ? (it.draft ? "DRAFT" : "SENT")
                         : (it.status ? it.status.replace(/_/g," ") : "INBOX");
@@ -1981,10 +2039,14 @@ function renderMail(){
       <span class="msep"></span>
       ${isOut ? "" : `<button class="mic" type="button" data-tip="Reply" data-tip-desc="Open the composer prefilled with a reply to this sender" data-tip-pos="bottom" aria-label="Reply" onclick="openComposer('reply')">${I.reply}</button>`}
       <span class="grow"></span>
-      <button class="mic" id="shipBtn" type="button" data-tip="ShipSync verdict panel" data-tip-desc="Show or hide the ShipSync side panel for this message" data-tip-kbd="V" data-tip-pos="bottom" aria-label="Toggle the ShipSync panel"><span class="ship-ico"></span></button>
+      ${shipDoc ? `
+        <button class="mic" id="shipBtn" type="button" data-tip="ShipSync verdict panel" data-tip-desc="Show or hide the ShipSync side panel for this message" data-tip-kbd="V" data-tip-pos="bottom" aria-label="Toggle the ShipSync panel"><span class="ship-ico"></span></button>
+      ` : `
+        <span class="chip" style="font-size:11px;color:var(--muted);background:var(--surface-3);border:1px solid var(--border);padding:2px 8px;border-radius:4px" title="ShipSync 7-field reconciliation only applies to SI and BL documents">Category: ${cat === "INVOICE" ? "Invoice" : "Others"} · ShipSync N/A</span>
+      `}
       <button class="mic" id="focusBtn" type="button" data-tip="Focus mode" data-tip-desc="Hide the inbox and give the message the full width" data-tip-kbd="F" data-tip-pos="bottom" aria-label="Toggle focus mode"><span class="focus-ico"></span></button>
-      ${it.shipment ? `<span class="chip mono" data-tip="Shipment" data-tip-desc="The shipment this message belongs to: open it in ShipSync to compare its documents" data-tip-pos="bottom">${esc(it.shipment)}</span>` : ""}
-      <span class="chip st" style="--c:${chipTone}" data-tip="ShipSync verdict" data-tip-desc="${esc(verdictLine(it))}" data-tip-pos="bottom">${esc(chipTxt)}</span>
+      ${(shipDoc && it.shipment) ? `<span class="chip mono" data-tip="Shipment" data-tip-desc="The shipment this message belongs to: open it in ShipSync to compare its documents" data-tip-pos="bottom">${esc(it.shipment)}</span>` : ""}
+      ${shipDoc ? `<span class="chip st" style="--c:${chipTone}" data-tip="ShipSync verdict" data-tip-desc="${esc(verdictLine(it))}" data-tip-pos="bottom">${esc(chipTxt)}</span>` : ""}
     </div>
     <div class="wrap">
       <h1 class="wsubj">${esc(it.subject)}</h1>
@@ -2147,6 +2209,27 @@ async function loadVerdict(id){
     if(!state.shipTouched) setShip(true);
     return;
   }
+  const cat = categoryOf(it);
+  if(!isShipDoc(it)){
+    if(state.activeId !== id) return;
+    setSideBadge(null);
+    sideSub(cat === "INVOICE" ? "Invoice · ShipSync Not Required" : "Others · ShipSync Not Required");
+    $("side").innerHTML = `
+      <div class="empty" style="padding:28px 18px;text-align:center">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(148,163,184,0.1);display:inline-flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--muted)">
+          ${cat === "INVOICE" ? I.invoice : I.others}
+        </div>
+        <span class="big" style="font-size:15px;font-weight:650;display:block;margin-bottom:8px">ShipSync Not Required</span>
+        <span style="font-size:12.5px;color:var(--muted);line-height:1.6;display:block;max-width:280px;margin:0 auto">
+          This email is classified as <b>${cat === "INVOICE" ? "Invoice (Finance / Billing)" : "Other (General Inquiries / Non-document)"}</b>.
+          <br><br>
+          Per problem statement protocol, ShipSync 7-field SI ↔ BL discrepancy reconciliation is only conducted on <b>Bill of Lading (BL)</b> and <b>Shipping Instruction (SI)</b> documents.
+        </span>
+      </div>`;
+    if(!state.shipTouched) setShip(false);
+    return;
+  }
+  if(!state.shipTouched) setShip(true);
   if(results[id]){ if(state.activeId === id) renderVerdict(results[id]); return; }
   if(isShipOpen()) showLoading("Reading the stored ShipSync result…");
   try{
@@ -2423,9 +2506,14 @@ function saveComposed(kind){
 /* ------------------------------------------------------------------ views */
 function setBox(box){
   state.box = box; state.label = null;
-  if(box === "spam") pin("box:spam");
   renderRail(); renderList();
-  if(box === "sent" || box === "drafts"){ state.activeId = null; renderMail(); }
+  const items = visibleItems();
+  if(items.length > 0 && (!state.activeId || !items.some(i => i.id === state.activeId))){
+    openMailById(items[0].id);
+  } else if(!items.length){
+    state.activeId = null;
+    renderEmptyDetail();
+  }
 }
 function setLabel(label){
   state.label = state.label === label ? null : label;
@@ -2478,7 +2566,8 @@ async function loadRealMailbox(){
       received: fmtWhen(m.processed_at),
       attachments: (m.attachments || []).map((n, i) => ({filename: n, name: n, kind: docKind(n), path: (m.attachment_paths || [])[i] || ""})),
       shipment_id: m.shipment_id || "",
-      starred: false, unread: false
+      starred: false, unread: false,
+      category: m.category || ""
     }));
     /* The row verdict (status/category) is read from state.by in rowOfMail; map
        the live messages straight in so the list speaks the same language. */

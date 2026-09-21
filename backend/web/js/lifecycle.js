@@ -263,7 +263,8 @@ function icon(name){
     clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.3 2"/></svg>',
     filter:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8.4V20l-4-2.2v-4.4z"/></svg>'
   };
-  return I[name]||"";
+  const s = I[name]||"";
+  return s ? s.replace('<svg ', '<svg width="16" height="16" style="vertical-align:middle;flex-shrink:0;display:inline-block" ') : "";
 }
 function emptyCard(title, sub, ic){
   return '<div class="empty">'+(ic||icon("doc"))+'<span class="big">'+esc(title)+'</span>'+(sub?'<span>'+esc(sub)+'</span>':'')+'</div>';
@@ -835,8 +836,9 @@ function renderDetail(){
   }
   const sourceEmailSection =
     '<details class="panel" id="sec-emails" style="margin-top:14px">'+
-      '<summary style="cursor:pointer;padding:12px 16px;font-weight:600;display:flex;align-items:center;gap:8px;user-select:none">'+
-        icon("mail")+'Source Email Context ('+sourceEmails.length+' email'+(sourceEmails.length>1?'s':'')+')'+
+      '<summary style="cursor:pointer;padding:12px 16px;font-weight:600;display:flex;align-items:center;gap:10px;user-select:none">'+
+        '<span style="color:var(--accent);display:inline-flex;align-items:center;flex-shrink:0">'+icon("mail")+'</span>'+
+        '<span>Source Email Context ('+sourceEmails.length+' email'+(sourceEmails.length>1?'s':'')+')</span>'+
         '<span class="muted small" style="margin-left:auto;font-weight:normal">Click to expand raw email messages &amp; attachments</span>'+
       '</summary>'+
       '<div class="panel-body" style="border-top:1px solid var(--border);padding:14px 16px">'+emailCards+'</div>'+
