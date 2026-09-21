@@ -463,10 +463,11 @@ function renderDetail(d){
         ${reason}${recorded}
       </div></section>`;
     actBar=`<div class="act-bar dock">
-          <button class="act primary" data-kind="confirm" data-tip="Accept verdict" data-tip-desc="Approve this email’s current verdict" data-tip-kbd="A" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','confirm',this)">${ICONS.ok} Accept verdict<span class="k">A</span></button>
-          <button class="act pass" data-kind="pass" data-tip="Mark passed" data-tip-desc="Skip this email: no mismatch" data-tip-kbd="O" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','pass',this)">${ICONS2.pass} Mark passed<span class="k">O</span></button>
-          <button class="act flag" data-kind="mismatch" data-tip="Mark mismatch" data-tip-desc="Flag this email as SI↔BL mismatch" data-tip-kbd="M" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','mismatch',this)">${ICONS2.flag} Mark mismatch<span class="k">M</span></button>
-          <button class="act back" data-kind="back" data-tip="Send back" data-tip-desc="Return this email for correction" data-tip-kbd="R" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','back',this)">${ICONS2.back} Send back<span class="k">R</span></button>
+          <button class="act primary" data-kind="confirm" data-tip="Confirm verdict" data-tip-desc="Confirm this email’s comparison verdict" data-tip-kbd="A" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','confirm',this)">${ICONS.ok} Confirm<span class="k">A</span></button>
+          <button class="act pass" data-kind="pass" data-tip="Pass" data-tip-desc="Mark passed: no mismatch" data-tip-kbd="O" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','pass',this)">${ICONS2.pass} Pass<span class="k">O</span></button>
+          <button class="act flag" data-kind="mismatch" data-tip="Mismatch" data-tip-desc="Flag this email as SI↔BL mismatch" data-tip-kbd="M" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','mismatch',this)">${ICONS2.flag} Mismatch<span class="k">M</span></button>
+          <button class="act back" data-kind="back" data-tip="Send back" data-tip-desc="Return this email for correction" data-tip-kbd="R" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','back',this)">${ICONS2.back} Send Back<span class="k">R</span></button>
+          ${(d.shipment_id || r.status==="MISMATCH" || r.status==="NEEDS_REVIEW") ? `<button class="act" type="button" style="background:var(--surface-3);border-color:var(--accent);color:var(--accent);font-weight:650;" onclick="openShipmentFromReview(${d.shipment_id || 'null'})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg> Open Shipment</button>` : ''}
           <input type="text" class="note-in" id="ov-note" placeholder="Reviewer note (optional)" maxlength="240" autocomplete="off">
         </div>`;
   }
@@ -494,6 +495,9 @@ function renderDetail(d){
     :(r.status==="OK"?"no mismatch detected":esc(r.review_reason||r.status));
   const hum=r.decided_by==="human"?'<span class="badge human">HUMAN REVIEWED</span>':"";
   const audit=renderAudit(d);
+  const shBtn = (d.shipment_id || r.status==="MISMATCH" || r.status==="NEEDS_REVIEW")
+    ? `<button class="btn sm primary" type="button" style="margin-left:10px;padding:4px 10px;font-size:11.5px;" onclick="openShipmentFromReview(${d.shipment_id || 'null'})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg> Open Shipment${d.shipment_key ? ' ('+esc(d.shipment_key)+')' : ''}</button>`
+    : "";
 
   $("#detail").innerHTML=`<div class="fade">
     <div class="detail-head">
@@ -501,7 +505,7 @@ function renderDetail(d){
       <h2>${esc(e.subject||"(no subject)")}</h2>
       <div class="kv"><b>From:</b> ${esc(e.from||"unknown")} &nbsp;·&nbsp; <b>ID:</b> <span style="font-family:var(--mono)">${esc(e.email_id)}</span></div>
       <div class="kv"><b>Decided by:</b> <span class="dotby">${byIcon(r.decided_by)}</span>${r.rule&&r.decided_by!=="human"?` <span style="color:var(--muted-2)">· ${esc(r.rule)}</span>`:""}</div>
-      <div class="verdict-line"><b style="color:var(--muted)">Verdict:</b> ${verdict}</div>
+      <div class="verdict-line" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><b style="color:var(--muted)">Verdict:</b> <span>${verdict}</span>${shBtn}</div>
     </div>
     ${cmp}${review}${audit}${attSection}
     <section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 7l8 5 8-5"/></svg>Email body</h3><pre class="body">${esc(e.body||"")}</pre></section>
@@ -661,14 +665,14 @@ function isTyping(){const el=document.activeElement;if(!el)return false;
 const MODK=IS_MAC?"\u2318":"Ctrl";
 const SHIFTK="\u21e7";
 const NAV={
-  gateway:  {href:"#gateway",     key:"0", label:"Enterprise Hub",
-             desc:"Pre-ingestion quarantine buffer: AI triage, malware shield & multi-mailbox dispatch"},
-  console:  {href:"#review",      key:"1", label:"Review Console",
-             desc:"Email-centric console: process the inbox and review SI \u2194 BL mismatches"},
-  shipments:{href:"#lifecycle",  key:"2", label:"Advanced Shipment Workflow",
-             desc:"Shipment-centric console: version history, diffs and the resolution center"},
-  back:     {href:"#review",      key:"B", label:"Back to Review Console",
-             desc:"Return to this console from the shipment workflow"}
+  gateway:  {href:"#gateway",     key:"0", label:"Secure Ingestion",
+             desc:"Quarantine buffer: safety checks, dangerous extension blocking & staged triage"},
+  console:  {href:"#review",      key:"1", label:"Review",
+             desc:"Email & document review: process inbox and verify SI ↔ BL mismatches"},
+  shipments:{href:"#lifecycle",  key:"2", label:"Shipments",
+             desc:"Shipment hub: overview, documents, version history, diffs and resolution"},
+  back:     {href:"#review",      key:"B", label:"Back to Review",
+             desc:"Return to the review queue"}
 };
 const SHORTCUTS=[
   {section:"Navigation"},
@@ -683,7 +687,7 @@ const SHORTCUTS=[
   {keys:["?"], label:"This panel", desc:"Show or hide this shortcut list"},
   {keys:["Esc"], label:"Close", desc:"Close the palette or this panel"},
   {section:"Review an email"},
-  {keys:["A"], label:"Confirm · accept", desc:"Apply the open email's verdict"},
+  {keys:["A"], label:"Confirm verdict", desc:"Confirm the open email's verdict"},
   {keys:["O"], label:"Pass", desc:"Skip the open email"},
   {keys:["M"], label:"Mismatch", desc:"Flag the open email as mismatched"},
   {keys:["R"], label:"Send back", desc:"Return the open email for correction"},
@@ -696,6 +700,16 @@ function navTo(h){ location.href=h; }
 function goGateway(){ switchView("gateway"); }
 function goConsole(){ switchView("review"); }
 function goShipments(){ switchView("lifecycle"); }
+
+function openShipmentFromReview(shipmentId){
+  switchView("lifecycle");
+  if(shipmentId && window.Lifecycle && window.Lifecycle.openShipment){
+    window.Lifecycle.openShipment(shipmentId);
+  } else if(window.Lifecycle && window.Lifecycle.renderDashboard){
+    window.Lifecycle.renderDashboard();
+  }
+}
+window.openShipmentFromReview = openShipmentFromReview;
 
 const helpEl=$("#help");
 function renderHelp(){
@@ -909,7 +923,7 @@ $("#themeBtn").addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){
 })();
 
 setFocus(localStorage.getItem("sdoc-focus")==="1");
-window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!==state.active)openEmail(h);});
+window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!=="review"&&h!=="gateway"&&h!=="outstream"&&!h.startsWith("lifecycle")&&!h.startsWith("/")&&h!==state.active)openEmail(h);});
 /* ---------- command palette ---------- */
 const ICONS2={
   shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
@@ -1047,7 +1061,7 @@ function palEnsureShips(){
   const my=palSeq;
   fetch(API+"/shipments").then(r=>r.ok?r.json():null).then(d=>{
     palShips=(d && d.shipments)||[]; palShipsLoaded=true;
-    if(my===palSeq && !$("#palette").hidden) renderPalette();
+    if(!$("#palette").hidden) renderPalette();
   }).catch(()=>{});
 }
 function palHover(i){
@@ -1095,7 +1109,7 @@ $("#palList").addEventListener("click",e=>{
   }
 });
 
-loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h)openEmail(h); else renderEmptyDetail();});
+loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!=="review"&&h!=="gateway"&&h!=="outstream"&&!h.startsWith("lifecycle")&&!h.startsWith("/"))openEmail(h); else renderEmptyDetail();});
 loadIntegrations();   /* stored API results only: no reprocessing */
 
 

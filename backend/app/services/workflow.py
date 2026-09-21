@@ -686,23 +686,22 @@ def _run_pipeline(db: Session, report: ReportRecord, email: dict,
             si_result=pair.si_result,
             bl_result=pair.bl_result,
         )
-        latest_outcome, latest_si, latest_bl = versioning.latest_pair_comparison(
-            db, shipment.id
-        )
-        outcome = latest_outcome or compare(
-            pair.si_result.fields, pair.bl_result.fields, COMPARED_FIELDS)
-
-        verdict.status = outcome.status
-        verdict.has_defect = outcome.has_defect
-        verdict.defect_fields = outcome.defect_fields
-        verdict.review_reason = outcome.review_reason
-        verdict.field_results = outcome.field_results
+        # The email's own verdict (from `evaluate_email`) is authoritative for
+        # THIS report. The db-backed path still records the documents, versions
+        # and issues so the shipment view can recompute the truth, but it must
+        # NOT overwrite this email's verdict with the shipment's then-current
+        # pair (B5): that made a per-email report a stale snapshot of mutable
+        # shipment state, and a newer version arriving later left it disagreeing
+        # with the shipment view.
+        #
+        # Only the shipment linkage is added to `extracted`; the compared fields
+        # (`si`/`bl`) stay the email's own pair. Using `latest_version` (not
+        # `latest_pair_comparison`) also removes the redundant second `compare`
+        # that ran here for every paired email (R1).
+        latest_si = versioning.latest_version(db, shipment.id, "SI")
+        latest_bl = versioning.latest_version(db, shipment.id, "BL")
         verdict.extracted = {
             **verdict.extracted,
-            "si": (latest_si.extracted_fields if latest_si
-                   else pair.si_result.fields),
-            "bl": (latest_bl.extracted_fields if latest_bl
-                   else pair.bl_result.fields),
             "shipment_id": shipment.id,
             "shipment_key": shipment.shipment_key,
             "latest_si_version_id": latest_si.id if latest_si else None,

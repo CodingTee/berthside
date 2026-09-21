@@ -30,7 +30,10 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))
 
 _TMP = Path(tempfile.mkdtemp(prefix="shipsync-accept-"))
-os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'accept.db'}"
+_DB_URL = f"sqlite:///{(_TMP / 'accept.db').as_posix()}"
+os.environ["DATABASE_URL"] = _DB_URL
+os.environ["DATABASE_URL_ENTERPRISE"] = _DB_URL
+os.environ["DATABASE_URL_OAUTH"] = _DB_URL
 os.environ["INGEST_DIR"] = str(_TMP / "ingested")
 os.environ["DATA_SOURCE"] = str(_TMP / "empty-bundle")
 os.environ.setdefault("OCR_ENABLED", "0")

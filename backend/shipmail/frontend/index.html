@@ -1266,14 +1266,14 @@ body.resizing .mail-body{user-select:none}
         <svg class="ws-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="ws-dropdown" id="wsDropdown" hidden>
-        <div class="ws-dropdown-header">Workspaces &amp; Environments</div>
+        <div class="ws-dropdown-header">Workspaces</div>
         <a href="/ui/" class="ws-opt">
           <div class="ws-opt-icon ent-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <div class="ws-opt-text">
-            <div class="ws-opt-title">Enterprise IDP Hub <span class="ws-pill">EDI &amp; Influx</span></div>
-            <div class="ws-opt-desc">Multi-Mailbox Influx · Security Sandbox · 520 Dataset</div>
+            <div class="ws-opt-title">Shipment Hub <span class="ws-pill">Active</span></div>
+            <div class="ws-opt-desc">Review Queue · Shipments &amp; Resolution</div>
           </div>
         </a>
         <a href="/shipmail/" class="ws-opt active">
@@ -1281,14 +1281,14 @@ body.resizing .mail-body{user-select:none}
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
           </div>
           <div class="ws-opt-text">
-            <div class="ws-opt-title">ShipMail Desk <span class="ws-pill live">OAuth 2.0</span></div>
-            <div class="ws-opt-desc">Personal Operator Inbox · Instant SI↔BL Classifier</div>
+            <div class="ws-opt-title">ShipMail Desk <span class="ws-pill live">Gmail</span></div>
+            <div class="ws-opt-desc">Personal Operator Inbox · Live Gmail OAuth</div>
           </div>
           <svg class="ws-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         </a>
         <div class="ws-dropdown-footer">
           <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Storage: <code>sdoc_oauth.db</code></span>
-          <span style="opacity:0.75">Physical Isolation</span>
+          <span style="opacity:0.75">Dedicated Workspace</span>
         </div>
       </div>
     </div>
@@ -2188,7 +2188,10 @@ function renderIdle(it){
     </section>
     <section><h3>Action</h3>
       <div class="sp-note">This email has not been through ShipSync yet. Processing runs once and the stored result is reused from then on.</div>
-      <div class="sp-btns"><button class="btn primary" type="button" onclick="runShipSync(false)">Run ShipSync</button></div>
+      <div class="sp-btns">
+        <button class="btn primary" type="button" onclick="runShipSync(false)">Run ShipSync</button>
+        <a class="btn" href="/ui/#${esc(it.shipment ? '/s/' + it.shipment : it.id)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:8px 12px">Open Shipment ➔</a>
+      </div>
       <div class="sp-src" style="margin-top:10px">Nothing is processed automatically: neither opening this message nor reading it ever runs the pipeline.</div>
     </section>`;
   if(youCardOpen()) renderYou();
@@ -2200,9 +2203,15 @@ function renderVerdict(r){
   const missing = r.missing_documents || [];
   setSideBadge(st);
   sideSub(r.cached ? "Verdict · stored result" : "Verdict · fresh run");
+  const shipTarget = (r.shipment_id || (it && it.shipment)) ? `/ui/#/s/${encodeURIComponent(r.shipment_id || it.shipment)}` : `/ui/#${esc(it ? it.id : (r.email_id || ''))}`;
   $("side").innerHTML = `
     <section><h3>${I.ship}Shipment</h3>
       <div class="sp-id"><span class="id">${esc(r.shipment_id || (it && it.shipment) || "-")}</span>${stBadge(st)}</div>
+      <div style="margin:8px 0 12px">
+        <a class="btn primary" href="${shipTarget}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;width:100%;justify-content:center;padding:9px 12px;font-size:13px">
+          Open Shipment ➔
+        </a>
+      </div>
       <table class="sp-table">
         <tr><td>Doc type</td><td class="val">${esc(docTypes(r))}</td></tr>
         <tr><td>Category</td><td class="val">${esc(r.category || "-")}</td></tr>

@@ -34,3 +34,7 @@ _stress_sub.json
 
 # -------- one-off cleanup backups (scripts/clean_ingest_pollution.py) --------
 cleanup-backup-*/
+
+# -------- generated outputs --------
+generated_drafts/
+.grouping_*.json
