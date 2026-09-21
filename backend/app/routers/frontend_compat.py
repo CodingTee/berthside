@@ -24,6 +24,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.models import (
     DispatchRecord,
+    OutboundApprovalRecord,
     DocumentVersionRecord,
     EmailRecord,
     GatewayPolicyRecord,
@@ -358,6 +359,43 @@ class OutstreamReturnIn(BaseModel):
     subject: Optional[str] = None
     body: Optional[str] = None
     dry_run: bool = False
+    approval_id: Optional[str] = None
+
+
+def _reply_snapshot(email_id, payload, db):
+    import hashlib, json
+    email = db.query(EmailRecord).filter_by(email_id=email_id).first()
+    if not email:
+        raise HTTPException(404, "Email not found")
+    report = db.query(ReportRecord).filter_by(email_id=email_id).first()
+    decision, default_subject, default_body = build_outstream_receipt(email, report)
+    subject = default_subject if payload.subject is None else payload.subject
+    body = default_body if payload.body is None else payload.body
+    mailbox = email.source_mailbox or infer_source_mailbox(email_id, email.sender)
+    recipient = email.sender or mailbox
+    if not recipient or not subject.strip() or not body.strip():
+        raise HTTPException(422, "Recipient, subject and body are required")
+    fingerprint = hashlib.sha256(json.dumps([email_id, recipient, mailbox, subject, body, []], ensure_ascii=False).encode()).hexdigest()
+    return email, decision, subject, body, mailbox, recipient, fingerprint
+
+
+@router.post("/emails/{email_id}/approve-reply")
+def approve_reply(email_id: str, payload: OutstreamReturnIn, db: Session = Depends(get_db)):
+    from uuid import uuid4
+    email, decision, subject, body, mailbox, recipient, fingerprint = _reply_snapshot(email_id, payload, db)
+    # A new approval supersedes all unconsumed approvals for this message.
+    db.query(OutboundApprovalRecord).filter_by(email_id=email_id, status="APPROVED").update({"status": "SUPERSEDED"})
+    row = OutboundApprovalRecord(id=str(uuid4()), email_id=email_id, fingerprint=fingerprint,
+        recipient=recipient, subject=subject, body=body, reviewer="Local operator (identity not authenticated)", status="APPROVED")
+    db.add(row); db.commit()
+    return {"approval_id": row.id, "reviewer": row.reviewer, "approved_at": row.created_at.isoformat()}
+
+
+@router.get("/emails/{email_id}/reply-approvals")
+def reply_approvals(email_id: str, db: Session = Depends(get_db)):
+    rows = db.query(OutboundApprovalRecord).filter_by(email_id=email_id).order_by(OutboundApprovalRecord.created_at.desc()).all()
+    return [{"id": x.id, "status": x.status, "reviewer": x.reviewer, "created_at": x.created_at.isoformat(),
+             "recipient": x.recipient, "subject": x.subject, "body": x.body, "dispatch_id": x.dispatch_id} for x in rows]
 
 
 @router.post("/emails/{email_id}/disposition")
@@ -397,28 +435,36 @@ def outstream_return(email_id: str, payload: OutstreamReturnIn,
     is already classified, so the disposition decides whether the reply goes
     out automatically or waits for a human.
     """
-    email_rec = db.query(EmailRecord).filter_by(email_id=email_id).first()
-    if not email_rec:
-        raise HTTPException(404, f"email not found: {email_id}")
-    report = db.query(ReportRecord).filter_by(email_id=email_id).first()
-    decision, subj, body = build_outstream_receipt(email_rec, report)
-    subject = payload.subject or subj
-    body = payload.body or body
-    mb = email_rec.source_mailbox or infer_source_mailbox(email_id, email_rec.sender)
-
+    email_rec, decision, subject, body, mb, recipient, fingerprint = _reply_snapshot(email_id, payload, db)
+    mode = effective_disposition(_get_disposition_policy(db), mb, email_rec.disposition_override or "INHERIT")
     if payload.dry_run:
-        return {
-            "email_id": email_id, "reply_via": mb, "decision": decision,
-            "subject": subject, "body": body, "dry_run": True,
-        }
+        return {"email_id": email_id, "reply_via": mb, "recipient": recipient, "decision": decision,
+                "subject": subject, "body": body, "dry_run": True, "effective_disposition": mode,
+                "attachments": [], "approval_required": mode != "auto"}
+    approval = None
+    if payload.approval_id:
+        approval = db.query(OutboundApprovalRecord).filter_by(id=payload.approval_id, email_id=email_id).first()
+        if not approval or approval.fingerprint != fingerprint or approval.status != "APPROVED":
+            raise HTTPException(409, "Approval is stale, already used, or does not match this reply. Review again.")
+        from datetime import datetime, timedelta, timezone
+        if datetime.now(timezone.utc) - approval.created_at.replace(tzinfo=timezone.utc) > timedelta(hours=24):
+            raise HTTPException(409, "Approval expired. Review again.")
+        claimed = db.query(OutboundApprovalRecord).filter_by(id=approval.id, status="APPROVED").update({"status": "SENDING"})
+        if claimed != 1:
+            db.rollback()
+            raise HTTPException(409, "This approval is already being sent")
+        db.commit()  # Claim before SMTP: repeated requests cannot reuse approval.
+    elif mode != "auto":
+        raise HTTPException(409, "Manual policy requires approval of the exact reply before sending")
 
     from app.services.smtp_dispatcher import dispatch_smtp_email
-    smtp_res = dispatch_smtp_email(
-        to_email=email_rec.sender or mb,
-        subject=subject,
-        body=body,
-        sender=mb,
-    )
+    try:
+        smtp_res = dispatch_smtp_email(to_email=recipient, subject=subject, body=body, sender=mb)
+    except Exception:
+        if approval:
+            approval.status = "UNCONFIRMED"
+            db.commit()
+        raise HTTPException(502, "Delivery outcome is unconfirmed. Check sending history before retrying.")
     rec = DispatchRecord(
         email_id=email_id,
         stage_id=f"OUT-{email_id}",
@@ -435,6 +481,10 @@ def outstream_return(email_id: str, payload: OutstreamReturnIn,
     db.add(rec)
     db.commit()
     db.refresh(rec)
+    if approval:
+        approval.status = rec.delivery
+        approval.dispatch_id = rec.id
+        db.commit()
     return {
         "email_id": email_id, "reply_via": mb, "decision": decision,
         "subject": subject, "body": body,

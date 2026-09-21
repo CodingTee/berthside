@@ -219,15 +219,19 @@ def _ambiguous_explanation(text: str) -> str:
 
 
 def _remote_assist(task: str, payload: dict[str, Any]) -> Optional[dict[str, Any]]:
-    # Only invoke external/remote AI if provider is configured for AI (cascade, hybrid, remote)
-    if settings.ai_provider not in ("cascade", "hybrid", "remote"):
+    # Only invoke external/remote AI if provider is configured for AI
+    # (cascade, hybrid, remote, or local ollama -- no cloud key needed).
+    if settings.ai_provider not in ("cascade", "hybrid", "remote", "ollama"):
         return None
 
     # 1. First priority: Use Cascading LLM Gateway if keys are available
     try:
         from app.services.llm_gateway import gateway
+        use_ollama = settings.ai_provider == "ollama"
+        if use_ollama and not gateway.check_ollama_status().get("online"):
+            return None
         keys = gateway._get_keys()
-        if any(keys.values()):
+        if use_ollama or any(keys.values()):
             if task == "correction_email":
                 ref = payload.get("reference_number") or payload.get("shipment_key") or "Shipment"
                 issues = payload.get("issues", [])
@@ -242,7 +246,8 @@ def _remote_assist(task: str, payload: dict[str, Any]) -> Optional[dict[str, Any
                 ]
                 res = gateway.generate_hitl_draft(
                     email={"subject": f"Shipment {ref}", "from": "customer_ops@client.com"},
-                    discrepancies=disc_list
+                    discrepancies=disc_list,
+                    backend="ollama" if use_ollama else "cascade",
                 )
                 if res and res.get("draft_body"):
                     return {
@@ -258,7 +263,7 @@ def _remote_assist(task: str, payload: dict[str, Any]) -> Optional[dict[str, Any
                 diff = payload.get("difference", "")
                 sys_prompt = "You are a shipping document auditor. Explain the discrepancy between SI and Draft BL and suggest how human operations should verify it. Respond with JSON: {\"explanation\": \"...\", \"suggestion\": \"...\"}"
                 prompt = f"Field: {field}\nSI Value: {si}\nBL Value: {bl}\nDifference: {diff}"
-                res = gateway.call_text_cascade(prompt, sys_prompt)
+                res = gateway.call_text_ollama(prompt, sys_prompt) if use_ollama else gateway.call_text_cascade(prompt, sys_prompt)
                 if res and res.get("content"):
                     parsed = gateway._extract_json_from_text(res["content"])
                     if parsed:
@@ -272,7 +277,7 @@ def _remote_assist(task: str, payload: dict[str, Any]) -> Optional[dict[str, Any
                 text = payload.get("text", "")
                 field = payload.get("field_name", "")
                 sys_prompt = f"Interpret this ambiguous OCR shipping text for field '{field}'. Return JSON: {{\"interpreted_value\": \"...\", \"explanation\": \"...\"}}"
-                res = gateway.call_text_cascade(text, sys_prompt)
+                res = gateway.call_text_ollama(text, sys_prompt) if use_ollama else gateway.call_text_cascade(text, sys_prompt)
                 if res and res.get("content"):
                     parsed = gateway._extract_json_from_text(res["content"])
                     if parsed:

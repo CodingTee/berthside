@@ -17,14 +17,32 @@
    Master Console Router & Workspace Switcher Logic
    ========================================================================== */
 function switchView(name){
+  const unified = ["review","reply","failed","history","outstream"].includes(name);
+  if(unified){
+    const filter = document.getElementById("f-reply");
+    if(filter && name !== "review") filter.value = ({reply:"awaiting",outstream:"awaiting",failed:"failed",history:"history"})[name];
+    document.getElementById("viewReview")?.classList.remove("email-open");
+    document.getElementById("reviewMore")?.removeAttribute("open");
+    if(window.loadList) window.loadList();
+    name = "review";
+  }
   const queue = name === "outstream" ? "reply" : name;
   const workbench = ["review", "reply", "failed", "history", "outstream"].includes(name);
   const header = document.getElementById("reviewReplyHeader");
   if(header) header.hidden = !workbench;
   document.querySelectorAll("[data-review-queue]").forEach(b => {
-    b.classList.toggle("primary", b.dataset.reviewQueue === queue);
-    b.setAttribute("aria-pressed", String(b.dataset.reviewQueue === queue));
+    b.classList.toggle("primary", (b.dataset.reviewQueue === queue || (b.dataset.reviewQueue === "reply" && queue === "failed")));
+    b.setAttribute("aria-pressed", String((b.dataset.reviewQueue === queue || (b.dataset.reviewQueue === "reply" && queue === "failed"))));
   });
+  const replyFilter = document.getElementById("replyStatusFilter");
+  const replyFilterWrap = document.getElementById("replyStatusFilterWrap");
+  const isReplyQueue = ["reply", "failed"].includes(queue);
+  if(replyFilterWrap) replyFilterWrap.hidden = !isReplyQueue;
+  if(replyFilter && isReplyQueue) replyFilter.value = queue;
+  const replyHelp = document.getElementById("replyStatusHelp");
+  if(replyHelp) replyHelp.textContent = queue === "failed"
+    ? "A sending attempt failed. Review the reply and retry."
+    : "A reply is waiting to be sent.";
   if(["reply", "failed", "history"].includes(queue)) name = "outstream";
   const navGateway = document.getElementById("navGateway");
   const navReview = document.getElementById("navReview");
@@ -875,6 +893,9 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 /* Trust-matrix kebab + modal, channel chips */
 .mx-kebab { white-space: nowrap; font-family: var(--mono); font-size: 11px; }
 .mx-modal-box { width: 880px; max-height: 86vh; overflow-y: auto; gap: 12px; }
+.mx-demo-row { display: flex; gap: 12px; align-items: center; padding-top: 10px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.mx-demo-lbl { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-2); }
+.mx-demo-hint { flex: 1; min-width: 260px; font-size: 11.5px; color: var(--muted); line-height: 1.45; }
 .mx-tools-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .mx-tools-row .gw-search { min-width: 220px; margin-left: auto; }
 .chan-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 9px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
@@ -978,13 +999,30 @@ table.staged-tbl th { background: var(--surface-3); padding: 10px 14px; font-siz
 table.staged-tbl td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; overflow: hidden; }
 table.staged-tbl tr:hover { background: rgba(255,255,255,.03); }
 /* pinned column widths (fixed layout) — sum = 100% */
-table.staged-tbl th:nth-child(1), table.staged-tbl td:nth-child(1) { width: 12%; }
-table.staged-tbl th:nth-child(2), table.staged-tbl td:nth-child(2) { width: 15%; }
-table.staged-tbl th:nth-child(3), table.staged-tbl td:nth-child(3) { width: 24%; }
-table.staged-tbl th:nth-child(4), table.staged-tbl td:nth-child(4) { width: 15%; }
-table.staged-tbl th:nth-child(5), table.staged-tbl td:nth-child(5) { width: 12%; }
-table.staged-tbl th:nth-child(6), table.staged-tbl td:nth-child(6) { width: 10%; }
-table.staged-tbl th:nth-child(7), table.staged-tbl td:nth-child(7) { width: 22%; overflow: visible; white-space: normal; }
+table.staged-tbl th:nth-child(1), table.staged-tbl td:nth-child(1) { width: 11%; }
+/* col 2 (mail) is auto: it absorbs the leftover so the subject uses the space */
+table.staged-tbl th:nth-child(3), table.staged-tbl td:nth-child(3) { width: 340px; }
+table.staged-tbl th:nth-child(4), table.staged-tbl td:nth-child(4) { width: 190px; overflow: visible; white-space: normal; }
+/* compact rows: the full record lives in the click-to-open detail modal */
+#stagedList td { padding: 7px 14px; }
+#stagedList tr.stg-row { cursor: pointer; }
+.stg-subj { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.stg-meta { display: flex; gap: 8px; align-items: center; margin-top: 2px; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; max-width: 100%; }
+.stg-meta .pill-src { font-size: 10.5px; padding: 1px 7px; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.stg-sender { overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; }
+.stg-verdict { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
+.stg-status { font-size: 11px; font-family: var(--mono); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--muted); }
+.stg-status.st-ok { color: var(--ok); border-color: var(--ok); }
+.stg-status.st-warn { color: var(--warn); border-color: var(--warn); }
+.stg-status.st-bad { color: var(--bad); border-color: var(--bad); }
+.stg-status.st-accent { color: var(--accent); border-color: var(--accent); }
+/* row-detail modal */
+.stg-detail { display: flex; flex-direction: column; gap: 9px; font-size: 13px; }
+.stg-drow { display: grid; grid-template-columns: 110px 1fr; gap: 10px; align-items: start; }
+.stg-dk { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; padding-top: 2px; }
+.stg-dv { overflow-wrap: anywhere; }
+.stg-dv.mono { font-family: var(--mono); font-size: 12px; }
+.stg-dactions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 14px; }
 /* ellipsise the two long text columns instead of letting them wrap raggedly */
 table.staged-tbl td:nth-child(3) > div, table.staged-tbl td:nth-child(2) .pill-src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .act-wrap { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
@@ -1267,10 +1305,88 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
 
 .rr-header{padding:16px 20px;margin-bottom:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
-.rr-header[hidden]{display:none}.rr-header h2{margin:0 0 5px;font-size:20px}.rr-header p{color:var(--muted);margin:0 0 14px;font-size:13px}
+.rr-header[hidden],#replyStatusFilterWrap[hidden],#replyBulkSend[hidden]{display:none!important}.rr-header h2{margin:0 0 5px;font-size:20px}.rr-header p{color:var(--muted);margin:0 0 14px;font-size:13px}
 .rr-header nav{display:flex;gap:8px;flex-wrap:wrap}.rr-actions{padding:14px;border:1px solid var(--border);border-radius:10px;margin:12px 0}
 .rr-history pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:12px}.rr-history article{padding:12px 0;border-top:1px solid var(--border)}
-</style>
+
+/* Full-width mail workspace. */
+.rr-header{display:flex;align-items:center;gap:18px;margin:0;padding:18px 20px;border-radius:0;flex-shrink:0}
+.rr-header h2{font-size:19px;margin:0;white-space:nowrap}
+.mail-stats{display:grid;grid-template-columns:repeat(6,minmax(80px,1fr));flex:1;gap:10px}
+.mail-stat{padding:8px 12px;border-left:1px solid var(--border);font-size:11px;color:var(--muted)}
+.mail-stat b{display:block;font-size:22px;color:var(--text);margin-top:3px}
+.mail-more{position:relative}.mail-more summary{list-style:none;cursor:pointer;font-size:22px}.mail-more summary::-webkit-details-marker{display:none}
+.mail-menu{position:absolute;right:0;top:100%;padding:8px;min-width:150px;z-index:30;background:var(--surface);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.mail-menu button{width:100%}
+#viewReview .workspace{display:flex;flex:1;padding-top:16px;min-height:0}
+#viewReview .inbox-panel,#viewReview .detail-panel{width:100%;flex:1;min-width:0}
+#viewReview .detail-panel,#viewReview #splitGrip,#viewReview #focusBtn{display:none!important}
+#viewReview.email-open .inbox-panel{display:none!important}
+#viewReview.email-open .detail-panel{display:flex!important;flex-direction:column}
+#viewReview:not(.email-open) .inbox-panel{display:flex!important;flex-direction:column}
+#viewReview .panel-head{flex-wrap:wrap}#viewReview .filters{margin-left:auto;flex-wrap:wrap}
+#viewReview .list .row{display:grid;grid-template-columns:minmax(160px,220px) minmax(200px,1fr) auto;align-items:center;gap:18px;padding:16px 22px}
+#viewReview .row .from{grid-column:1;grid-row:1;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#viewReview .row .top{grid-column:2;grid-row:1;min-width:0}#viewReview .row .mt{grid-column:3;grid-row:1;margin:0;flex-wrap:wrap;justify-content:flex-end}
+.mail-back{align-self:flex-start;margin:14px 18px 0}.rr-actions{margin:16px 0}
+@media(max-width:1100px){.rr-header{flex-wrap:wrap}.mail-stats{order:3;flex-basis:100%}.mail-more{margin-left:auto}#viewReview .list .row{grid-template-columns:160px 1fr}#viewReview .row .mt{grid-column:2;grid-row:2;justify-content:flex-start}}
+@media(max-width:650px){.mail-stats{grid-template-columns:repeat(3,1fr)}#viewReview .list .row{display:block}#viewReview .row .from{margin:7px 0}}
+
+
+/* Stable verification and category columns in the mail list. */
+#viewReview .list .row{grid-template-columns:170px minmax(260px,1fr) 310px;gap:14px}
+#viewReview .row .top{display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:14px;align-items:center}
+#viewReview .row .top .sbj{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#viewReview .row .top .badge{justify-self:center;max-width:130px}
+#viewReview .row .mt{display:grid;grid-template-columns:155px 145px;gap:6px 10px;justify-content:start;align-items:center}
+#viewReview .row .mt .cat{grid-column:1;grid-row:1;justify-self:center}
+#viewReview .row .mt .id{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1100px){#viewReview .list .row{grid-template-columns:140px minmax(200px,1fr) 310px;gap:10px}#viewReview .row .mt{grid-column:3;grid-row:1}#viewReview .row .top{grid-template-columns:minmax(0,1fr) 130px;gap:8px}}
+@media(max-width:850px){#viewReview .list .row{min-width:760px;display:grid}#viewReview .list{overflow:auto}}
+
+
+#viewReview .row .from .mail-record-id{display:block;margin-top:5px;font-family:var(--mono);font-size:10px;color:var(--muted-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#viewReview .row .top{row-gap:5px}
+#viewReview .row .top .badge{grid-column:2;grid-row:1}
+#viewReview .filters #f-reply{flex:0 0 176px;width:176px;min-width:176px;max-width:176px}
+#viewReview .filters #f-status{flex:0 0 100px;width:100px;min-width:100px;max-width:100px}
+/* inline filter box vs the palette trigger: only one looks like a search field */
+#viewReview .filters .rv-search{flex:1 1 150px;min-width:150px;height:34px;padding:3px 8px}
+#viewReview .filters .rv-search input{font-size:11.5px}
+#viewReview .filters #f-src{flex:0 1 auto;min-width:88px;max-width:120px}
+.search-btn.pal-only{flex:0 0 auto;width:38px;justify-content:center;padding:0 8px}
+.search-btn.pal-only .s-ph,.search-btn.pal-only .hk{display:none}
+/* Needs my action strip (shared above every view) */
+.needs-strip{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:7px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-wrap:wrap}
+.needs-lbl{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)}
+.needs-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-3);color:var(--muted);font-size:11.5px;cursor:pointer;transition:border-color .16s,color .16s}
+.needs-chip b{font-size:12.5px;color:var(--text)}
+.needs-chip:hover{border-color:var(--accent);color:var(--text)}
+.needs-chip.warn:hover{border-color:var(--warn)}
+.needs-chip.bad:hover{border-color:var(--bad)}
+.needs-chip.zero{opacity:.45}
+.needs-chip.warn b{color:var(--warn)}
+.needs-chip.bad b{color:var(--bad)}
+.needs-spacer{flex:1}
+.needs-upd{font-size:11px;color:var(--muted-2)}
+#viewReview .row .from .sender-address{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Theme-aware review summary: restrained color, clear state hierarchy. */
+#reviewReplyHeader{background:linear-gradient(115deg,color-mix(in srgb,var(--accent) 7%,var(--surface)),var(--surface) 48%,color-mix(in srgb,var(--accent-3) 7%,var(--surface)));border-bottom:1px solid color-mix(in srgb,var(--accent) 22%,var(--border));box-shadow:0 4px 20px rgba(0,0,0,.08);gap:16px}
+#reviewReplyHeader h2{position:relative;padding-left:13px;letter-spacing:-.4px}
+#reviewReplyHeader h2::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:3px;border-radius:4px;background:linear-gradient(var(--accent),var(--accent-2));box-shadow:0 0 12px color-mix(in srgb,var(--accent) 30%,transparent)}
+#reviewReplyHeader .mail-stat{--stat-color:var(--accent-2);position:relative;padding:11px 12px 10px;border:1px solid color-mix(in srgb,var(--stat-color) 20%,var(--border));border-radius:10px;background:linear-gradient(135deg,color-mix(in srgb,var(--stat-color) 9%,var(--surface)),color-mix(in srgb,var(--stat-color) 3%,var(--surface)));overflow:hidden;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--stat-color) 10%,transparent)}
+#reviewReplyHeader .mail-stat::after{content:"";position:absolute;left:12px;right:12px;bottom:0;height:2px;background:linear-gradient(90deg,var(--stat-color),transparent);opacity:.65}
+#reviewReplyHeader .mail-stat:nth-child(2){--stat-color:var(--ok)}
+#reviewReplyHeader .mail-stat:nth-child(3){--stat-color:var(--warn)}
+#reviewReplyHeader .mail-stat:nth-child(4){--stat-color:var(--accent-3)}
+#reviewReplyHeader .mail-stat:nth-child(5){--stat-color:var(--accent)}
+#reviewReplyHeader .mail-stat:nth-child(6){--stat-color:var(--bad)}
+#reviewReplyHeader .mail-stat b{color:var(--stat-color);font-size:24px;line-height:1.2;letter-spacing:-.6px;font-variant-numeric:tabular-nums;margin-top:7px}
+#reviewReplyHeader>.btn{border-color:color-mix(in srgb,var(--accent) 25%,var(--border));background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
+#reviewReplyHeader>.btn:hover{background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+
+.outbound-policy-bar{padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface)}.outbound-policy-bar .cg-item{display:flex;align-items:center;gap:10px}.policy-hint{font-size:11px;color:var(--muted)}#viewReview.email-open .outbound-policy-bar{display:none}#outApprovalStatus{font-size:12px;color:var(--accent)}#outReturnModal button:disabled{opacity:.45;cursor:not-allowed}</style>
 </head>
 <body data-page-node-id="wzcVVSuVBtDzNxMgWcXGVQ">
 <div class="app" data-page-node-id="qazEggtcA0P6goKeGKu5rm">
@@ -1352,6 +1468,18 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
   <!-- ===================== MAIN ===================== -->
   <main class="main" data-page-node-id="nJ1KdkVPiCqPLg1IYTqYls">
+
+    <!-- Needs my action: one strip above every view. Pure read-only aggregation
+         over endpoints that already exist; each chip jumps into the work queue. -->
+    <div class="needs-strip" id="needsStrip">
+      <span class="needs-lbl">Needs my action</span>
+      <button class="needs-chip" id="needsTriage" type="button" onclick="jumpToNeeds('triage')" data-tip="Gateway: staged mail waiting for a human decision" data-tip-pos="bottom"><b>0</b> Awaiting triage</button>
+      <button class="needs-chip warn" id="needsReview" type="button" onclick="jumpToNeeds('review')" data-tip="Review: NEEDS_REVIEW verdicts waiting for confirmation" data-tip-pos="bottom"><b>0</b> Defect review</button>
+      <button class="needs-chip" id="needsReply" type="button" onclick="jumpToNeeds('reply')" data-tip="Reply queue: recipients still waiting for an answer" data-tip-pos="bottom"><b>0</b> Reply to send</button>
+      <button class="needs-chip bad" id="needsFailed" type="button" onclick="jumpToNeeds('failed')" data-tip="Reply queue: deliveries that failed and need a retry" data-tip-pos="bottom"><b>0</b> Failed sends</button>
+      <span class="needs-spacer"></span>
+      <span class="needs-upd" id="needsUpdated"></span>
+    </div>
     
     <!-- VIEW 1: GATEWAY & SANDBOX -->
     <div id="viewGateway" class="console-view" hidden>
@@ -1415,7 +1543,6 @@ table.list tbody tr.sel .key{color:var(--accent)}
           <span class="chan-chip" title="Inbound channel (IMAP)">📥 <span id="imapChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></span>
           <span class="chan-chip" title="Outbound channel (SMTP)">📤 <span id="smtpChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></span>
           <button class="btn" type="button" onclick="Gateway.pollImap()" title="Check live IMAP inbox for new emails sent from your Gmail">📥 Poll IMAP Inbox</button>
-          <button class="btn btn-primary" type="button" onclick="Gateway.openSimModal()">⚡ Simulate Incoming Email</button>
         </div>
       </div>
 
@@ -1431,13 +1558,11 @@ table.list tbody tr.sel .key{color:var(--accent)}
               <input id="gwSearch" type="text" placeholder="Search stage ID, sender, subject, mailbox…" oninput="Gateway.onSearch(this.value)" />
               <button id="gwSearchClear" class="gw-search-clear" type="button" onclick="Gateway.clearSearch()" title="Clear" hidden>✕</button>
             </div>
-          </div>
-          <div class="bulk-bar">
             <label class="chk-quar" title="When checked, bulk approve also releases quarantined items">
               <input type="checkbox" id="gwIncQuar" onchange="Gateway.onIncQuar(this.checked)" /> Include quarantine
             </label>
-            <button class="btn btn-sm btn-primary" type="button" id="gwApproveAll" onclick="Gateway.bulkApprove()">✅ Approve all <span id="bulkScopeLabel" class="bulk-scope"></span></button>
-            <button class="btn btn-sm" type="button" id="gwReturnAll" onclick="Gateway.bulkReturn()">↩ Return all <span id="retScopeLabel" class="bulk-scope"></span></button>
+            <button class="btn btn-sm btn-primary" type="button" id="gwApproveAll" onclick="Gateway.bulkApprove()">✅ Approve all</button>
+            <button class="btn btn-sm" type="button" id="gwReturnAll" onclick="Gateway.bulkReturn()">↩ Return all</button>
             <button class="btn btn-sm" type="button" onclick="Gateway.loadStagedEmails()">🔄 Refresh</button>
           </div>
         </div>
@@ -1446,11 +1571,8 @@ table.list tbody tr.sel .key{color:var(--accent)}
             <thead>
               <tr>
                 <th>Stage ID</th>
-                <th data-tip="Destination mailbox the document is ingested into">Target Mailbox</th>
-                <th>Sender &amp; Subject</th>
-                <th data-tip="Sandbox antivirus / malware verdict">Antivirus &amp; Malware Scan</th>
-                <th data-tip="AI model's predicted document intent / category">AI Intent Classification</th>
-                <th>Status</th>
+                <th>Mail (click for detail)</th>
+                <th data-tip="Security verdict · AI intent · pipeline status">Verdict</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -1461,17 +1583,25 @@ table.list tbody tr.sel .key{color:var(--accent)}
     </div>
 
 <section id="reviewReplyHeader" class="rr-header" hidden>
-  <div><h2>Review &amp; Reply</h2><p>Inspect the evidence, prepare a reply, and keep the delivery history.</p></div>
-  <nav aria-label="Review and reply queues">
-    <button class="btn" data-review-queue="review" onclick="switchView('review')">Review</button>
-    <button class="btn" data-review-queue="reply" onclick="switchView('reply')">Awaiting reply</button>
-    <button class="btn" data-review-queue="failed" onclick="switchView('failed')">Failed</button>
-    <button class="btn" data-review-queue="history" onclick="switchView('history')">History</button>
-  </nav>
+  <h2>Review &amp; Reply</h2>
+  <div id="kpis" class="mail-stats"></div>
+  <button class="btn" onclick="loadSummary();loadList()" aria-label="Refresh emails">↻ Refresh</button>
+  <details id="reviewMore" class="mail-more">
+    <summary class="btn" aria-label="More email options">⋯</summary>
+    <div class="mail-menu"><button class="btn" onclick="switchView('history')">History</button></div>
+  </details>
 </section>
     <!-- VIEW 2: REVIEW CONSOLE (DEFAULT ACTIVE) -->
     <div id="viewReview" class="console-view">
-      <div class="kpi-bar" id="kpis" data-page-node-id="MnDL1ijvY4PaZZpApCVFPI"></div>
+<div class="outbound-policy-bar">          <div class="cg-item">
+            <span>↩️ Outbound Policy:</span>
+            <select class="select-ctl" id="outSelMode" onchange="Outstream.setGlobalDisposition()">
+              <option value="manual">🛡️ Manual (approval required)</option>
+              <option value="auto">⚡ Auto (send reply automatically)</option>
+            </select>
+            <button class="btn btn-sm mx-kebab" id="outKebab" type="button" data-tip="Per-source reply policy" onclick="Outstream.openMatrixModal()">&#8943; <span id="outKebabSum">sources</span></button>
+          </div>
+<span class="policy-hint">Source and per-email overrides take priority. Changes affect future sends.</span></div>
       <div class="workspace" data-page-node-id="xr4E9BDPd4SXGX5HsNUsrU">
         <!-- INBOX -->
         <div class="panel inbox-panel" data-page-node-id="RwHteb1iAdPXmvmNCdy571">
@@ -1479,7 +1609,15 @@ table.list tbody tr.sel .key{color:var(--accent)}
             <div class="ttl" data-page-node-id="gA2CWDli7YqEGsFsJDqZK3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="goxzBBzZogeTJc7BhPnrQv"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1" data-page-node-id="4UqgJx8OWBzQI5S0yFemIA"/></svg>Inbox</div>
             <span class="count" id="listCount" data-page-node-id="RIraeHzLf3BTGmplwRAWgP">0</span>
             <div class="filters" data-page-node-id="iDmBfLOb9wMuFxEv6tphcA">
-              <button type="button" class="search-btn" id="qBtn" data-tip="Search the inbox" data-tip-desc="Find an email by subject, sender, id: or type a command" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Search the inbox" data-page-node-id="VIuNb0s2SVOVXZq5pluQBB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="EtFuO8wDJV0DixXmZu4VbU" data-keep="1"><circle cx="11" cy="11" r="7" data-page-node-id="bvFEDelWr0IqFsxWrq1O9E"/><path d="M21 21l-4.3-4.3" data-page-node-id="lsoOefcWa4BfRVtDOibjqD"/></svg><span class="s-ph">Search…</span><span class="hk">Ctrl K</span></button>
+              <button type="button" class="search-btn pal-only" id="qBtn" data-tip="Search the inbox" data-tip-desc="Find an email by subject, sender, id: or type a command" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Search the inbox" data-page-node-id="VIuNb0s2SVOVXZq5pluQBB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="EtFuO8wDJV0DixXmZu4VbU" data-keep="1"><circle cx="11" cy="11" r="7" data-page-node-id="bvFEDelWr0IqFsxWrq1O9E"/><path d="M21 21l-4.3-4.3" data-page-node-id="lsoOefcWa4BfRVtDOibjqD"/></svg><span class="s-ph">Search…</span><span class="hk">Ctrl K</span></button>
+              <div class="gw-search rv-search">
+                <span class="gw-search-ico">&#128269;</span>
+                <input id="f-q" type="text" placeholder="Filter: subject, sender, id&#8230;" oninput="applyReviewFilter()" />
+                <button id="f-q-clear" class="gw-search-clear" type="button" onclick="clearReviewSearch()" title="Clear" hidden>&#10005;</button>
+              </div>
+              <select id="f-src" aria-label="Mailbox source" onchange="applyReviewFilter()"><option value="">All sources</option></select>
+              <select id="f-reply" aria-label="Reply status" onchange="applyReviewFilter()">
+<option value="">All reply statuses</option><option value="awaiting">Awaiting reply</option><option value="failed">Failed</option><option value="sent">Sent</option><option value="simulated">Simulated</option><option value="history">History · all attempts</option></select>
               <select id="f-cat" data-page-node-id="JEIl45AfgnDZ6egsmFuj1K"><option value="" data-page-node-id="GDBn06HYAn3gfxqh40K9CL">All categories</option></select>
               <select id="f-status" data-page-node-id="uoNnzAOZ1W388JhvqWk7XG"><option value="" data-page-node-id="RLwN10k8RiNgZp666cFlVR" data-keep="1">All statuses</option><option data-page-node-id="gwPvgEs2GxxwMoMP6YIxFQ">OK</option><option data-page-node-id="BsVNhJz4gxOGIbldFYi8g0">MISMATCH</option><option data-page-node-id="aj69F5OCy4tocJZzjelqL2">NEEDS_REVIEW</option><option>SKIPPED</option></select>
             </div>
@@ -1489,6 +1627,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
         <!-- DETAIL -->
         <div class="panel detail-panel" id="detailPanel" data-page-node-id="3S6LUEx0omhwFaXgjXZ2nC">
+          <button class="btn mail-back" onclick="backToEmailList()">← Back to emails</button>
           <button class="focus-btn" id="focusBtn" type="button" data-tip="Focus mode" data-tip-desc="Hide the inbox and expand the SI ↔ BL comparison" data-tip-kbd="F" data-tip-pos="bottom" aria-label="Toggle focus mode"><span class="focus-ico"></span></button>
           <div class="detail" id="detail" data-page-node-id="zJuL7QW2oaMUxhj8CSuZSa"><div class="empty" data-page-node-id="zKtBI4wD67QpLkkvCUNt1K">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="cdemDJeB44XwgvDJ5TnJGG"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1" data-page-node-id="MReMroVaPFv2otxpH2AN3h"/></svg>
@@ -1558,14 +1697,6 @@ table.list tbody tr.sel .key{color:var(--accent)}
             </select>
           </div>
           <div class="cg-item">
-            <span>↩️ Response Policy:</span>
-            <select class="select-ctl" id="outSelMode" onchange="Outstream.setGlobalDisposition()">
-              <option value="manual">🛡️ Manual (queue for human)</option>
-              <option value="auto">⚡ Auto (send reply automatically)</option>
-            </select>
-            <button class="btn btn-sm mx-kebab" id="outKebab" type="button" data-tip="Per-source reply policy" onclick="Outstream.openMatrixModal()">&#8943; <span id="outKebabSum">sources</span></button>
-          </div>
-          <div class="cg-item">
             <span>🔎 Search:</span>
             <input id="outSearch" class="select-ctl" type="text" placeholder="subject, sender or id…" oninput="Outstream.onSearch()" style="min-width:200px;">
           </div>
@@ -1580,6 +1711,14 @@ table.list tbody tr.sel .key{color:var(--accent)}
         <div class="table-header">
           <div style="display:flex;align-items:center;gap:6px;">
             <span>📨 <span id="replyQueueTitle">Awaiting reply</span></span>
+            <label id="replyStatusFilterWrap" hidden style="margin-left:12px;">
+              Status
+              <select id="replyStatusFilter" aria-label="Reply status" aria-describedby="replyStatusHelp" onchange="switchView(this.value)">
+                <option value="reply">Awaiting reply</option>
+                <option value="failed">Failed</option>
+              </select>
+              <span id="replyStatusHelp" style="font-size:12px;color:var(--muted);margin-left:8px;"></span>
+            </label>
             <span id="outCountBadge" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
           </div>
           <div class="bulk-bar">
@@ -1637,7 +1776,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite" data-page-node-id="ok7ELoHCA9aZ2RtqfcNEkH"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="cGvg1ce4eVflxcIP0yceuQ"><path d="M20 6L9 17l-5-5" data-page-node-id="ZGOj9zUsEY5MnyJD6aJkTz"/></svg><span id="toastMsg" data-page-node-id="DVdx6CWuDaRUEY4F9PVQSM"></span></div>
 
-<script src="/ui/js/review.js"></script>
+<script src="/ui/js/review.js?v=mail-workspace-5"></script>
 
 <!-- ===================== GATEWAY MODALS ===================== -->
 <!-- Response Disposition Policy modal (opened from the Response Policy kebab) -->
@@ -1653,6 +1792,27 @@ table.list tbody tr.sel .key{color:var(--accent)}
 </div>
 
 <!-- Source Trust Matrix modal (opened from the Ingestion Policy kebab) -->
+<!-- Row detail modal: full record behind a compact inbound-stream row -->
+<div class="modal-overlay hidden" id="stageDetailModal" onclick="if(event.target===this)Gateway.closeStageDetail()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>📨 Email Detail</span>
+      <button class="btn btn-sm" type="button" onclick="Gateway.closeStageDetail()">&#10005;</button>
+    </div>
+    <div class="stg-detail">
+      <div class="stg-drow"><span class="stg-dk">Subject</span><span class="stg-dv" id="sdSubject"></span></div>
+      <div class="stg-drow"><span class="stg-dk">Stage ID</span><span class="stg-dv mono" id="sdStage"></span></div>
+      <div class="stg-drow"><span class="stg-dk">Sender</span><span class="stg-dv" id="sdSender"></span></div>
+      <div class="stg-drow"><span class="stg-dk">Target mailbox</span><span class="stg-dv" id="sdMailbox"></span></div>
+      <div class="stg-drow"><span class="stg-dk">Security</span><span class="stg-dv" id="sdSecurity"></span></div>
+      <div class="stg-drow"><span class="stg-dk">Attachments</span><span class="stg-dv mono" id="sdAttachments"></span></div>
+      <div class="stg-drow"><span class="stg-dk">AI intent</span><span class="stg-dv" id="sdCategory"></span></div>
+      <div class="stg-drow"><span class="stg-dk">Status</span><span class="stg-dv" id="sdStatus"></span></div>
+    </div>
+    <div class="stg-dactions" id="sdActions"></div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="mxModal">
   <div class="modal-box mx-modal-box">
     <div class="modal-head">
@@ -1691,6 +1851,11 @@ table.list tbody tr.sel .key{color:var(--accent)}
         </thead>
         <tbody id="matrixGrid"></tbody>
       </table>
+    </div>
+    <div class="mx-demo-row">
+      <span class="mx-demo-lbl">Demo tools</span>
+      <span class="mx-demo-hint">Inject a scripted email (clean BL / trojan / spam) without touching a real mailbox. Gmail strips executable attachments, so the trojan scenario is only reachable this way.</span>
+      <button class="btn btn-sm" type="button" onclick="Gateway.openSimModal()">&#9889; Simulate Incoming Email</button>
     </div>
   </div>
 </div>
@@ -1778,14 +1943,14 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
 <script src="/ui/js/gateway.js"></script>
 <script src="/ui/js/lifecycle.js"></script>
-<script src="/ui/js/outstream.js"></script>
-<script src="/ui/js/review_reply.js"></script>
+<script src="/ui/js/outstream.js?v=approval-1"></script>
+<script src="/ui/js/review_reply.js?v=approval-1"></script>
 
 <!-- Outstream Return Modal (post-classification reply / clarification) -->
 <div class="modal-overlay hidden" id="outReturnModal">
   <div class="modal-box">
     <div class="modal-head">
-      <span>↩ Outstream Reply / Clarification Request</span>
+      <span>Review outgoing reply</span>
       <button class="btn btn-sm" type="button" onclick="Outstream.closeReturnModal()">✕</button>
     </div>
     <div style="font-size:12px;color:var(--muted);line-height:1.5;">
@@ -1798,16 +1963,18 @@ table.list tbody tr.sel .key{color:var(--accent)}
     </div>
     <div style="display:flex;flex-direction:column;gap:4px;">
       <label style="font-size:12px;color:var(--muted);">Subject</label>
-      <input id="outRetSub" style="background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:var(--sans);font-size:12.5px;outline:none;">
+      <input id="outRetSub" oninput="Outstream.noteDraftEdit()" style="background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:var(--sans);font-size:12.5px;outline:none;">
     </div>
-    <textarea id="outRetBody" style="width:100%;height:150px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
+    <textarea id="outRetBody" oninput="Outstream.noteDraftEdit()" style="width:100%;height:150px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
+    <div id="outRetDraftNote" style="display:none;align-items:center;gap:10px;font-size:11.5px;color:var(--warn);background:var(--warn-bg);border:1px solid var(--warn-bd);border-radius:8px;padding:6px 10px;">
+      <span>Unsent draft kept for this email. It survives closing this window.</span>
+      <button class="btn btn-sm" type="button" onclick="Outstream.discardDraft()">Discard draft</button>
+    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
-      <a id="outRetMailtoBtn" href="#" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.4);" target="_blank">
-        🚀 Open Local Email (mailto)
-      </a>
+      <div><p id="outApprovalStatus" role="status">Review required</p><small>No outgoing attachments. Original attachments are not forwarded.</small></div>
       <div style="display:flex;gap:10px;">
         <button class="btn" type="button" onclick="Outstream.closeReturnModal()">Cancel</button>
-        <button class="btn btn-primary" type="button" onclick="Outstream.confirmReturn()">📨 Dispatch Reply</button>
+        <button class="btn" id="outApproveBtn" type="button" onclick="Outstream.approveReply()">Approve this reply</button><button class="btn btn-primary" id="outSendBtn" type="button" disabled onclick="Outstream.confirmReturn()">Send approved reply</button>
       </div>
     </div>
   </div>

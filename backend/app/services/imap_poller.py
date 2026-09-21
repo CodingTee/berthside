@@ -318,13 +318,16 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
             if not should_reply:
                 log.info("Auto-reply suppressed for stage %s: %s", stage_id, suppression_reason)
             else:
-                from app.services.email_utils import clean_subject, extract_original_sender
+                from app.services.email_utils import (
+                    build_customer_structured_text,
+                    build_enterprise_audit_receipt,
+                    clean_subject,
+                    extract_original_sender,
+                )
                 import urllib.parse
 
                 clean_subj = clean_subject(subject)
                 orig_client = extract_original_sender(body)
-                orig_client_line = f"• Original Client: {orig_client}\n" if (orig_client and orig_client != sender_email) else ""
-
                 target_client = orig_client or sender_email
                 is_mismatch = rep.status == "MISMATCH"
                 is_review = rep.status == "NEEDS_REVIEW"
@@ -340,16 +343,15 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
                     reply_subj = f"Re: {clean_subj} - Document Verification Complete - Ref #{stage_id}"
                     status_desc = f"Verified with 0 discrepancies ({report_summary})"
 
-                # Construct 1-click reply for operator
-                client_subj = f"Re: {clean_subj} - {'B/L Discrepancies Flagged' if is_mismatch else 'Document Verification Complete'}"
-                client_reply_text = (
-                    f"Dear Customer,\n\n"
-                    f"Regarding your shipping document submission for '{clean_subj}':\n\n"
-                    f"Our automated verification gateway has audited the package:\n"
-                    f"• Status: {status_desc}\n"
-                    f"• Reference ID: {stage_id}\n\n"
-                    f"Best regards,\n"
-                    f"Shipping Documentation Operations Desk"
+                # Construct executive-grade counterpart reply for customer
+                client_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'}"
+                client_reply_text = build_customer_structured_text(
+                    clean_subj=clean_subj,
+                    stage_id=stage_id,
+                    status_desc=status_desc,
+                    rep=rep,
+                    target_client=target_client,
+                    source_mailbox=staged.source_mailbox,
                 )
                 mailto_link = f"mailto:{target_client}?{urllib.parse.urlencode({'subject': client_subj, 'body': client_reply_text})}"
                 # Construct pinpoint Gmail operator search: from:source_email + subject:(keywords)
@@ -360,72 +362,27 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
                     thread_query = f"from:{target_client}"
                 gmail_thread_search = f"https://mail.google.com/mail/u/0/#search/{urllib.parse.quote_plus(thread_query)}"
 
-                action_block_text = ""
-                if orig_client and orig_client != sender_email:
-                    action_block_text = (
-                        f"\n----------------------------------------------------------------------\n"
-                        f"🚀 [Fast Client Reply Gateway (Zero Manual Forwarding · Direct Re:)]\n"
-                        f"Original client detected: {orig_client}\n\n"
-                        f"✉️ [Option 1: One-Click Reply (Auto-filled mailto)]:\n"
-                        f"👉 {mailto_link}\n\n"
-                        f"🔍 [Option 2: Locate Exact Thread in Gmail (from:{orig_client} + Subject)]:\n"
-                        f"👉 {gmail_thread_search}\n\n"
-                        f"📋 [Pre-formatted Client Reply (Copy & paste into thread)]:\n"
-                        f"----------------------------------------------------------------------\n"
-                        f"{client_reply_text}\n"
-                        f"----------------------------------------------------------------------\n"
-                        f"----------------------------------------------------------------------\n"
-                    )
-
-                reply_body = (
-                    f"Dear Shipping Documentation Team / Customer,\n\n"
-                    f"Regarding your submission for '{clean_subj}':\n\n"
-                    f"Our automated verification gateway has audited the package:\n"
-                    f"• Status: {status_desc}\n"
-                    f"• Reference ID: {stage_id}\n"
-                    f"• Inbound Channel: IMAP Live Gateway\n"
-                    f"{orig_client_line}\n"
-                    f"{action_block_text}\n"
-                    f"Best regards,\n"
-                    f"Documentation Operations Desk\n"
-                    f"{staged.source_mailbox}"
+                public_base = settings.public_base_url or "http://127.0.0.1:8000"
+                dispatch_url = (
+                    f"{public_base.rstrip('/')}/api/v1/gateway/customer-notice/send"
+                    f"?stage_id={stage_id}&recipient={urllib.parse.quote_plus(target_client)}&auto_send=true"
                 )
 
-                # Rich HTML representation with 1-click action button and copyable draft box
-                html_btn_html = ""
-                if orig_client and orig_client != sender_email:
-                    html_btn_html = f"""
-                    <div style="margin: 20px 0; padding: 16px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
-                        <h4 style="margin: 0 0 8px 0; color: #166534; font-size: 15px;">🚀 Fast Client Reply Gateway (Direct Re: · No Fwd: Noise)</h4>
-                        <p style="margin: 0 0 14px 0; color: #374151; font-size: 13px; line-height: 1.5;">Original client identified: <strong>{orig_client}</strong>. Select an action below:</p>
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
-                            <a href="{mailto_link}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; margin: 4px 8px 6px 0; text-align: center;">✉️ One-Click Reply to Client</a>
-                            <a href="{gmail_thread_search}" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 10px 18px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px; margin: 4px 0 6px 0; text-align: center;">🔍 Locate Exact Thread in Gmail (from:{orig_client})</a>
-                        </div>
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
-                            <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #475569;">📋 Pre-formatted Client Reply (Copy & paste into thread):</p>
-                            <div style="background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #1e293b; white-space: pre-wrap; line-height: 1.5; user-select: all;">{client_reply_text}</div>
-                        </div>
-                    </div>
-                    """
-
-                html_body = f"""
-                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1f2937;">
-                    <h3 style="color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Averis Automated Shipping Documentation Receipt</h3>
-                    <p>Dear Shipping Documentation Team / Customer,</p>
-                    <p>Regarding your submission for <strong>{clean_subj}</strong>:</p>
-                    <div style="background-color: #f3f4f6; padding: 12px 16px; border-radius: 6px; margin: 16px 0;">
-                        <ul style="margin: 0; padding-left: 20px;">
-                            <li><strong>Status:</strong> {report_summary}</li>
-                            <li><strong>Reference ID:</strong> {stage_id}</li>
-                            <li><strong>Inbound Channel:</strong> IMAP Live Gateway</li>
-                            {f"<li><strong>Detected Original Client:</strong> {orig_client}</li>" if orig_client else ""}
-                        </ul>
-                    </div>
-                    {html_btn_html}
-                    <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Best regards,<br><strong>Documentation Operations Desk</strong><br>{staged.source_mailbox}</p>
-                </div>
-                """
+                reply_body, html_body = build_enterprise_audit_receipt(
+                    clean_subj=clean_subj,
+                    stage_id=stage_id,
+                    status_desc=status_desc,
+                    rep=rep,
+                    orig_client=orig_client,
+                    sender_email=sender_email,
+                    target_client=target_client,
+                    client_subj=client_subj,
+                    client_reply_text=client_reply_text,
+                    mailto_link=mailto_link,
+                    gmail_thread_search=gmail_thread_search,
+                    source_mailbox=staged.source_mailbox,
+                    dispatch_url=dispatch_url,
+                )
 
                 smtp_result = dispatch_smtp_email(
                     to_email=sender_email,

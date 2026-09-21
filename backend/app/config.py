@@ -94,6 +94,7 @@ class Settings(BaseSettings):
     # "remote"   -> forward to P3's AI microservice over HTTP
     # "hybrid"   -> remote first, fall back to rule engine on failure
     # "cascade"  -> multi-provider LLM gateway: Gemini > Zhipu > Qwen > Rule fallback
+    # "ollama"   -> local Ollama VLM (qwen2.5vl:7b) only; no cloud key needed
     ai_provider: str = "rule"
     ai_service_url: str = ""  # e.g. http://localhost:8001
     ai_api_key: str = ""

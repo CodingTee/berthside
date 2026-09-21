@@ -152,88 +152,145 @@
     }
   }
 
+  const stagedById = new Map();   // stage_id -> item, for the row-detail modal
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+  function q(s){ return String(s).replace(/'/g, "\\'"); }
+
+  // Full action set: used inside the row-detail modal.
+  function stageActionsHtml(it){
+    const stop = "event.stopPropagation()";
+    if(it.status === "STAGED"){
+      return `
+        <button class="btn btn-sm btn-primary" onclick="${stop};Gateway.approveEmail('${q(it.stage_id)}')">✅ Approve &amp; Ingest</button>
+        <button class="btn btn-sm btn-danger" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', true)">📤 Reject &amp; Clarify</button>
+      `;
+    }
+    if(it.status === "QUARANTINED"){
+      if(it.security_status === "BLOCKED"){
+        return `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
+      }
+      return `
+        <button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="${stop};Gateway.approveEmail('${q(it.stage_id)}')">🔓 Release &amp; Ingest</button>
+        <button class="btn btn-sm" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', true)">↩️ Return to Sender</button>
+      `;
+    }
+    if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
+      return `
+        <span style="color:var(--ok);font-weight:600;font-size:12px;">✓ Ingested</span>
+        <button class="btn btn-sm" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', false)">↩️ Return to Sender</button>
+      `;
+    }
+    if(it.status === "RETURNED"){
+      return `
+        <span style="color:var(--accent);font-weight:600;font-size:12px;">↩️ Returned via ${esc(it.source_mailbox)}</span>
+        <button class="btn btn-sm" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', false)">Return Again</button>
+      `;
+    }
+    return `
+      <span style="color:var(--muted);font-size:12px;">Rejected</span>
+      <button class="btn btn-sm" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', false)">↩️ Return to Sender</button>
+    `;
+  }
+
+  // One compact primary action per row; everything else lives in the modal.
+  function stagePrimaryHtml(it){
+    if(it.status === "STAGED"){
+      return `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();Gateway.approveEmail('${q(it.stage_id)}')">✅ Approve</button>`;
+    }
+    if(it.status === "QUARANTINED"){
+      if(it.security_status === "BLOCKED"){
+        return `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Blocked</span>`;
+      }
+      return `<button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="event.stopPropagation();Gateway.approveEmail('${q(it.stage_id)}')">🔓 Release</button>`;
+    }
+    if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
+      return `<span style="color:var(--ok);font-weight:600;font-size:12px;margin-right:6px;">✓</span><button class="btn btn-sm" onclick="event.stopPropagation();Gateway.openReturn('${q(it.stage_id)}', false)">↩ Return</button>`;
+    }
+    if(it.status === "RETURNED"){
+      return `<button class="btn btn-sm" onclick="event.stopPropagation();Gateway.openReturn('${q(it.stage_id)}', false)">↩ Return Again</button>`;
+    }
+    return `<button class="btn btn-sm" onclick="event.stopPropagation();Gateway.openReturn('${q(it.stage_id)}', false)">↩ Return</button>`;
+  }
+
   function renderStagedList(items){
     const tbody = document.getElementById("stagedList");
     const badge = document.getElementById("stagedCountBadge");
     if(badge) badge.textContent = `(${items ? items.length : 0} records)`;
     if(!tbody) return;
+    stagedById.clear();
+    (items || []).forEach(it => stagedById.set(it.stage_id, it));
 
     if(!items || items.length === 0){
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;">No staged records found for this mailbox channel</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:30px;">No staged records found for this mailbox channel</td></tr>`;
       return;
     }
+    const statusTone = {
+      STAGED: "st-warn", QUARANTINED: "st-warn", APPROVED: "st-ok",
+      AUTO_INGESTED: "st-ok", RETURNED: "st-accent", REJECTED: "st-bad"
+    };
     let html = "";
     items.forEach(it => {
-      const isBlocked = it.security_status === "BLOCKED";
-      const secPill = isBlocked
-        ? `<span class="pill pill-blocked">⛔ Malware Intercepted</span>`
-        : `<span class="pill pill-clean">🛡️ Verified Clean</span>`;
-
+      const secShort = it.security_status === "BLOCKED"
+        ? `<span class="pill pill-blocked">⛔ Blocked</span>`
+        : `<span class="pill pill-clean">🛡️ Clean</span>`;
       const catPill = it.category === "SPAM"
-        ? `<span class="pill pill-warn">SPAM / Phishing</span>`
-        : `<span class="pill" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);">${it.category}</span>`;
-
-      let actionBtns = "";
-      if(it.status === "STAGED"){
-        actionBtns = `
-          <div class="act-wrap">
-            <button class="btn btn-sm btn-primary" onclick="Gateway.approveEmail('${it.stage_id}')">✅ Approve & Ingest</button>
-            <button class="btn btn-sm btn-danger" onclick="Gateway.openReturn('${it.stage_id}', true)">📤 Reject & Clarify</button>
-          </div>
-        `;
-      } else if(it.status === "QUARANTINED"){
-        if(isBlocked){
-          actionBtns = `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
-        } else {
-          actionBtns = `
-            <div class="act-wrap">
-              <button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="Gateway.approveEmail('${it.stage_id}')">🔓 Release & Ingest</button>
-              <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', true)">↩️ Return to Sender</button>
-            </div>
-          `;
-        }
-      } else if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
-        actionBtns = `
-          <div class="act-wrap">
-            <span style="color:var(--ok);font-weight:600;font-size:12px;">✓ Ingested</span>
-            <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', false)">↩️ Return to Sender</button>
-          </div>
-        `;
-      } else if(it.status === "RETURNED"){
-        actionBtns = `
-          <div class="act-wrap">
-            <span style="color:var(--accent);font-weight:600;font-size:12px;">↩️ Returned via ${it.source_mailbox}</span>
-            <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', false)">Return Again</button>
-          </div>
-        `;
-      } else {
-        actionBtns = `
-          <div class="act-wrap">
-            <span style="color:var(--muted);font-size:12px;">Rejected</span>
-            <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', false)">↩️ Return to Sender</button>
-          </div>
-        `;
-      }
+        ? `<span class="pill pill-warn">SPAM</span>`
+        : `<span class="pill" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);">${esc(it.category)}</span>`;
+      const statusChip = `<span class="stg-status ${statusTone[it.status] || ""}">${esc(it.status)}</span>`;
+      const mode = effectiveMode(it.source_mailbox);
 
       html += `
-        <tr data-id="${it.stage_id}">
-          <td style="font-family:var(--mono);font-size:12px;">${it.stage_id}</td>
-          <td><span class="pill pill-src">${it.source_mailbox}</span><span class="eff-tag ${effectiveMode(it.source_mailbox) === 'auto' ? 'auto' : 'manual'}">${effectiveMode(it.source_mailbox) === 'auto' ? 'AUTO' : 'MANUAL'}</span></td>
+        <tr data-id="${it.stage_id}" class="stg-row" title="Click for full detail" onclick="Gateway.openStageDetail('${q(it.stage_id)}')">
+          <td style="font-family:var(--mono);font-size:11.5px;color:var(--muted);">${esc(it.stage_id)}</td>
           <td>
-            <div style="font-weight:600;color:var(--text);">${it.subject}</div>
-            <div style="font-size:11.5px;color:var(--muted);">Sender: ${it.sender || "-"}</div>
+            <div class="stg-subj" title="${esc(it.subject)}">${esc(it.subject)}</div>
+            <div class="stg-meta">
+              <span class="stg-sender" title="${esc(it.sender || "")}">${esc(it.sender || "-")}</span>
+              <span class="pill pill-src" title="Target mailbox">${esc(it.source_mailbox || "-")}</span>
+              <span class="eff-tag ${mode === "auto" ? "auto" : "manual"}">${mode === "auto" ? "AUTO" : "MANUAL"}</span>
+            </div>
           </td>
-          <td>
-            ${secPill}
-            ${it.attachments && it.attachments.length > 0 ? `<div style="font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px;">📎 ${it.attachments.join(", ")}</div>` : ""}
-          </td>
-          <td>${catPill}</td>
-          <td><span style="font-size:12px;font-family:var(--mono);">${it.status}</span></td>
-          <td>${actionBtns}</td>
+          <td><span class="stg-verdict">${secShort}${catPill}${statusChip}</span></td>
+          <td onclick="event.stopPropagation()">${stagePrimaryHtml(it)}</td>
         </tr>
       `;
     });
     tbody.innerHTML = html;
+  }
+
+  function openStageDetail(stageId){
+    const it = stagedById.get(stageId);
+    if(!it) return;
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.innerHTML = v; };
+    set("sdSubject", esc(it.subject));
+    set("sdStage", esc(it.stage_id));
+    set("sdSender", esc(it.sender || "-"));
+    const mode = effectiveMode(it.source_mailbox);
+    set("sdMailbox",
+      `<span class="pill pill-src">${esc(it.source_mailbox || "-")}</span> ` +
+      `<span class="eff-tag ${mode === "auto" ? "auto" : "manual"}">${mode === "auto" ? "AUTO" : "MANUAL"}</span>`);
+    set("sdSecurity", it.security_status === "BLOCKED"
+      ? `<span class="pill pill-blocked">⛔ Malware Intercepted</span>`
+      : `<span class="pill pill-clean">🛡️ Verified Clean</span>`);
+    set("sdAttachments", it.attachments && it.attachments.length
+      ? "📎 " + it.attachments.map(esc).join("<br>📎 ")
+      : `<span style="color:var(--muted);">none</span>`);
+    set("sdCategory", it.category === "SPAM"
+      ? `<span class="pill pill-warn">SPAM / Phishing</span>`
+      : `<span class="pill" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);">${esc(it.category)}</span>`);
+    set("sdStatus", `<span style="font-family:var(--mono);font-size:12px;">${esc(it.status)}</span>`);
+    set("sdActions", stageActionsHtml(it));
+    const m = document.getElementById("stageDetailModal");
+    if(m) m.classList.remove("hidden");
+  }
+
+  function closeStageDetail(){
+    const m = document.getElementById("stageDetailModal");
+    if(m) m.classList.add("hidden");
   }
 
   async function _approveOne(stageId){
@@ -326,6 +383,8 @@
   }
 
   function openSimModal(){
+    const mx = document.getElementById("mxModal");
+    if(mx) mx.classList.add("hidden");
     const m = document.getElementById("simModal");
     if(m) m.classList.remove("hidden");
   }
@@ -881,6 +940,8 @@
     toggleMatrix,
     openMatrixModal,
     closeMatrixModal,
+    openStageDetail,
+    closeStageDetail,
     toggleInbound,
     onMatrixSearch,
     clearMatrixSearch,

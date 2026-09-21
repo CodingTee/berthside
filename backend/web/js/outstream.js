@@ -23,7 +23,7 @@
   };
 
   let statusLoaded = false;
-  let curEmail = null;
+  let curEmail = null, approvalId = null, sendBusy = false, editVersion = 0;
 
   const SRC_ROLES = {
     "sdoc-hackathon-bundle@averis.com": "Benchmark EDI / API bundle",
@@ -125,6 +125,8 @@
   function init(){
     ensureStatus().then(reload);
   }
+
+  document.addEventListener("DOMContentLoaded",()=>ensureStatus().then(reload));
 
   // ---- filtering + render --------------------------------------------------
   function filteredRows(){
@@ -243,11 +245,13 @@
       replyCell = `<span style="color:var(--muted);font-size:12px;">—</span>`;
     }
 
+    const replyLabel = it.reply_state === "sent" ? "New reply"
+      : it.reply_state === "failed" ? "Retry" : "Reply";
     const actions =
       `<div style="display:flex;gap:6px;">` +
       `<button class="btn btn-sm" onclick="ReviewReply.inspect('${q(id)}')">Review</button>` +
       `<button class="btn btn-sm" onclick="ReviewReply.inspect('${q(id)}', true)">History</button>` +
-      `<button class="btn btn-sm" onclick="Outstream.openReturn('${q(id)}')">${it.reply_state === "sent" ? "New reply" : it.reply_state === "failed" ? "Retry" : "Reply"}</button>` +
+      `<button class="btn btn-sm" onclick="Outstream.openReturn('${q(id)}')">${readDraft(id) ? "✎ " : ""}${replyLabel}</button>` +
       `</div>`;
 
     return `<tr>
@@ -411,8 +415,48 @@
     }
   }
 
+  // ---- reply drafts (localStorage: survives closing the modal) --------------
+  const draftKey = id => "sdoc-reply-draft:" + id;
+  function readDraft(id){
+    try{ const raw = localStorage.getItem(draftKey(id)); return raw ? JSON.parse(raw) : null; }
+    catch(e){ return null; }
+  }
+  function writeDraft(){
+    if(!curEmail) return;
+    try{
+      localStorage.setItem(draftKey(curEmail), JSON.stringify({
+        subject: ($("outRetSub") || {}).value || "",
+        body: ($("outRetBody") || {}).value || "",
+        ts: Date.now(),
+      }));
+    }catch(e){}
+    setDraftNote(true);
+  }
+  function dropDraft(){
+    if(curEmail){ try{ localStorage.removeItem(draftKey(curEmail)); }catch(e){} }
+    setDraftNote(false);
+  }
+  function setDraftNote(on){
+    const n = $("outRetDraftNote");
+    if(n) n.style.display = on ? "flex" : "none";
+  }
+  /* Input handler: every edit both stores a draft and voids the approval. */
+  function noteDraftEdit(){
+    invalidateApproval();
+    writeDraft();
+  }
+  /* Drop the draft and pull the pristine template again. */
+  function discardDraft(){
+    if(!curEmail) return;
+    dropDraft();
+    toast("Draft discarded", "ok");
+    openReturn(curEmail);
+  }
+
   async function openReturn(email_id){
     curEmail = email_id;
+    invalidateApproval();
+    setDraftNote(false);
     if(!OUT.rows.length) await reload();
     const row = (OUT.rows || []).find(r => r.email_id === email_id);
     try{
@@ -424,14 +468,21 @@
       const d = await res.json();
       if(!res.ok) throw new Error(d.detail || "Request failed");
       const via = $("outRetVia"); if(via) via.textContent = d.reply_via || "-";
-      const to = $("outRetTo"); if(to) to.textContent = (row && row.from) ? row.from : (d.reply_via || "-");
+      const to = $("outRetTo"); if(to) to.textContent = d.recipient || ((row && row.from) ? row.from : "-");
       const sub = $("outRetSub"); if(sub) sub.value = d.subject || "";
       const body = $("outRetBody"); if(body) body.value = d.body || "";
+      // an unsent draft from an earlier visit wins over the fresh template
+      const draft = readDraft(email_id);
+      if(draft && (draft.subject || draft.body)){
+        if(sub && draft.subject !== undefined) sub.value = draft.subject;
+        if(body && draft.body !== undefined) body.value = draft.body;
+        setDraftNote(true);
+      }
       const del = $("outRetDelivery");
       if(del) del.textContent = d.decision === "REJECTED"
         ? "(reply: amendment request / clarification)"
         : "(reply: verification result)";
-      updateMailto();
+      invalidateApproval();
       const m = $("outReturnModal");
       if(m) m.classList.remove("hidden");
     }catch(e){
@@ -444,26 +495,37 @@
     if(m) m.classList.add("hidden");
   }
 
-  async function confirmReturn(){
-    if(!curEmail) return;
-    const subject = ($("outRetSub") || {}).value || "";
-    const body = ($("outRetBody") || {}).value || "";
+  function invalidateApproval(){
+    approvalId=null; editVersion++;
+    if($("outSendBtn")) $("outSendBtn").disabled=true;
+    if($("outApprovalStatus")) $("outApprovalStatus").textContent="Review recipient, subject and body, then approve. Editing requires approval again.";
+  }
+  async function approveReply(){
+    if(sendBusy || !curEmail) return;
+    const version=editVersion, id=curEmail;
+    $("outApproveBtn").disabled=true;
     try{
-      const res = await fetch(`/api/emails/${encodeURIComponent(curEmail)}/return`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ subject, body }),
-      });
-      const d = await res.json();
-      if(!res.ok) throw new Error(d.detail || "Request failed");
-      const failed = ["FAILED", "ERROR"].includes(d.delivery);
-      toast(failed ? "Send failed. Review the Failed queue before retrying." : d.delivery === "SIMULATED" ? "Simulation recorded. No email was sent." : "SMTP accepted the reply. Receipt is not confirmed.", failed ? "bad" : "ok");
-      closeReturnModal();
-      await reload();
+      const res=await fetch(`/api/emails/${encodeURIComponent(id)}/approve-reply`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({subject:$("outRetSub").value,body:$("outRetBody").value})});
+      const d=await res.json();if(!res.ok) throw new Error(d.detail||"Approval failed");
+      if(id!==curEmail || version!==editVersion) return;
+      approvalId=d.approval_id;$("outSendBtn").disabled=false;
+      $("outApprovalStatus").textContent="Approved by "+d.reviewer+". Ready to send this exact reply.";
+    }catch(e){toast(e.message,"bad");}finally{$("outApproveBtn").disabled=false;}
+  }
+  async function confirmReturn(){
+    if(!curEmail || !approvalId || sendBusy) return;
+    sendBusy=true;$("outSendBtn").disabled=true;$("outApproveBtn").disabled=true;
+    $("outRetSub").disabled=true;$("outRetBody").disabled=true;
+    try{
+      const res=await fetch(`/api/emails/${encodeURIComponent(curEmail)}/return`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({subject:$("outRetSub").value,body:$("outRetBody").value,approval_id:approvalId})});
+      const d=await res.json();if(!res.ok) throw new Error(d.detail||"Send failed");
+      // a failed dispatch keeps its draft so the retry starts from the same text
+      if(d.delivery !== "FAILED") dropDraft();
+      toast(d.delivery === "FAILED" ? "Sending failed. A new review is required before retrying." : d.delivery === "SIMULATED" ? "Simulation recorded. No email was sent." : "SMTP accepted the reply; receipt unconfirmed.",d.delivery === "FAILED"?"bad":"ok");
+      closeReturnModal();await reload();if(window.loadList) window.loadList();
       if(window.ReviewReply) window.ReviewReply.refresh();
-    }catch(e){
-      toast("Failed to dispatch reply", "bad");
-    }
+    }catch(e){toast(e.message,"bad");}
+    finally{sendBusy=false;invalidateApproval();$("outApproveBtn").disabled=false;$("outRetSub").disabled=false;$("outRetBody").disabled=false;}
   }
 
   async function bulkReplyEligible(){
@@ -503,6 +565,10 @@
     openReturn,
     closeReturnModal,
     confirmReturn,
+    approveReply,
+    noteDraftEdit,
+    discardDraft,
+    invalidateApproval,
     bulkReplyEligible,
     openMatrixModal,
     closeMatrixModal,

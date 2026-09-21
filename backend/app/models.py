@@ -334,3 +334,18 @@ class DispatchRecord(Base):
     gmail_message_id = Column(String(128), nullable=True)
     error = Column(String(512), nullable=True)  # transport failure reason, when delivery = FAILED
     created_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class OutboundApprovalRecord(Base):
+    """Approval of an exact outbound snapshot; a token can be used only once."""
+    __tablename__ = "outbound_approvals"
+    id = Column(String(64), primary_key=True)
+    email_id = Column(String(128), index=True, nullable=False)
+    fingerprint = Column(String(64), nullable=False)
+    recipient = Column(String(255), nullable=False)
+    subject = Column(Text, nullable=False)
+    body = Column(Text, nullable=False)
+    reviewer = Column(String(128), nullable=False)
+    status = Column(String(32), default="APPROVED", nullable=False)
+    dispatch_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)

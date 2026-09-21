@@ -44,15 +44,21 @@ settings = get_settings()
 # --------------------------------------------------------------------------
 def classify_email(email: dict) -> Classification:
     provider = settings.ai_provider
-    if provider in ("remote", "hybrid", "cascade"):
+    if provider in ("remote", "hybrid", "cascade", "ollama"):
         try:
+            if provider == "ollama":
+                from app.services.llm_gateway import gateway
+                if not gateway.check_ollama_status().get("online"):
+                    raise RuntimeError("Ollama not reachable")
+                res = gateway.classify_ambiguous_email(email, backend="ollama")
+                return Classification(res["category"], res["confidence"], res["source"])
             if provider == "cascade":
                 from app.services.llm_gateway import gateway
                 res = gateway.classify_ambiguous_email(email)
                 return Classification(res["category"], res["confidence"], res["source"])
             return _remote_classify(email)
         except Exception as exc:  # noqa: BLE001 — degrade, never crash
-            log.warning("remote/cascade classify failed (%s); provider=%s",
+            log.warning("remote/cascade/ollama classify failed (%s); provider=%s",
                         exc, provider)
             if provider == "remote":
                 raise
@@ -67,13 +73,14 @@ def extract_document(doc_type: str, filename: str, content: bytes) -> extractor.
     # image/jpeg, which reads as a corrupt JPEG on the far side.
     filename, content = photo.normalize_image(filename, content)
     provider = settings.ai_provider
-    if provider in ("remote", "hybrid", "cascade"):
+    if provider in ("remote", "hybrid", "cascade", "ollama"):
         try:
-            if provider == "cascade":
+            if provider in ("cascade", "ollama"):
                 from app.services.llm_gateway import gateway
+                backend = "ollama" if provider == "ollama" else "cascade"
                 image_exts = (".tif", ".tiff", ".png", ".jpg", ".jpeg", ".bmp", ".webp")
                 if any(filename.lower().endswith(ext) for ext in image_exts):
-                    res_dict = gateway.extract_from_image(content, filename, doc_type)
+                    res_dict = gateway.extract_from_image(content, filename, doc_type, backend=backend)
                     remote = extractor.ExtractionResult(
                         doc_type=doc_type,
                         fields=res_dict.get("fields", {}),
@@ -81,13 +88,13 @@ def extract_document(doc_type: str, filename: str, content: bytes) -> extractor.
                     )
                     remote.missing = extractor.missing_of(remote.fields)
                     return _merge_with_local(remote, doc_type, filename, content)
-                # For non-images in cascade mode: try local reader first, if yield < 4 use LLM
+                # For non-images: try local reader first, if yield < 4 use the model
                 local = _rule_extract(doc_type, filename, content)
                 if local.readable and len(local.missing) <= 3:
                     return local
                 text, _ = document_text(filename, content)
                 if text:
-                    res_dict = gateway.extract_from_unstructured_text(text, doc_type)
+                    res_dict = gateway.extract_from_unstructured_text(text, doc_type, backend=backend)
                     remote = extractor.ExtractionResult(
                         doc_type=doc_type,
                         fields=res_dict.get("fields", {}),

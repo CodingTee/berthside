@@ -5,7 +5,8 @@
 (function(){
 const $ = s => document.querySelector(s);
 const API = "";
-let state = {items:[], active:null, summary:null, detail:null};
+let listRequest = 0;
+let state = {items:[], all:[], active:null, summary:null, detail:null};
 
 const CATEGORIES = ["BL_COMPARISON","SI_REQUEST","INVOICE_QUERY","GENERAL","SPAM"];
 const FIELDS_LABEL = {shipper:"Shipper",consignee:"Consignee",notify_party:"Notify party",
@@ -225,44 +226,141 @@ async function loadIntegrations(){
     sum.innerHTML='<span style="color:var(--muted-2)">Integration API unavailable.</span>';
   }
 }
-function clearFilters(){$("#f-cat").value="";$("#f-status").value="";loadList();}
+function clearFilters(){
+  $("#f-reply").value="";$("#f-cat").value="";$("#f-status").value="";$("#f-src").value="";
+  $("#f-q").value="";
+  const clr=document.getElementById("f-q-clear"); if(clr) clr.hidden=true;
+  applyReviewFilter();
+}
+function clearReviewSearch(){
+  $("#f-q").value="";
+  const clr=document.getElementById("f-q-clear"); if(clr) clr.hidden=true;
+  applyReviewFilter();
+}
+/* One fetch, everything else is local: the payload already holds the whole
+   inbox (limit=2000), so re-requesting per dropdown was latency with no gain. */
 async function loadList(){
+  const request = ++listRequest;
   try{
-    const cat=$("#f-cat").value, st=$("#f-status").value;
-    const p=new URLSearchParams({limit:500});
-    if(cat)p.set("category",cat); if(st)p.set("status",st);
-    const data=await (await fetch(API+"/api/emails?"+p)).json();
-    state.items=(data&&data.items)||[];
-    $("#listCount").textContent=fmt(data.total!=null?data.total:state.items.length);
-    const el=$("#list");
-    if(!state.items.length){
-      // Distinguish "your filters matched nothing" from "the backend has no data
-      // at all": the latter means a misconfigured DATA_SOURCE, not a real empty result.
-      el.innerHTML=(cat||st)
-        ? `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="big">No emails match.</span><span>Nothing in the inbox matches the current category / status filter.</span><button class="btn" data-tip="Clear filters" data-tip-desc="Reset the category and status filters" data-tip-kbd="C" data-tip-pos="bottom" onclick="clearFilters()">Clear filters</button></div>`
-        : `<div class="empty">
-             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>
-             <span class="big">Inbox is empty</span>
-             <span>The API answered, but returned <b>0</b> emails: so the backend is reading an empty data folder, not a filter problem.</span>
-             <span class="hint">DATA_SOURCE must point at the folder that contains <b>inbox/</b> + <b>attachments/</b>.<br>Set it in <b>backend/.env</b> and restart the server:<br><b>DATA_SOURCE=&lt;project&gt;/sdoc-hackathon-bundle</b></span>
-             <button class="btn" onclick="loadList()">Retry</button>
-           </div>`;
-      return;
-    }
-    el.innerHTML=state.items.map((r,i)=>{
-      const active=r.email_id===state.active?"active":"";
-      const hum=r.decided_by==="human"?'<span class="badge human">HUMAN</span>':"";
-      const h=heatOf(r);
-      return `<div class="row ${active}" data-i="${i}" onclick="openEmail('${esc(r.email_id)}')">
-        <span class="heat ${h.k}" style="--c:${h.tone};--o:${h.op}" role="img" aria-label="${esc(h.tip)}" title="${esc(h.tip)}"></span>
-        <div class="top"><span class="sbj">${esc(r.subject||"(no subject)")}</span>${stBadge(r.status)}</div>
-        <div class="from">${esc(r.from||"unknown sender")}</div>
-        <div class="mt">${catBadge(r.category)}<span class="id">${esc(r.email_id)}</span><span>📎 ${r.n_attachments}</span>${hum}</div>
-      </div>`;
-    }).join("");
+    const data=await (await fetch(API+"/api/emails?limit=2000")).json();
+    if(request !== listRequest) return;
+    state.all=(data&&data.items)||[];
+    syncSourceOptions(state.all);
+    applyReviewFilter();
+    updateNeeds();
   }catch(err){
     $("#list").innerHTML=`<div class="empty"><span class="big">Failed to load inbox</span><span>${esc(err.message||"Network error")}</span><button class="btn" style="margin-top:6px" onclick="loadList()">Retry</button></div>`;
   }
+}
+/* ---------- needs-my-action strip ----------
+ * Read-only aggregation across the three queues. Decision and verdict data come
+ * from endpoints that already exist; nothing here can change what gets scored. */
+async function updateNeeds(){
+  try{
+    let items = state.all;
+    if(!items || !items.length){
+      const d = await (await fetch(API+"/api/emails?limit=2000")).json();
+      items = (d && d.items) || [];
+      state.all = items;
+    }
+    let triage = 0;
+    try{
+      const gs = await (await fetch(API+"/api/v1/gateway/status")).json();
+      triage = (gs && gs.statistics && gs.statistics.pending_approval) || 0;
+    }catch(_){}
+    setNeedChip("needsTriage", triage);
+    setNeedChip("needsReview", items.filter(r=>r.status==="NEEDS_REVIEW").length);
+    setNeedChip("needsReply", items.filter(r=>r.reply_state==="awaiting").length);
+    setNeedChip("needsFailed", items.filter(r=>r.reply_state==="failed").length);
+    const upd=document.getElementById("needsUpdated");
+    if(upd) upd.textContent="updated "+new Date().toLocaleTimeString();
+  }catch(_){}
+}
+function setNeedChip(id, n){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const b=el.querySelector("b");
+  if(b) b.textContent=fmt(n);
+  el.classList.toggle("zero", !n);
+}
+function jumpToNeeds(kind){
+  if(kind==="triage"){ switchView("gateway"); return; }
+  if(kind==="review"){
+    switchView("review");
+    clearFilters();
+    const st=document.getElementById("f-status");
+    if(st){ st.value="NEEDS_REVIEW"; applyReviewFilter(); }
+    return;
+  }
+  // reply / failed are views of the unified Review console in index.html:switchView
+  if(kind==="reply"||kind==="failed"){
+    if(window.switchView) window.switchView(kind); else loadList();
+  }
+}
+/* Keep the source dropdown in step with whatever came back from the API. */
+function syncSourceOptions(items){
+  const sel=document.getElementById("f-src");
+  if(!sel) return;
+  const prev=sel.value;
+  const mbs=[...new Set((items||[]).map(r=>r.source_mailbox).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All sources</option>'+mbs.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join("");
+  if(prev && mbs.includes(prev)) sel.value=prev;
+}
+function applyReviewFilter(){
+  const all=state.all||[];
+  const q=($("#f-q")&&$("#f-q").value||"").trim().toLowerCase();
+  const src=($("#f-src")&&$("#f-src").value)||"";
+  const reply=($("#f-reply")&&$("#f-reply").value)||"";
+  const cat=($("#f-cat")&&$("#f-cat").value)||"";
+  const st=($("#f-status")&&$("#f-status").value)||"";
+
+  const clr=document.getElementById("f-q-clear");
+  if(clr) clr.hidden=!q;
+
+  state.items=all.filter(r=>
+    (!q || [r.subject,r.from,r.email_id,r.category,r.status,r.source_mailbox]
+      .some(v=>(v||"").toLowerCase().includes(q))) &&
+    (!src || r.source_mailbox===src) &&
+    (!reply || (reply==="history" ? r.has_dispatch : r.reply_state===reply)) &&
+    (!cat || r.category===cat) &&
+    (!st || r.status===st)
+  );
+
+  // The sidebar badges always describe the whole inbox, never the filtered slice.
+  const awaiting=document.getElementById("mailAwaiting"), failed=document.getElementById("mailFailed");
+  if(awaiting) awaiting.textContent=fmt(all.filter(r=>r.reply_state==="awaiting").length);
+  if(failed) failed.textContent=fmt(all.filter(r=>r.reply_state==="failed").length);
+
+  renderReviewList(!!(cat||st||reply||src||q));
+}
+function renderReviewList(hasFilters){
+  $("#listCount").textContent=fmt(state.items.length);
+  const el=$("#list");
+  if(!state.items.length){
+    // Distinguish "your filters matched nothing" from "the backend has no data
+    // at all": the latter means a misconfigured DATA_SOURCE, not a real empty result.
+    el.innerHTML=hasFilters
+      ? `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="big">No emails match.</span><span>Nothing in the inbox matches the current search / category / status filter.</span><button class="btn" data-tip="Clear filters" data-tip-desc="Reset the search and filters" data-tip-kbd="C" data-tip-pos="bottom" onclick="clearFilters()">Clear filters</button></div>`
+      : `<div class="empty">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>
+           <span class="big">Inbox is empty</span>
+           <span>The API answered, but returned <b>0</b> emails: so the backend is reading an empty data folder, not a filter problem.</span>
+           <span class="hint">DATA_SOURCE must point at the folder that contains <b>inbox/</b> + <b>attachments/</b>.<br>Set it in <b>backend/.env</b> and restart the server:<br><b>DATA_SOURCE=&lt;project&gt;/sdoc-hackathon-bundle</b></span>
+           <button class="btn" onclick="loadList()">Retry</button>
+         </div>`;
+    return;
+  }
+  el.innerHTML=state.items.map((r,i)=>{
+    const active=r.email_id===state.active?"active":"";
+    const hum=r.decided_by==="human"?'<span class="badge human">HUMAN</span>':"";
+    const h=heatOf(r);
+    return `<div class="row ${active}" data-i="${i}" onclick="openEmail('${esc(r.email_id)}')">
+      <span class="heat ${h.k}" style="--c:${h.tone};--o:${h.op}" role="img" aria-label="${esc(h.tip)}" title="${esc(h.tip)}"></span>
+      <div class="top"><span class="sbj">${esc(r.subject||"(no subject)")}</span>${stBadge(r.status)}</div>
+      <div class="from"><span class="sender-address">${esc(r.from||"unknown sender")}</span><span class="id mail-record-id">${esc(r.email_id)}</span></div>
+      <div class="mt">${catBadge(r.category)}<span class="badge">${esc(({awaiting:"Awaiting reply",failed:"Failed",sent:"Sent",simulated:"Simulated",unknown:"Unconfirmed"})[r.reply_state]||"No reply needed")}</span><span>📎 ${r.n_attachments}</span>${hum}</div>
+    </div>`;
+  }).join("");
 }
 /* Fill (or clear) the docked verdict footer. It lives outside the scroller so the
    buttons are on screen from the moment the email opens. */
@@ -272,7 +370,15 @@ function setDock(html){
   d.innerHTML=html||"";
   d.hidden=!html;
 }
+function backToEmailList(){
+  state.active=null;
+  document.getElementById("viewReview").classList.remove("email-open");
+  history.replaceState(null,"","#review");
+  loadList();
+}
+window.backToEmailList=backToEmailList;
 async function openEmail(id){
+  document.getElementById("viewReview").classList.add("email-open");
   state.active=id;
   recordRecent(id);
   if(decodeURIComponent(location.hash.slice(1))!==id){history.replaceState(null,"","#"+id);}
@@ -284,10 +390,9 @@ async function openEmail(id){
 
   // If the email is not present in the current view (filtered out), reset category/status filters so it can be revealed
   const existsInView = state.items && state.items.some(r => r.email_id === id);
-  if(!existsInView && ($("#f-cat").value || $("#f-status").value)){
-    $("#f-cat").value = "";
-    $("#f-status").value = "";
-    await loadList();
+  const hasFilter = ["#f-cat","#f-status","#f-src","#f-reply","#f-q"].some(s=>$(s)&&$(s).value);
+  if(!existsInView && hasFilter){
+    clearFilters();   // local: nothing to refetch
   }
 
   // Mark row active, scroll smoothly into view, and trigger pulse animation
@@ -327,6 +432,18 @@ async function openEmail(id){
         <span class="muted">Reading this email does not start the pipeline. Run it explicitly below.</span>
         <button class="btn primary" style="margin-top:6px" onclick="processEmail('${esc(id)}')">Process this email</button>
       </div>`;
+      const content=document.createElement("section");
+      const sender=document.createElement("p");sender.textContent="From: "+(d.email.from||"unknown");
+      const heading=document.createElement("h3");heading.textContent="Email body";
+      const body=document.createElement("pre");body.className="body";body.textContent=d.email.body||"";
+      content.append(sender,heading,body);
+      const attHeading=document.createElement("h3");attHeading.textContent="Attachments";content.append(attHeading);
+      (d.email.attachments||[]).forEach(path=>{
+        const link=document.createElement("a");link.className="lnk";link.textContent=path.split("/").pop();
+        link.href="/api/attachments/"+path.split("/").map(encodeURIComponent).join("/");link.target="_blank";link.rel="noopener";
+        const line=document.createElement("p");line.append(link);content.append(line);
+      });
+      $("#detail").prepend(content);
       setDock("");
       return;
     }
@@ -392,22 +509,12 @@ function renderKPIs(){
   const pct=v=>tot?Math.round(v/tot*100):0;
   const other=Math.max(0,tot-(ok+mm+nr));
   $("#kpis").innerHTML=`
-    <div class="dist-panel">
-      <div class="dist-bar" role="img" aria-label="Inbox verification outcome distribution">
-        <span class="dist-seg d-ok" id="revSegOk" style="flex-grow:${ok}"></span>
-        <span class="dist-seg d-bad" id="revSegMm" style="flex-grow:${mm}"></span>
-        <span class="dist-seg d-warn" id="revSegNr" style="flex-grow:${nr}"></span>
-        <span class="dist-seg d-other" id="revSegOther" style="flex-grow:${other}"></span>
-      </div>
-      <div class="dist-legend">
-        <span class="dl-item"><i class="dl-dot" style="background:var(--text)"></i>Emails processed <b>${fmt(tot)}</b></span>
-        <span class="dl-item" title="${pct(ok)}% no mismatch"><i class="dl-dot d-ok"></i>Cleared &middot; OK <b>${fmt(ok)}</b></span>
-        <span class="dl-item" title="fields differ · SI ↔ BL"><i class="dl-dot d-bad"></i>Mismatches <b>${fmt(mm)}</b></span>
-        <span class="dl-item" title="${fmt(s.reviewed||0)} human reviews"><i class="dl-dot d-warn"></i>Escalated <b>${fmt(nr)}</b></span>
-        <span class="dl-item updated" id="updatedAt" style="margin-left:auto;font-family:var(--mono);color:var(--muted-2);"></span>
-        <button class="btn ghost sm" type="button" data-tip="Refresh inbox" data-tip-desc="Re-fetch emails and KPIs" data-tip-kbd="R" data-tip-pos="bottom" onclick="loadSummary();loadList();toast('Inbox refreshed')">&#8635; Refresh</button>
-      </div>
-    </div>`;
+    <div class="mail-stat">Emails processed<b>${fmt(tot)}</b></div>
+    <div class="mail-stat">Cleared · OK<b>${fmt(ok)}</b></div>
+    <div class="mail-stat">Mismatches<b>${fmt(mm)}</b></div>
+    <div class="mail-stat">Escalated<b>${fmt(nr)}</b></div>
+    <div class="mail-stat">Awaiting reply<b id="mailAwaiting">—</b></div>
+    <div class="mail-stat">Failed<b id="mailFailed">—</b></div>`;
   const _relNum=$("#relNum"); if(_relNum) _relNum.textContent=fmt(nr);
   const _relPulse=$("#relPulse"); if(_relPulse) _relPulse.style.background = nr>0 ? "var(--warn)" : "var(--ok)";
   const ua=document.getElementById("updatedAt"); if(ua) ua.textContent="Updated "+new Date().toLocaleTimeString();
@@ -502,8 +609,8 @@ function renderDetail(d){
       <div class="kv"><b>Decided by:</b> <span class="dotby">${byIcon(r.decided_by)}</span>${r.rule&&r.decided_by!=="human"?` <span style="color:var(--muted-2)">· ${esc(r.rule)}</span>`:""}</div>
       <div class="verdict-line" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><b style="color:var(--muted)">Verdict:</b> <span>${verdict}</span>${shBtn}</div>
     </div>
-    ${cmp}${review}${audit}${attSection}
     <section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 7l8 5 8-5"/></svg>Email body</h3><pre class="body">${esc(e.body||"")}</pre></section>
+    ${attSection}${cmp}${review}${audit}
   </div>`;
   setDock(actBar);
   renderFocusIcons();
@@ -1105,6 +1212,8 @@ $("#palList").addEventListener("click",e=>{
 });
 
 loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!=="review"&&h!=="gateway"&&h!=="outstream"&&h!=="reply"&&h!=="failed"&&h!=="history"&&!h.startsWith("lifecycle")&&!h.startsWith("/"))openEmail(h); else renderEmptyDetail();});
+updateNeeds();
+setInterval(updateNeeds, 30000);
 loadIntegrations();   /* stored API results only: no reprocessing */
 
 
@@ -1114,12 +1223,16 @@ loadIntegrations();   /* stored API results only: no reprocessing */
    published too: the Lifecycle module delegates to it instead of binding the
    same buttons and shortcut keys a second time. */
 Object.assign(window, {
+  applyReviewFilter,
   clearFilters,
+  clearReviewSearch,
   closeHelp,
   closePalette,
   esc,
   flashSaved,
+  jumpToNeeds,
   loadList,
+  updateNeeds,
   loadSummary,
   openEmail,
   openHelp,

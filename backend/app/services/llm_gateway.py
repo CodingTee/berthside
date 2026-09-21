@@ -111,6 +111,27 @@ class LLMGateway:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("message", {}).get("content")
 
+    def call_vision_ollama(self, image_bytes: bytes, mime_type: str, prompt: str) -> Optional[dict]:
+        """Local Ollama VLM (qwen2.5vl:7b) vision extraction. No cloud key needed."""
+        try:
+            b64 = base64.b64encode(image_bytes).decode("utf-8")
+            content = self._call_ollama(prompt, system_prompt="", images_b64=[b64])
+            if content:
+                return {"provider": f"ollama-{self.settings.ollama_model}", "content": content}
+        except Exception as exc:
+            log.warning("Ollama vision failed: %s", exc)
+        return None
+
+    def call_text_ollama(self, prompt: str, system_prompt: str = "") -> Optional[dict]:
+        """Local Ollama VLM text completion. No cloud key needed."""
+        try:
+            content = self._call_ollama(prompt, system_prompt=system_prompt)
+            if content:
+                return {"provider": f"ollama-{self.settings.ollama_model}", "content": content}
+        except Exception as exc:
+            log.warning("Ollama text failed: %s", exc)
+        return None
+
     # =========================================================================
     # LOW-LEVEL CALLERS: Vision (Big Models) & Text (Small Models)
     # =========================================================================
@@ -150,6 +171,17 @@ class LLMGateway:
             except Exception as exc:
                 log.warning("DashScope vision failed: %s; falling back to Local OCR", exc)
 
+        # 4. Tier 4 (local, free): Ollama VLM — used when cloud keys are absent
+        #    or all cloud providers failed. Gracefully skipped if Ollama is down.
+        if self.check_ollama_status().get("online"):
+            try:
+                log.info("Attempting Vision with local Ollama %s...", self.settings.ollama_model)
+                res = self.call_vision_ollama(b64_data, mime_type, prompt)
+                if res:
+                    return res
+            except Exception as exc:
+                log.warning("Ollama vision failed: %s; falling back to Local OCR", exc)
+
         return None
 
     def call_text_cascade(self, prompt: str, system_prompt: str = "") -> Optional[dict]:
@@ -188,13 +220,23 @@ class LLMGateway:
             except Exception as exc:
                 log.warning("DashScope text failed: %s", exc)
 
+        # 4. Tier 4 (local, free): Ollama VLM text — no cloud key needed.
+        if self.check_ollama_status().get("online"):
+            try:
+                log.info("Attempting Text with local Ollama %s...", self.settings.ollama_model)
+                res = self.call_text_ollama(prompt, system_prompt)
+                if res:
+                    return res
+            except Exception as exc:
+                log.warning("Ollama text failed: %s", exc)
+
         return None
 
     # =========================================================================
     # CORE CAPABILITY 1: OCR-Resistant Vision Document Extraction
     # =========================================================================
 
-    def extract_from_image(self, image_bytes: bytes, filename: str, doc_type: str = "BL") -> dict[str, Any]:
+    def extract_from_image(self, image_bytes: bytes, filename: str, doc_type: str = "BL", backend: str = "cascade") -> dict[str, Any]:
         """Extract shipping fields from images (handles inverted, rotated, or noisy scans)."""
         prompt = (
             f"You are an expert shipping document auditor analyzing a {doc_type} (Bill of Lading or Shipping Instruction).\n"
@@ -216,7 +258,8 @@ class LLMGateway:
         mime_map = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp", "tif": "image/tiff", "tiff": "image/tiff"}
         mime_type = mime_map.get(ext, "image/jpeg")
 
-        resp = self.call_vision_cascade(image_bytes, mime_type, prompt)
+        resp = (self.call_vision_ollama(image_bytes, mime_type, prompt)
+                if backend == "ollama" else self.call_vision_cascade(image_bytes, mime_type, prompt))
         if resp and resp.get("content"):
             parsed = self._extract_json_from_text(resp["content"])
             if parsed:
@@ -246,7 +289,7 @@ class LLMGateway:
     # CORE CAPABILITY 2: Ambiguous Email Intent Classification
     # =========================================================================
 
-    def classify_ambiguous_email(self, email: dict) -> dict[str, Any]:
+    def classify_ambiguous_email(self, email: dict, backend: str = "cascade") -> dict[str, Any]:
         """Classify ambiguous or non-standard emails into 5 standard shipping categories."""
         subject = email.get("subject", "")
         body = email.get("body", "")
@@ -272,7 +315,8 @@ class LLMGateway:
             "Provide strict JSON response."
         )
 
-        resp = self.call_text_cascade(prompt, system_prompt)
+        resp = (self.call_text_ollama(prompt, system_prompt)
+                if backend == "ollama" else self.call_text_cascade(prompt, system_prompt))
         if resp and resp.get("content"):
             parsed = self._extract_json_from_text(resp["content"])
             if parsed and parsed.get("category") in {"BL_COMPARISON", "SI_REQUEST", "INVOICE_QUERY", "GENERAL", "SPAM"}:
@@ -297,7 +341,7 @@ class LLMGateway:
     # CORE CAPABILITY 3: Unstructured Free-Form Field Extraction
     # =========================================================================
 
-    def extract_from_unstructured_text(self, text: str, doc_type: str = "BL") -> dict[str, Any]:
+    def extract_from_unstructured_text(self, text: str, doc_type: str = "BL", backend: str = "cascade") -> dict[str, Any]:
         """Extract the 7 shipping fields from unstructured or non-standard document text."""
         system_prompt = (
             f"You are an expert shipping document parser extracting fields from {doc_type} text.\n"
@@ -307,7 +351,8 @@ class LLMGateway:
             "Return JSON only."
         )
 
-        resp = self.call_text_cascade(text[:3000], system_prompt)
+        resp = (self.call_text_ollama(text[:3000], system_prompt)
+                if backend == "ollama" else self.call_text_cascade(text[:3000], system_prompt))
         if resp and resp.get("content"):
             parsed = self._extract_json_from_text(resp["content"])
             if parsed:
@@ -330,7 +375,7 @@ class LLMGateway:
     # CORE CAPABILITY 4: HITL Smart Attribution & Auto-Draft Email Reply
     # =========================================================================
 
-    def generate_hitl_draft(self, email: dict, discrepancies: list[dict], extra_notes: str = "") -> dict[str, Any]:
+    def generate_hitl_draft(self, email: dict, discrepancies: list[dict], extra_notes: str = "", backend: str = "cascade") -> dict[str, Any]:
         """Generate smart discrepancy attribution explanation and professional draft reply."""
         subject = email.get("subject", "")
         sender = email.get("from", "")
@@ -366,7 +411,8 @@ class LLMGateway:
             "Generate attribution and draft reply."
         )
 
-        resp = self.call_text_cascade(prompt, system_prompt)
+        resp = (self.call_text_ollama(prompt, system_prompt)
+                if backend == "ollama" else self.call_text_cascade(prompt, system_prompt))
         if resp and resp.get("content"):
             parsed = self._extract_json_from_text(resp["content"])
             if parsed and parsed.get("draft_body"):
