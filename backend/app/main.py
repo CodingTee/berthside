@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import SessionLocal, get_db, init_db
-from app.models import EmailRecord
+from app.models import EmailRecord, infer_source_mailbox
 from app.routers import (
     ai_assist,
     emails,
@@ -341,6 +341,7 @@ def seed_email_records() -> None:
                 body=str(body),
                 attachments=attachments,
                 received_at=received_at,
+                source_mailbox=infer_source_mailbox(email_id, str(sender)),
             )
 
             db.add(record)

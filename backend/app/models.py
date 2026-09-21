@@ -19,6 +19,27 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# Authoritative source mailboxes in the Enterprise Hub multi-inbox topology.
+BUNDLE_MAILBOX = "sdoc-hackathon-bundle@averis.com"
+OPS_MAILBOX = "operations@shipsync.demo"
+
+
+def infer_source_mailbox(email_id: str, sender: str | None = None) -> str:
+    """Best-effort origin mailbox for an ingested email.
+
+    The email_id prefix is authoritative (the benchmark bundle and the live
+    Gmail/operations stream use stable prefixes); sender is a fallback only.
+    """
+    eid = email_id or ""
+    if eid.startswith("email_") or eid.startswith("520"):
+        return BUNDLE_MAILBOX
+    if eid.startswith("GMAIL"):
+        return OPS_MAILBOX
+    if sender and "ops" in sender.lower():
+        return OPS_MAILBOX
+    return OPS_MAILBOX
+
+
 class EmailRecord(Base):
     __tablename__ = "emails"
 
@@ -30,6 +51,7 @@ class EmailRecord(Base):
     attachments = Column(JSON, default=list)  # list[str]
     received_at = Column(DateTime, nullable=True)
     first_seen_at = Column(DateTime, default=utcnow)
+    source_mailbox = Column(String(128), index=True, nullable=True)  # origin inbox
 
 
 class ReportRecord(Base):
@@ -244,10 +266,42 @@ class StagedEmailRecord(Base):
 
 
 class GatewayPolicyRecord(Base):
-    """Runtime configuration policy for the email secure ingestion gateway."""
+    """Runtime configuration policy for the enterprise IDP hub.
+
+    ``ingest_mode`` is the global default ingest behaviour. ``source_policies``
+    is an opt-in override map ``{mailbox: "auto" | "manual"}`` so a high-trust
+    source (the benchmark bundle) can auto-ingest while a live operations
+    stream stays on strict manual triage. A mailbox absent from the map
+    inherits ``ingest_mode``.
+    """
     __tablename__ = "gateway_policy"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    engine = Column(String(32), default="cascade")  # "cascade" | "ollama"
+    engine = Column(String(32), default="cascade")  # "cascade" | "ollama" | "rule"
     ingest_mode = Column(String(32), default="auto")  # "auto" | "manual"
+    source_policies = Column(JSON, default=dict)  # {mailbox: "auto" | "manual"}
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class DispatchRecord(Base):
+    """Audit trail of every outbound return-to-sender dispatched by the hub.
+
+    When an operator finishes triaging a staged email, the hub returns the
+    outcome (verification result or rejection notice) through the *same*
+    mailbox the transmission arrived on. Each such return is persisted here so
+    the round-trip is auditable even though the demo mailboxes have no live
+    SMTP server behind them (those rows are flagged ``delivery="SIMULATED"``).
+    """
+    __tablename__ = "dispatched_emails"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stage_id = Column(String(64), index=True, nullable=False)
+    source_mailbox = Column(String(128), index=True, nullable=False)  # return path
+    recipient = Column(String(255), nullable=True)  # original sender
+    decision = Column(String(32), nullable=False)  # VERIFIED | REJECTED
+    subject = Column(String(512), nullable=True)
+    body = Column(Text, nullable=True)
+    channel = Column(String(128), nullable=True)  # "sdoc-hackathon-bundle@averis.com" etc.
+    delivery = Column(String(32), default="SIMULATED")  # SIMULATED | SENT | FAILED
+    gmail_message_id = Column(String(128), nullable=True)
+    created_at = Column(DateTime, default=utcnow, onupdate=utcnow)

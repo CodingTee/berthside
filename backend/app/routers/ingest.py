@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from app.config import BACKEND_ROOT, get_settings
 from app.database import get_db
-from app.models import EmailRecord, ReportRecord
+from app.models import EmailRecord, ReportRecord, infer_source_mailbox
 from app.schemas import (
     AttachmentPayload,
     EmailAnalyzeRequest,
@@ -335,6 +335,8 @@ def ingest_email(payload: EmailAnalyzeRequest, db: Session = Depends(get_db)):
     rec.subject = payload.subject
     rec.body = payload.body
     rec.attachments = attachment_paths
+    if not rec.source_mailbox:
+        rec.source_mailbox = infer_source_mailbox(email_id, getattr(payload, "sender", None))
     # The caller may know when the mail was actually received; the shipment view
     # shows it as source information, so it is kept when it is supplied.
     received = (payload.metadata or {}).get("received")

@@ -1,4 +1,4 @@
-"""Router for the Secure Ingestion Gateway Console (/ui/gateway.html).
+"""Router for the Enterprise IDP Hub Console (/ui/gateway.html).
 
 Capabilities:
 1. Ingestion Buffer & Quarantine management (PE binary, double-ext, zip bombs).
@@ -12,18 +12,25 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import logging
-from typing import Any, Optional
+import threading
+import time
+from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
 from app.models import (
+    BUNDLE_MAILBOX,
+    DispatchRecord,
     EmailRecord,
     GatewayPolicyRecord,
+    OPS_MAILBOX,
     ReportRecord,
     StagedEmailRecord,
+    infer_source_mailbox,
     utcnow,
 )
 from app.services.llm_gateway import gateway
@@ -37,11 +44,62 @@ router = APIRouter(prefix="/api/v1/gateway", tags=["gateway-quarantine"])
 
 
 # ---------------------------------------------------------------------------
+# Non-blocking Ollama liveness probe
+#
+# check_ollama_status() does a synchronous network call to the local GPU
+# endpoint, which can stall ~1.5s when the model is cold. /status is hit on
+# every page load, every triage action and every 8s poll, so a blocking probe
+# makes the whole console feel sluggish. Cache the result and refresh it in the
+# background instead.
+# ---------------------------------------------------------------------------
+_ollama_probe_cache: Dict[str, Any] = {"value": None, "ts": 0.0}
+_ollama_probe_lock = threading.Lock()
+
+
+def _refresh_ollama_probe() -> None:
+    try:
+        val = gateway.check_ollama_status()
+    except Exception:
+        val = None
+    with _ollama_probe_lock:
+        _ollama_probe_cache["value"] = val
+        _ollama_probe_cache["ts"] = time.time()
+
+
+# Warm the cache once at import: a single ~1.5s cost at startup, not per request.
+_refresh_ollama_probe()
+
+
+def _ollama_status_cached(ttl: float = 20.0) -> Dict[str, Any]:
+    with _ollama_probe_lock:
+        val = _ollama_probe_cache["value"]
+        ts = _ollama_probe_cache["ts"]
+    if val is not None and (time.time() - ts) < ttl:
+        return val
+    # Cache cold or stale: refresh in the background, return last known value now.
+    threading.Thread(target=_refresh_ollama_probe, daemon=True).start()
+    if val is not None:
+        return val
+    return {
+        "online": False,
+        "models": [],
+        "current_model": gateway.settings.ollama_model,
+        "model_ready": False,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
 class GatewayConfigIn(BaseModel):
     engine: Optional[str] = None  # "cascade" | "ollama" | "rule"
     ingest_mode: Optional[str] = None  # "auto" | "manual"
+    source_policies: Optional[Dict[str, str]] = None  # {mailbox: "auto" | "manual"}
+
+
+class BulkIn(BaseModel):
+    source_mailbox: Optional[str] = None  # mailbox, or "ALL" / absent for every source
+    include_quarantined: bool = False  # also process non-blocked quarantined rows
 
 
 class SimulateDropIn(BaseModel):
@@ -49,6 +107,12 @@ class SimulateDropIn(BaseModel):
     source_mailbox: str = "docs.export@averis.com"
     sender: str = "customer@fastlogistics.com"
     subject: Optional[str] = None
+
+
+class ReturnIn(BaseModel):
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    dry_run: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +128,18 @@ def _get_policy(db: Session) -> GatewayPolicyRecord:
     return pol
 
 
+def effective_ingest_mode(pol: GatewayPolicyRecord, mailbox: Optional[str]) -> str:
+    """Resolve the effective ingest mode for a mailbox.
+
+    An explicit entry in ``source_policies`` wins; otherwise the mailbox
+    inherits the global ``ingest_mode``.
+    """
+    overrides = pol.source_policies or {}
+    if mailbox and mailbox in overrides:
+        return overrides[mailbox]
+    return pol.ingest_mode or "auto"
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -71,8 +147,8 @@ def _get_policy(db: Session) -> GatewayPolicyRecord:
 def gateway_status(db: Session = Depends(get_db)):
     pol = _get_policy(db)
     
-    # 1. Probe local Ollama with zero external token cost
-    ollama_stat = gateway.check_ollama_status()
+    # 1. Probe local Ollama (cached, non-blocking) with zero external token cost
+    ollama_stat = _ollama_status_cached()
     
     # 2. Check Cloud keys
     keys = gateway._get_keys()
@@ -97,12 +173,33 @@ def gateway_status(db: Session = Depends(get_db)):
     # Also count historical emails in main DB
     total_main_emails = db.query(EmailRecord).count()
 
+    available_mailboxes = [
+        "sdoc-hackathon-bundle@averis.com",
+        "operations@shipsync.demo",
+        "docs.export@averis.com",
+        "booking@averis.com",
+        "april.shipping@averis.com",
+        "finance@averis.com",
+        "transpacific@averis.com",
+    ]
+
+    # Per-source staged backlog so the Trust Matrix can show live counts.
+    source_staged = {
+        mb: db.query(func.count(StagedEmailRecord.id))
+        .filter(StagedEmailRecord.source_mailbox == mb, StagedEmailRecord.status == "STAGED")
+        .scalar()
+        or 0
+        for mb in available_mailboxes
+    }
+
     return {
         "policy": {
             "engine": pol.engine,
             "ingest_mode": pol.ingest_mode,
+            "source_policies": pol.source_policies or {},
             "updated_at": pol.updated_at.isoformat() if pol.updated_at else None,
         },
+        "source_staged": source_staged,
         "engines": {
             "ollama": ollama_stat,
             "cloud": cloud_stat,
@@ -120,27 +217,31 @@ def gateway_status(db: Session = Depends(get_db)):
             "quarantined_spam": quarantined_spam,
             "pending_approval": pending_approval,
         },
-        "available_mailboxes": [
-            "sdoc-hackathon-bundle@averis.com",
-            "operations@shipsync.demo",
-            "docs.export@averis.com",
-            "booking@averis.com",
-            "april.shipping@averis.com",
-            "finance@averis.com",
-            "transpacific@averis.com",
-        ],
+        "available_mailboxes": available_mailboxes,
     }
 
 
-@router.post("/config", summary="Update gateway AI engine or ingestion mode")
+@router.post("/config", summary="Update gateway AI engine, ingest mode, or source policies")
 def update_gateway_config(payload: GatewayConfigIn, db: Session = Depends(get_db)):
     pol = _get_policy(db)
     if payload.engine in ("cascade", "ollama", "rule"):
         pol.engine = payload.engine
     if payload.ingest_mode in ("auto", "manual"):
         pol.ingest_mode = payload.ingest_mode
+    if payload.source_policies is not None:
+        # Keep only valid entries; normalise values to auto|manual.
+        cleaned = {}
+        for mb, mode in payload.source_policies.items():
+            if mode in ("auto", "manual"):
+                cleaned[mb] = mode
+        pol.source_policies = cleaned
     db.commit()
-    return {"message": "Policy updated", "engine": pol.engine, "ingest_mode": pol.ingest_mode}
+    return {
+        "message": "Policy updated",
+        "engine": pol.engine,
+        "ingest_mode": pol.ingest_mode,
+        "source_policies": pol.source_policies or {},
+    }
 
 
 @router.get("/emails", summary="List staged and quarantined emails")
@@ -197,13 +298,16 @@ def list_staged_emails(
         reports = {r.email_id: r for r in db.query(ReportRecord).filter(ReportRecord.email_id.in_(eids)).all()}
 
         for e in emails:
-            # Map mailbox identity
-            if is_ops and not (e.email_id and (e.email_id.startswith("GMAIL") or "ops" in (e.sender or ""))):
-                target_mb = "operations@shipsync.demo"
-            elif is_bundle:
-                target_mb = "sdoc-hackathon-bundle@averis.com"
+            # Classify each ingested email by its true originating mailbox,
+            # keyed on the email_id prefix (authoritative) then sender.
+            if e.email_id and (e.email_id.startswith("email_") or e.email_id.startswith("520")):
+                target_mb = BUNDLE_MAILBOX
+            elif e.email_id and e.email_id.startswith("GMAIL"):
+                target_mb = OPS_MAILBOX
+            elif "ops" in (e.sender or "").lower():
+                target_mb = OPS_MAILBOX
             else:
-                target_mb = "sdoc-hackathon-bundle@averis.com" if (e.email_id and (e.email_id.startswith("email_") or e.email_id.startswith("520"))) else "operations@shipsync.demo"
+                target_mb = OPS_MAILBOX
 
             if source_mailbox and source_mailbox not in ("ALL", None, "") and source_mailbox != target_mb:
                 continue
@@ -234,15 +338,8 @@ def list_staged_emails(
     return combined[:limit]
 
 
-@router.post("/emails/{stage_id}/approve", summary="Approve and ingest staged email into pipeline")
-def approve_staged_email(stage_id: str, db: Session = Depends(get_db)):
-    staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
-    if not staged:
-        raise HTTPException(404, "Staged email not found")
-    if staged.security_status == "BLOCKED":
-        raise HTTPException(400, "Cannot approve a malware-blocked email without security clearance")
-
-    # Ingest into core EmailRecord
+def _ingest_staged(staged: StagedEmailRecord, db: Session) -> str:
+    """Move a staged email into the core pipeline (idempotent)."""
     email_id = f"INGEST-{staged.stage_id}"
     email_rec = db.query(EmailRecord).filter_by(email_id=email_id).first()
     if not email_rec:
@@ -253,11 +350,11 @@ def approve_staged_email(stage_id: str, db: Session = Depends(get_db)):
             body=staged.body,
             attachments=staged.attachments,
             received_at=staged.received_at,
+            source_mailbox=staged.source_mailbox,
         )
         db.add(email_rec)
         db.commit()
 
-    # Process through pipeline
     try:
         workflow.process_email(db, email_id)
     except Exception as exc:
@@ -265,6 +362,43 @@ def approve_staged_email(stage_id: str, db: Session = Depends(get_db)):
 
     staged.status = "APPROVED"
     db.commit()
+    return email_id
+
+
+def _return_staged(staged: StagedEmailRecord, db: Session, subject=None, body=None):
+    """Build the origin-aware receipt, persist it, and flip the row to RETURNED."""
+    decision, subj, body = _build_return_receipt(staged)
+    subject = subject or subj
+    body = body or body
+
+    rec = DispatchRecord(
+        stage_id=staged.stage_id,
+        source_mailbox=staged.source_mailbox,
+        recipient=staged.sender,
+        decision=decision,
+        subject=subject,
+        body=body,
+        channel=staged.source_mailbox,
+        delivery="SIMULATED",
+    )
+    db.add(rec)
+    db.commit()
+    db.refresh(rec)
+
+    staged.status = "RETURNED"
+    db.commit()
+    return rec
+
+
+@router.post("/emails/{stage_id}/approve", summary="Approve and ingest staged email into pipeline")
+def approve_staged_email(stage_id: str, db: Session = Depends(get_db)):
+    staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
+    if not staged:
+        raise HTTPException(404, "Staged email not found")
+    if staged.security_status == "BLOCKED":
+        raise HTTPException(400, "Cannot approve a malware-blocked email without security clearance")
+
+    email_id = _ingest_staged(staged, db)
     return {"message": "Email approved and ingested into Review Desk", "email_id": email_id}
 
 
@@ -293,7 +427,7 @@ def reject_staged_email(stage_id: str, db: Session = Depends(get_db)):
         f"Your transmission to {staged.source_mailbox} could not be processed by our automated gateway.\n"
         f"Reason: {reason}\n\n"
         f"Please inspect the attachment format and resubmit.\n\n"
-        f"Best regards,\nDocumentation Gateway Security Team"
+        f"Best regards,\nEnterprise Documentation Hub Team"
     )
     return {
         "message": "Email rejected",
@@ -305,13 +439,192 @@ def reject_staged_email(stage_id: str, db: Session = Depends(get_db)):
     }
 
 
+def _build_return_receipt(staged: StagedEmailRecord):
+    """Compose the origin-aware return message for a staged email.
+
+    REJECTED or malware-blocked records get a clarification notice; everything
+    else (verified / approved) gets a verification-result receipt. The reply is
+    addressed back to the original sender and sent *via the same mailbox the
+    transmission arrived on* so the round trip stays on one channel.
+    """
+    is_rejection = staged.status == "REJECTED" or staged.security_status == "BLOCKED"
+    if is_rejection:
+        decision = "REJECTED"
+        subject = f"Re: {staged.subject} - Document Ingestion Rejected"
+        reason = staged.ai_reason or (
+            "Document does not conform to enterprise shipping verification requirements."
+        )
+        body = (
+            f"Dear Sender,\n\n"
+            f"Your transmission to {staged.source_mailbox} could not be processed by our automated hub.\n"
+            f"Reason: {reason}\n\n"
+            f"Please inspect the attachment format and resubmit.\n\n"
+            f"Best regards,\nEnterprise Documentation Hub Team"
+        )
+    else:
+        decision = "VERIFIED"
+        subject = f"Re: {staged.subject} - Document Verification Complete"
+        body = (
+            f"Dear Sender,\n\n"
+            f"Thank you for your submission to {staged.source_mailbox}.\n"
+            f"Our automated verification has completed for reference {staged.stage_id}.\n"
+            f"Document type: {staged.category}\n"
+            f"Outcome: document verified and accepted into the shipment lifecycle.\n\n"
+            f"Best regards,\nEnterprise Documentation Hub Team"
+        )
+    return decision, subject, body
+
+
+@router.post("/emails/{stage_id}/return", summary="Return a processed email to its origin mailbox")
+def return_email(stage_id: str, payload: ReturnIn, db: Session = Depends(get_db)):
+    """Return an audited outcome to the sender through the origin mailbox.
+
+    ``dry_run`` only renders the draft (used by the UI preview); the real call
+    persists a :class:`DispatchRecord`, flips the staged row to ``RETURNED`` and
+    reports the delivery channel. Demo mailboxes have no live SMTP server, so
+    delivery is ``SIMULATED``; a real Gmail-linked mailbox would flip it to
+    ``SENT`` via the Gmail API.
+    """
+    staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
+    if not staged:
+        raise HTTPException(404, "Staged email not found")
+
+    decision, subj, body = _build_return_receipt(staged)
+    subject = payload.subject or subj
+    body = payload.body or body
+
+    if payload.dry_run:
+        return {
+            "stage_id": stage_id,
+            "reply_to": staged.sender,
+            "reply_via": staged.source_mailbox,
+            "decision": decision,
+            "subject": subject,
+            "body": body,
+            "dry_run": True,
+        }
+
+    rec = _return_staged(staged, db, subject=subject, body=body)
+
+    return {
+        "message": "Return dispatched via origin mailbox",
+        "stage_id": stage_id,
+        "reply_to": staged.sender,
+        "reply_via": staged.source_mailbox,
+        "decision": decision,
+        "subject": subject,
+        "body": body,
+        "dispatch_id": rec.id,
+        "delivery": rec.delivery,
+    }
+
+
+@router.get("/emails/{stage_id}/dispatch-history", summary="List prior returns for a staged email")
+def dispatch_history(stage_id: str, db: Session = Depends(get_db)):
+    rows = (
+        db.query(DispatchRecord)
+        .filter_by(stage_id=stage_id)
+        .order_by(DispatchRecord.id.desc())
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "decision": r.decision,
+            "subject": r.subject,
+            "channel": r.channel,
+            "delivery": r.delivery,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+        }
+        for r in rows
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Bulk Operations & Source Trust Policy Enforcement
+# ---------------------------------------------------------------------------
+@router.post("/emails/bulk-approve", summary="Bulk approve staged emails by source")
+def bulk_approve(payload: BulkIn, db: Session = Depends(get_db)):
+    """Approve every triage-ready row for a source (or all sources).
+
+    Only ``STAGED`` rows are eligible, plus non-blocked ``QUARANTINED`` rows
+    when ``include_quarantined`` is set. Malware-blocked rows are never
+    approved, so the security gate cannot be bypassed by a bulk action.
+    """
+    statuses = ["STAGED"]
+    if payload.include_quarantined:
+        statuses.append("QUARANTINED")
+
+    q = db.query(StagedEmailRecord).filter(StagedEmailRecord.status.in_(statuses))
+    if payload.source_mailbox and payload.source_mailbox != "ALL":
+        q = q.filter(StagedEmailRecord.source_mailbox == payload.source_mailbox)
+    rows = q.all()
+
+    approved = 0
+    skipped_blocked = 0
+    for r in rows:
+        if r.security_status == "BLOCKED":
+            skipped_blocked += 1
+            continue
+        _ingest_staged(r, db)
+        approved += 1
+
+    return {
+        "approved": approved,
+        "skipped_blocked": skipped_blocked,
+        "source_mailbox": payload.source_mailbox or "ALL",
+    }
+
+
+@router.post("/emails/bulk-return", summary="Bulk return-to-sender by source")
+def bulk_return(payload: BulkIn, db: Session = Depends(get_db)):
+    """Return every row for a source (or all sources) through its origin mailbox.
+
+    Each row gets a persisted DispatchRecord and flips to RETURNED. Blocked
+    rows receive a rejection notice rather than being silently dropped.
+    """
+    q = db.query(StagedEmailRecord)
+    if payload.source_mailbox and payload.source_mailbox != "ALL":
+        q = q.filter(StagedEmailRecord.source_mailbox == payload.source_mailbox)
+    rows = q.all()
+
+    returned = 0
+    for r in rows:
+        _return_staged(r, db)
+        returned += 1
+
+    return {"returned": returned, "source_mailbox": payload.source_mailbox or "ALL"}
+
+
+@router.post("/policy/reapply", summary="Re-apply source trust policy to staged backlog")
+def reapply_policy(db: Session = Depends(get_db)):
+    """Honour per-source trust policy against the existing STAGED backlog.
+
+    Flipping a source from manual to auto in the Trust Matrix does not
+    retroactively ingest mail that was already held for triage. This endpoint
+    re-evaluates every ``STAGED`` row against its effective ingest mode and
+    auto-ingests the ones whose source is now set to auto. Blocked rows stay
+    quarantined.
+    """
+    pol = _get_policy(db)
+    rows = db.query(StagedEmailRecord).filter_by(status="STAGED").all()
+    auto_ingested = 0
+    for r in rows:
+        if r.security_status == "BLOCKED":
+            continue
+        if effective_ingest_mode(pol, r.source_mailbox) == "auto":
+            _ingest_staged(r, db)
+            auto_ingested += 1
+    return {"auto_ingested": auto_ingested, "source_policies": pol.source_policies or {}}
+
+
 # ---------------------------------------------------------------------------
 # Live Demo Simulation Trigger
 # ---------------------------------------------------------------------------
 @router.post("/simulate-drop", summary="Simulate an incoming email for demo purposes")
 def simulate_email_drop(payload: SimulateDropIn, db: Session = Depends(get_db)):
     pol = _get_policy(db)
-    now_str = dt.datetime.now().strftime("%H%M%S")
+    now_str = dt.datetime.now().strftime("%H%M%S%f")[:9]
     stage_id = f"STG-{now_str}"
 
     scenarios = {
@@ -366,10 +679,10 @@ def simulate_email_drop(payload: SimulateDropIn, db: Session = Depends(get_db)):
 
     if security_status == "BLOCKED":
         status = "QUARANTINED"
-        ai_reason = f"Security Gate intercepted malicious payload ({security_details[0]['reason']})"
+        ai_reason = f"Hub intercepted malicious payload ({security_details[0]['reason']})"
     elif category == "SPAM":
         status = "QUARANTINED"
-    elif pol.ingest_mode == "auto":
+    elif effective_ingest_mode(pol, payload.source_mailbox) == "auto":
         status = "AUTO_INGESTED"
     else:
         status = "STAGED"

@@ -21,7 +21,7 @@ from typing import Any, Callable, Optional
 
 from sqlalchemy.orm import Session
 
-from app.models import EmailRecord, ReportRecord, ReviewRecord
+from app.models import EmailRecord, ReportRecord, ReviewRecord, infer_source_mailbox
 from app.schemas import COMPARED_FIELDS
 from app.services import ai_service, doc_types, inbox_service, versioning
 from app.services.classifier import Classification
@@ -892,6 +892,7 @@ def _upsert_email_record(db: Session, email: dict) -> None:
             body=email.get("body"),
             attachments=email.get("attachments") or [],
             received_at=received_at,
+            source_mailbox=infer_source_mailbox(email_id, email.get("from")),
         ))
         db.commit()
     elif received_at and row.received_at is None:

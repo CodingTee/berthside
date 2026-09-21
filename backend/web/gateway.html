@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ShipSync · Secure Ingestion Gateway</title>
+<title>ShipSync Enterprise Hub · 企业单证中枢 · Routing, QA & Dispatch</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='.52' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cg transform='translate(4,4)' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3C/g%3E%3C/svg%3E">
 <script>
 (function(){
@@ -53,7 +53,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 .actions-right { display: flex; align-items: center; gap: 12px; }
 
 /* Main Content */
-.main-wrapper { flex: 1; display: flex; flex-direction: column; padding: 18px 22px; gap: 16px; overflow: hidden; }
+.main-wrapper { flex: 1; display: flex; flex-direction: column; padding: 18px 22px; gap: 16px; overflow-y: auto; overflow-x: hidden; }
 
 /* KPI Strip */
 .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; flex-shrink: 0; }
@@ -84,8 +84,41 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 .btn-danger:hover { background: var(--bad); color: #fff; }
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 
+/* Source Trust Matrix */
+.matrix-panel { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0; box-shadow: var(--shadow); }
+.matrix-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.matrix-title { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.matrix-sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+.matrix-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+.mx-card { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--surface); }
+.mx-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mx-mb { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--text); word-break: break-all; }
+.mx-role { font-size: 11px; color: var(--muted-2); }
+.mx-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.mx-count { font-size: 11px; color: var(--muted); }
+.mx-count b { color: var(--warn); font-family: var(--mono); }
+/* Segmented 3-state control: Inherit / Auto / Manual */
+.seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; border: none; color: var(--muted); padding: 4px 9px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: all .12s; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button:hover { color: var(--text); background: rgba(255,255,255,.05); }
+.seg button.active { color: #fff; }
+.seg button.active.inherit { background: var(--muted-2); }
+.seg button.active.auto { background: var(--ok); }
+.seg button.active.manual { background: var(--warn); }
+.mx-actions { display: flex; gap: 6px; }
+.mx-pill { font-size: 10px; padding: 2px 7px; border-radius: 6px; font-weight: 700; font-family: var(--mono); text-transform: uppercase; }
+.mx-pill.inherit { background: rgba(148,163,184,.16); color: var(--muted); }
+.mx-pill.forced { background: rgba(56,189,248,.14); color: #7dd3fc; border: 1px solid rgba(56,189,248,.35); }
+
+/* Bulk action bar inside table header */
+.bulk-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.eff-tag { font-size: 10px; padding: 1px 6px; border-radius: 5px; margin-left: 6px; font-weight: 700; font-family: var(--mono); }
+.eff-tag.auto { background: rgba(52,211,153,.14); color: var(--ok); }
+.eff-tag.manual { background: rgba(251,191,36,.14); color: var(--warn); }
+
 /* Table Container */
-.table-panel { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
+.table-panel { flex: 1 1 auto; min-height: 420px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow); }
 .table-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 650; font-size: 14px; }
 .table-body { flex: 1; overflow-y: auto; }
 table.staged-tbl { width: 100%; border-collapse: collapse; text-align: left; }
@@ -127,11 +160,11 @@ table.staged-tbl tr:hover { background: rgba(255,255,255,.02); }
     <div class="logo-icon">
       <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     </div>
-    <span>ShipSync <span style="font-weight:400;color:var(--muted)">Gateway</span></span>
+    <span>ShipSync <span style="font-weight:400;color:var(--muted)">Hub</span></span>
   </div>
 
   <nav class="nav-links">
-    <a href="/ui/gateway.html" class="nav-btn active">🛡️ Secure Ingestion Gateway</a>
+    <a href="/ui/gateway.html" class="nav-btn active">🔀 Enterprise Hub</a>
     <a href="/ui/" class="nav-btn">📋 Review Console</a>
     <a href="/ui/shipments.html" class="nav-btn">🚢 Shipment Lifecycle</a>
   </nav>
@@ -152,7 +185,7 @@ table.staged-tbl tr:hover { background: rgba(255,255,255,.02); }
     </div>
     <div class="kpi-card ok">
       <span class="kpi-num" id="kpiSafe">520</span>
-      <span class="kpi-lbl">🛡️ Clean & Ingested</span>
+      <span class="kpi-lbl">✅ Clean & Ingested</span>
     </div>
     <div class="kpi-card bad">
       <span class="kpi-num" id="kpiBlocked">1</span>
@@ -212,14 +245,35 @@ table.staged-tbl tr:hover { background: rgba(255,255,255,.02); }
     </div>
   </div>
 
+  <!-- Source Trust Matrix -->
+  <div class="matrix-panel">
+    <div class="matrix-head">
+      <div>
+        <div class="matrix-title">📡 Source Trust Matrix <span class="matrix-sub">· per-mailbox ingest policy</span></div>
+        <div class="matrix-sub">Set a source to Auto and verified mail flows straight through; Manual holds it for operator triage. Inherit follows the global policy above.</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm" onclick="reapplyPolicy()">⚡ Re-apply Policy to Backlog</button>
+      </div>
+    </div>
+    <div class="matrix-grid" id="matrixGrid">
+      <!-- Per-source cards rendered by JS -->
+    </div>
+  </div>
+
   <!-- Staged & Quarantine Stream Table -->
   <div class="table-panel">
     <div class="table-header">
       <div style="display:flex;align-items:center;gap:6px;">
-        <span>🛡️ Ingestion Buffer & Quarantine Stream</span>
+        <span>📨 Inbound Stream, Review & Dispatch</span>
         <span id="stagedCountBadge" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
       </div>
-      <button class="btn btn-sm" onclick="loadStagedEmails()">🔄 Refresh Stream</button>
+      <div class="bulk-bar">
+        <button class="btn btn-sm btn-primary" onclick="bulkApprove('source')">✅ Approve all <span id="bulkSrcLabel" style="opacity:.8;"></span></button>
+        <button class="btn btn-sm btn-primary" onclick="bulkApprove('visible')">✅ Approve all (incl. quarantine)</button>
+        <button class="btn btn-sm" onclick="bulkReturn('visible')">↩ Return all visible</button>
+        <button class="btn btn-sm" onclick="loadStagedEmails()">🔄 Refresh</button>
+      </div>
     </div>
     <div class="table-body">
       <table class="staged-tbl">
@@ -251,7 +305,7 @@ table.staged-tbl tr:hover { background: rgba(255,255,255,.02); }
       <button class="btn btn-sm" onclick="closeSimModal()">✕</button>
     </div>
     <p style="color:var(--muted);font-size:12.5px;">
-      Select a test scenario to evaluate the gateway's real-time malware interception, spam filtering, and multi-mailbox document routing:
+      Select a test scenario to evaluate the hub's real-time malware interception, spam filtering, and multi-mailbox document routing:
     </p>
 
     <div class="scenario-grid">
@@ -292,22 +346,25 @@ table.staged-tbl tr:hover { background: rgba(255,255,255,.02); }
   </div>
 </div>
 
-<!-- Rejection Reply Modal -->
-<div class="modal-overlay hidden" id="replyModal">
+<!-- Return to Sender Modal -->
+<div class="modal-overlay hidden" id="returnModal">
   <div class="modal-box" style="width:600px;">
     <div class="modal-head">
-      <span>📤 Dispatch Rejection & Return-to-Sender Clarification</span>
-      <button class="btn btn-sm" onclick="closeReplyModal()">✕</button>
+      <span>↩️ Return to Sender · 原路回发</span>
+      <button class="btn btn-sm" onclick="closeReturnModal()">✕</button>
     </div>
     <div style="font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:6px;">
-      <div>Channel (From / Reply-Via): <b id="repVia" style="color:var(--accent);"></b></div>
-      <div>Recipient (To): <b id="repTo"></b></div>
-      <div>Subject: <b id="repSub"></b></div>
+      <div>Return channel (via): <b id="retVia" style="color:var(--accent);"></b> <span id="retDelivery" style="font-size:11px;color:var(--warn);"></span></div>
+      <div>Recipient (to): <b id="retTo"></b></div>
     </div>
-    <textarea id="repBody" style="width:100%;height:140px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:12px;color:var(--muted);">Subject</label>
+      <input id="retSub" style="background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:var(--sans);font-size:12.5px;outline:none;">
+    </div>
+    <textarea id="retBody" style="width:100%;height:150px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
     <div style="display:flex;justify-content:flex-end;gap:10px;">
-      <button class="btn" onclick="closeReplyModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="confirmSendReply()">📨 Send Origin-Aware Reply</button>
+      <button class="btn" onclick="closeReturnModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmReturn()">📨 Dispatch Return</button>
     </div>
   </div>
 </div>
@@ -348,6 +405,13 @@ async function loadStatus(){
     document.getElementById("selEngine").value = data.policy.engine;
     document.getElementById("selMode").value = data.policy.ingest_mode;
 
+    // Capture policy for per-row effective-mode badges + render matrix.
+    window.hubPolicy = {
+      ingest_mode: data.policy.ingest_mode,
+      source_policies: data.policy.source_policies || {},
+    };
+    renderMatrix(data.policy.source_policies || {}, data.source_staged || {}, data.available_mailboxes || []);
+
     // Update Engine probe
     const ob = document.getElementById("ollamaBadge");
     const ot = document.getElementById("ollamaText");
@@ -387,7 +451,7 @@ async function changePolicy(){
       body: JSON.stringify({engine, ingest_mode})
     });
     if(res.ok){
-      toast("Gateway policy updated successfully", "ok");
+      toast("Hub policy updated successfully", "ok");
       loadStatus();
     }
   }catch(e){
@@ -432,7 +496,7 @@ function renderStagedList(items){
       actionBtns = `
         <div style="display:flex;gap:6px;align-items:center;">
           <button class="btn btn-sm btn-primary" onclick="approveEmail('${it.stage_id}')">✅ Approve & Ingest</button>
-          <button class="btn btn-sm btn-danger" onclick="rejectEmail('${it.stage_id}')">📤 Reject & Clarify</button>
+          <button class="btn btn-sm btn-danger" onclick="openReturn('${it.stage_id}', true)">📤 Reject & Clarify</button>
         </div>
       `;
     } else if(it.status === "QUARANTINED"){
@@ -440,22 +504,42 @@ function renderStagedList(items){
         actionBtns = `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
       } else {
         actionBtns = `
-          <button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="approveEmail('${it.stage_id}')">🔓 Release & Ingest</button>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="approveEmail('${it.stage_id}')">🔓 Release & Ingest</button>
+            <button class="btn btn-sm" onclick="openReturn('${it.stage_id}', true)">↩️ Return to Sender</button>
+          </div>
         `;
       }
     } else if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
-      actionBtns = `<span style="color:var(--ok);font-weight:600;font-size:12px;">✓ Ingested to Review Desk</span>`;
+      actionBtns = `
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="color:var(--ok);font-weight:600;font-size:12px;">✓ Ingested</span>
+          <button class="btn btn-sm" onclick="openReturn('${it.stage_id}', false)">↩️ Return to Sender</button>
+        </div>
+      `;
+    } else if(it.status === "RETURNED"){
+      actionBtns = `
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="color:var(--accent);font-weight:600;font-size:12px;">↩️ Returned via ${it.source_mailbox}</span>
+          <button class="btn btn-sm" onclick="openReturn('${it.stage_id}', false)">Return Again</button>
+        </div>
+      `;
     } else {
-      actionBtns = `<span style="color:var(--muted);font-size:12px;">Rejected</span>`;
+      actionBtns = `
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span style="color:var(--muted);font-size:12px;">Rejected</span>
+          <button class="btn btn-sm" onclick="openReturn('${it.stage_id}', false)">↩️ Return to Sender</button>
+        </div>
+      `;
     }
 
     html += `
       <tr>
         <td style="font-family:var(--mono);font-size:12px;">${it.stage_id}</td>
-        <td><span class="pill pill-src">${it.source_mailbox}</span></td>
+        <td><span class="pill pill-src">${it.source_mailbox}</span><span class="eff-tag ${effectiveMode(it.source_mailbox) === 'auto' ? 'auto' : 'manual'}">${effectiveMode(it.source_mailbox) === 'auto' ? 'AUTO' : 'MANUAL'}</span></td>
         <td>
           <div style="font-weight:600;color:var(--text);">${it.subject}</div>
-          <div style="font-size:11.5px;color:var(--muted);">Sender: ${it.sender || "—"}</div>
+          <div style="font-size:11.5px;color:var(--muted);">Sender: ${it.sender || "-"}</div>
         </td>
         <td>
           ${secPill}
@@ -483,29 +567,61 @@ async function approveEmail(stageId){
   }
 }
 
-async function rejectEmail(stageId){
+let currentReturnStage = null;
+
+async function openReturn(stageId, rejectFirst){
+  currentReturnStage = stageId;
+  let draft;
   try{
-    const res = await fetch(`/api/v1/gateway/emails/${stageId}/reject`, {method: "POST"});
-    const d = await res.json();
-    document.getElementById("repVia").textContent = d.reply_via;
-    document.getElementById("repTo").textContent = d.reply_to;
-    document.getElementById("repSub").textContent = d.draft_subject;
-    document.getElementById("repBody").value = d.draft_body;
-    document.getElementById("replyModal").classList.remove("hidden");
+    if(rejectFirst){
+      const r = await fetch(`/api/v1/gateway/emails/${stageId}/reject`, {method: "POST"});
+      draft = await r.json();
+    } else {
+      const r = await fetch(`/api/v1/gateway/emails/${stageId}/return`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({dry_run: true})
+      });
+      draft = await r.json();
+    }
+    document.getElementById("retVia").textContent = draft.reply_via;
+    document.getElementById("retTo").textContent = draft.reply_to;
+    document.getElementById("retSub").value = draft.subject || draft.draft_subject;
+    document.getElementById("retBody").value = draft.body || draft.draft_body;
+    const delivery = document.getElementById("retDelivery");
+    if(draft.decision === "REJECTED"){
+      delivery.textContent = "(reply: rejection / clarification)";
+    } else {
+      delivery.textContent = "(reply: verification result)";
+    }
+    document.getElementById("returnModal").classList.remove("hidden");
   }catch(e){
-    toast("Failed to generate rejection notice", "bad");
+    toast("Failed to prepare return", "bad");
   }
 }
 
-function closeReplyModal(){
-  document.getElementById("replyModal").classList.add("hidden");
+function closeReturnModal(){
+  document.getElementById("returnModal").classList.add("hidden");
   loadStatus();
   loadStagedEmails();
 }
 
-function confirmSendReply(){
-  toast("Rejection notice dispatched via origin mailbox!", "ok");
-  closeReplyModal();
+async function confirmReturn(){
+  if(!currentReturnStage) return;
+  const subject = document.getElementById("retSub").value;
+  const body = document.getElementById("retBody").value;
+  try{
+    const res = await fetch(`/api/v1/gateway/emails/${currentReturnStage}/return`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({subject, body})
+    });
+    const d = await res.json();
+    toast(`Returned via ${d.reply_via} (${d.delivery})`, "ok");
+    closeReturnModal();
+  }catch(e){
+    toast("Failed to dispatch return", "bad");
+  }
 }
 
 /* Simulation Modal Logic */
@@ -538,6 +654,194 @@ async function executeDrop(){
     loadStagedEmails();
   }catch(e){
     toast("Simulation drop failed", "bad");
+  }
+}
+
+/* Source Trust Matrix */
+const SRC_ROLES = {
+  "sdoc-hackathon-bundle@averis.com": "Benchmark EDI / API bundle",
+  "operations@shipsync.demo": "Direct mail influx (live ops)",
+  "docs.export@averis.com": "Export documentation",
+  "booking@averis.com": "Booking confirmations",
+  "april.shipping@averis.com": "APRIL pulp & paper BU",
+  "finance@averis.com": "Freight & finance desk",
+  "transpacific@averis.com": "Transpacific trade lane",
+};
+
+function effectiveMode(mb){
+  const sp = (window.hubPolicy && window.hubPolicy.source_policies) || {};
+  if(mb && sp[mb]) return sp[mb];
+  return (window.hubPolicy && window.hubPolicy.ingest_mode) || "auto";
+}
+
+function renderMatrix(policies, counts, mailboxes){
+  const grid = document.getElementById("matrixGrid");
+  if(!grid) return;
+  if(!mailboxes || mailboxes.length === 0){
+    grid.innerHTML = "";
+    return;
+  }
+  let html = "";
+  mailboxes.forEach(mb => {
+    const forced = policies[mb];
+    const mode = forced || effectiveMode(mb);
+    const inherit = !forced;
+    const staged = (counts && counts[mb]) || 0;
+    const shortMb = mb.length > 30 ? mb.slice(0, 28) + "…" : mb;
+    html += `
+      <div class="mx-card">
+        <div class="mx-top">
+          <div>
+            <div class="mx-mb" title="${mb}">${shortMb}</div>
+            <div class="mx-role">${SRC_ROLES[mb] || "Mailbox source"}</div>
+          </div>
+          ${inherit
+            ? `<span class="mx-pill inherit">Inherits global</span>`
+            : `<span class="mx-pill forced">Overridden</span>`}
+        </div>
+        <div class="mx-bottom">
+          <div class="seg" data-mb="${mb}">
+            <button class="${inherit ? "active inherit" : "inherit"}" onclick="setSourcePolicy('${mb.replace(/'/g, "\\'")}', 'inherit')">Inherit</button>
+            <button class="${mode === 'auto' && !inherit ? "active auto" : "auto"}" onclick="setSourcePolicy('${mb.replace(/'/g, "\\'")}', 'auto')">Auto</button>
+            <button class="${mode === 'manual' && !inherit ? "active manual" : "manual"}" onclick="setSourcePolicy('${mb.replace(/'/g, "\\'")}', 'manual')">Manual</button>
+          </div>
+          <div class="mx-actions">
+            <button class="btn btn-sm btn-primary" onclick="bulkApproveMailbox('${mb.replace(/'/g, "\\'")}')">Approve</button>
+            <button class="btn btn-sm" onclick="bulkReturnMailbox('${mb.replace(/'/g, "\\'")}')">Return</button>
+          </div>
+        </div>
+        <div class="mx-count">Awaiting triage: <b>${staged}</b> &nbsp;·&nbsp; Effective: <b style="color:${mode==='auto'?'var(--ok)':'var(--warn)'}">${mode.toUpperCase()}</b></div>
+      </div>
+    `;
+  });
+  grid.innerHTML = html;
+}
+
+async function setSourcePolicy(mb, mode){
+  const sp = Object.assign({}, (window.hubPolicy && window.hubPolicy.source_policies) || {});
+  if(mode === "inherit"){
+    delete sp[mb];
+  } else {
+    sp[mb] = mode;
+  }
+  try{
+    const res = await fetch("/api/v1/gateway/config", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({source_policies: sp})
+    });
+    if(res.ok){
+      const d = await res.json();
+      window.hubPolicy = {ingest_mode: d.ingest_mode, source_policies: d.source_policies || {}};
+      toast(`Source policy for ${mb} set to ${mode}`, "ok");
+      loadStatus();
+      loadStagedEmails();
+    }
+  }catch(e){
+    toast("Failed to update source policy", "bad");
+  }
+}
+
+async function reapplyPolicy(){
+  toast("Re-applying source trust policy to backlog...", "ok");
+  try{
+    const res = await fetch("/api/v1/gateway/policy/reapply", {method: "POST"});
+    if(res.ok){
+      const d = await res.json();
+      toast(`Policy re-applied: ${d.auto_ingested} email(s) auto-ingested`, "ok");
+      loadStatus();
+      loadStagedEmails();
+    }
+  }catch(e){
+    toast("Failed to re-apply policy", "bad");
+  }
+}
+
+function _currentFilter(){
+  const mb = document.getElementById("selMailbox").value;
+  return mb; // "ALL" or a mailbox
+}
+
+function _bulkLabel(){
+  const mb = document.getElementById("selMailbox").value;
+  const el = document.getElementById("bulkSrcLabel");
+  if(el) el.textContent = mb === "ALL" ? "(all sources)" : "(" + mb + ")";
+}
+
+async function bulkApprove(scope){
+  _bulkLabel();
+  const mb = _currentFilter();
+  const include_quarantined = (scope === "visible");
+  try{
+    const res = await fetch("/api/v1/gateway/emails/bulk-approve", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({source_mailbox: mb, include_quarantined})
+    });
+    if(res.ok){
+      const d = await res.json();
+      toast(`Bulk approved ${d.approved} (skipped ${d.skipped_blocked} blocked)`, "ok");
+      loadStatus();
+      loadStagedEmails();
+    }
+  }catch(e){
+    toast("Bulk approve failed", "bad");
+  }
+}
+
+async function bulkReturn(scope){
+  _bulkLabel();
+  const mb = _currentFilter();
+  try{
+    const res = await fetch("/api/v1/gateway/emails/bulk-return", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({source_mailbox: mb})
+    });
+    if(res.ok){
+      const d = await res.json();
+      toast(`Bulk returned ${d.returned} email(s) via origin mailbox`, "ok");
+      loadStatus();
+      loadStagedEmails();
+    }
+  }catch(e){
+    toast("Bulk return failed", "bad");
+  }
+}
+
+async function bulkApproveMailbox(mb){
+  try{
+    const res = await fetch("/api/v1/gateway/emails/bulk-approve", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({source_mailbox: mb})
+    });
+    if(res.ok){
+      const d = await res.json();
+      toast(`Approved ${d.approved} from ${mb} (skipped ${d.skipped_blocked} blocked)`, "ok");
+      loadStatus();
+      loadStagedEmails();
+    }
+  }catch(e){
+    toast("Bulk approve failed", "bad");
+  }
+}
+
+async function bulkReturnMailbox(mb){
+  try{
+    const res = await fetch("/api/v1/gateway/emails/bulk-return", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({source_mailbox: mb})
+    });
+    if(res.ok){
+      const d = await res.json();
+      toast(`Returned ${d.returned} from ${mb}`, "ok");
+      loadStatus();
+      loadStagedEmails();
+    }
+  }catch(e){
+    toast("Bulk return failed", "bad");
   }
 }
 

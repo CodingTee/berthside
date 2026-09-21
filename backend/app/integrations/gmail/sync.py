@@ -14,7 +14,14 @@ from sqlalchemy.orm import Session
 
 from app.config import BACKEND_ROOT, get_settings
 from app.integrations.gmail import client, parser
-from app.models import EmailRecord, GmailMessageRecord, ReportRecord, utcnow
+from app.models import (
+    EmailRecord,
+    GmailMessageRecord,
+    OPS_MAILBOX,
+    ReportRecord,
+    infer_source_mailbox,
+    utcnow,
+)
 from app.routers.ingest import _decode_attachment, _portable_path, _safe_segment
 from app.services import doc_types, result_cache, workflow
 from app.services.security import verify_file_safety
@@ -193,6 +200,8 @@ def process_parsed_payload(
     if email is None:
         email = EmailRecord(email_id=email_id)
         db.add(email)
+    if not email.source_mailbox:
+        email.source_mailbox = OPS_MAILBOX
     email.sender = payload.sender
     email.subject = payload.subject
     email.body = payload.body

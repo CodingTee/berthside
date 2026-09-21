@@ -82,7 +82,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
   border:1px solid var(--border);background:var(--surface);color:var(--muted);text-decoration:none;
   font-size:12.5px;font-weight:600;transition:background .18s,border-color .18s,color .18s,box-shadow .22s}
 .navlink:hover{border-color:var(--accent);color:var(--accent);background:var(--surface-hover)}
-/* Active page — matches index.html: accent tint + accent border + left bar + lit icon. */
+/* Active page: matches index.html: accent tint + accent border + left bar + lit icon. */
 .navlink.active{border-color:color-mix(in srgb,var(--accent) 58%,transparent);color:var(--text);
   background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 16%,var(--surface-2)),var(--bg-2));
   box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent),
@@ -146,7 +146,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .pal-field input::placeholder{color:var(--muted-2)}
 .palette-kbd{flex:0 0 auto;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.6px;
   color:var(--muted-2);border:1px solid var(--border);border-radius:6px;padding:3px 6px}
-/* Pinned frequent filters — the same recipe as the Review Console palette. */
+/* Pinned frequent filters: the same recipe as the Review Console palette. */
 .pal-pins{display:flex;gap:8px;flex-wrap:wrap;padding:2px 12px 8px}
 .pal-pin{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface-3);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
 .pal-pin:hover,.pal-pin.active{border-color:var(--accent);color:var(--accent);background:var(--surface-hover)}
@@ -238,7 +238,7 @@ table.list td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-a
 table.list tbody tr{cursor:pointer;transition:.15s}
 table.list tbody tr:hover{background:var(--surface-hover)}
 table.list tbody tr:last-child td{border-bottom:0}
-/* Keyboard / click selection — the arrow keys need something visible to move,
+/* Keyboard / click selection: the arrow keys need something visible to move,
    so the highlight mirrors the inbox rows on the Review Console. */
 table.list tbody tr.sel{background:color-mix(in srgb,var(--accent) 11%,transparent)}
 table.list tbody tr.sel:hover{background:color-mix(in srgb,var(--accent) 17%,transparent)}
@@ -328,7 +328,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
   box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-2) 20%,transparent)}
 .cmp-tile[data-doc="SI"] .cmp-dot{background:var(--accent-3);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-3) 20%,transparent)}
-.cmp-tile[data-doc="—"] .cmp-dot{background:var(--muted-2);box-shadow:none}
+.cmp-tile[data-doc="-"] .cmp-dot{background:var(--muted-2);box-shadow:none}
 .cmp-type{font:700 10.5px/1 var(--mono);letter-spacing:.7px;color:var(--text)}
 .cmp-role{margin-left:auto;font-size:9.6px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;color:var(--muted-2)}
 .cmp-field{position:relative;display:flex;align-items:center}
@@ -545,7 +545,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
 <div class="app" id="app" data-page-node-id="YzqbhovjZ82l0756JHYKlg">
   <aside class="sidebar" data-page-node-id="LEFuRBjNRVvb0FbG6c7Woa">
     <div class="brand" data-page-node-id="foeAWV0E0btNWXKZBIPZyK">
-      <div class="mark" data-tip="ShipSync" data-tip-desc="AI-assisted shipping document verification — every SI ↔ BL pair is extracted, compared, and signed off by a human" data-tip-pos="right" data-page-node-id="MGogQlXlWMcyrptdaMg79P"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="KqZGHmAK7CQoGPWJXZfelU"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="drv8diwM2K1gq7Am5LBtY3"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="A3Sy64JATQlrqxm7iOrJeL"/></svg></div>
+      <div class="mark" data-tip="ShipSync" data-tip-desc="AI-assisted shipping document verification: every SI ↔ BL pair is extracted, compared, and signed off by a human" data-tip-pos="right" data-page-node-id="MGogQlXlWMcyrptdaMg79P"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="KqZGHmAK7CQoGPWJXZfelU"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="drv8diwM2K1gq7Am5LBtY3"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="A3Sy64JATQlrqxm7iOrJeL"/></svg></div>
       <div class="brand-txt" data-page-node-id="6ipFQTF86Q958OiCcuIGqR">
         <div class="name" data-page-node-id="CWGSiRO8rxyhpCrbgRs8HE">ShipSync</div>
         <div class="tag" data-page-node-id="pyGqG8jSN5MMq60Uzq5ZN8">Verification Console</div>
@@ -557,17 +557,17 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
     <div class="nav-sec" data-page-node-id="qarqEauyVONOBd0auTi097">
       <div class="wf-title" data-page-node-id="weQsW6sMudD2uoT4qsYTHQ">Workflows</div>
-      <a class="navlink" href="gateway.html" data-tip="Secure Ingestion Gateway" data-tip-desc="Pre-ingestion attachment screening & quarantine — executable-header checks & multi-mailbox dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Secure Ingestion Gateway">
+      <a class="navlink" href="gateway.html" data-tip="Enterprise Hub" data-tip-desc="Multi-inbox intake, AI triage, review & return-to-sender dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Enterprise Hub">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Secure Ingestion Gateway</span>
+        <span>Enterprise Hub</span>
         <span class="hk">0</span>
       </a>
-      <a class="navlink" href="/ui/" data-tip="Review Console" data-tip-desc="Email-centric console — process the inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console" data-page-node-id="nPRW3ST1L4rVsr6D58tNad">
+      <a class="navlink" href="/ui/" data-tip="Review Console" data-tip-desc="Email-centric console: process the inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console" data-page-node-id="nPRW3ST1L4rVsr6D58tNad">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="3FWcqyEjXIVzxOBDaYWt8y"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1" data-page-node-id="ivohGka5yZwMVmh268LQVC"/></svg>
         <span data-page-node-id="0tO99WvagTfEhoNohvAlBH">Review Console</span>
         <span class="hk" data-page-node-id="hkNav1">1</span>
       </a>
-      <a class="navlink active" href="shipments.html" data-tip="Advanced Shipment Workflow" data-tip-desc="Shipment-centric console — version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Advanced Shipment Workflow" data-page-node-id="GSFpGTRT8mdSocy3UZ9ROW">
+      <a class="navlink active" href="shipments.html" data-tip="Advanced Shipment Workflow" data-tip-desc="Shipment-centric console: version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Advanced Shipment Workflow" data-page-node-id="GSFpGTRT8mdSocy3UZ9ROW">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="GAJIAMKewmnLiLUsI9fANl"><path d="M3 7l9-4 9 4-9 4-9-4z" data-page-node-id="UtaYMSSemfzosrF3Fm9tVD"/><path d="M3 7v10l9 4 9-4V7" data-page-node-id="5upRL6OTNDr7Fe5oBwHLlC"/><path d="M12 11v10" data-page-node-id="zUGs3kqePzbCzBZCEi9Neg"/></svg>
         <span data-page-node-id="WZuNT3hGJxpvjvYDPiXTrR">Advanced Shipment Workflow</span>
         <span class="hk" data-page-node-id="hkNav2">2</span>
@@ -647,7 +647,7 @@ const view = document.getElementById("view");
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function isTyping(t){ return t && (t.tagName==="INPUT"||t.tagName==="TEXTAREA"||t.tagName==="SELECT"); }
 function fmtVal(field, val){
-  if(val===null||val===undefined||val==="") return "—";
+  if(val===null||val===undefined||val==="") return "-";
   if(field==="gross_weight_kg"){ const n=Number(val); return (isFinite(n)?n.toLocaleString():"")+" kg"; }
   if(field==="container_count"){ const n=Number(val); return isFinite(n)?String(n):String(val); }
   return String(val);
@@ -664,7 +664,7 @@ function statusPill(s){ return pill(s, statusKind(s)); }
 
 /* Independent resolution signal derived from the per-shipment counts the API
    already returns. This is NOT the same axis as Verification (which answers
-   "do the SI/BL agree?") — this answers "has a human acted on the issues?". */
+   "do the SI/BL agree?"): this answers "has a human acted on the issues?". */
 function resolutionState(sh){
   const pend=sh.pending_count||0, res=sh.resolved_count||0, mm=sh.mismatch_count||0;
   if(res>0)   return {label:"Resolved",   kind:"ok",   sub: res+(pend?(" · "+pend+" pending"):"")};
@@ -683,25 +683,25 @@ function routeOf(si,bl){
   return p;
 }
 /* Strip the noisy shared prefix ("attachments/email_046_") from stored names. */
-function fmtFile(name){ return name? String(name).replace(/^attachments\//,"").replace(/^email_\d+_/,"") : "—"; }
+function fmtFile(name){ return name? String(name).replace(/^attachments\//,"").replace(/^email_\d+_/,"") : "-"; }
 function fmtTime(d){ try{ return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"}); }catch(_){ return ""; } }
 
 /* ---------- keyboard map for the dashboard filters ---------- */
 /* One table drives the chip shortcut, the hover bubble and the `?` cheat-sheet
    so the three can never disagree. Plain letters pick a Verification state,
-   Shift+letter picks a Resolution state — two independent axes, two groups. */
-/* Platform-aware modifier label — the same convention MODK already uses for the
+   Shift+letter picks a Resolution state: two independent axes, two groups. */
+/* Platform-aware modifier label: the same convention MODK already uses for the
    search key: a Windows user reads "Shift", a Mac user reads the ⇧ glyph. The
    bare "⇧" was unreadable for anyone not raised on Mac keycaps, so the word wins.
    SHIFT_TIP appends the "|" the tooltip and cheat-sheet renderers split on, so the
-   modifier and the letter become two separate keycaps — exactly how the Search
+   modifier and the letter become two separate keycaps: exactly how the Search
    button already draws [Ctrl][K]. */
 const IS_MAC=/Mac|iPhone|iPad/.test(navigator.platform||navigator.userAgent||"");
 const MODK=IS_MAC?"\u2318":"Ctrl";
 const SHIFTK=IS_MAC?"\u21e7":"Shift";
 const SHIFT_TIP=SHIFTK+"|";
 /* One-keycap form ("Shift+A") for the palette rows and the pinned filter chips,
-   which render a single badge — a second keycap would double their width. */
+   which render a single badge: a second keycap would double their width. */
 const kbdOne=s=>String(s||"").replace("|","+");
 /* Dashboard filter shortcuts. Plain letter = Verification axis, Shift+letter =
    Resolution axis. The chip tooltip, the `?` cheat-sheet and the keydown handler all
@@ -741,7 +741,7 @@ const FILTER_ALIASES = {
   "res:pending":   ["pending","approval","waiting","suggest"],
   "res:resolved":  ["resolved","done","closed","complete","handled"]
 };
-/* Which filters you actually reach for — the same pinning idea as the Review
+/* Which filters you actually reach for: the same pinning idea as the Review
    Console's status chips, so both palettes learn from real use. */
 const FREQ_KEY="sdoc_ship_filter_freq";
 function filterFreq(){try{return JSON.parse(localStorage.getItem(FREQ_KEY)||"{}");}catch(_){return {};}}
@@ -789,7 +789,7 @@ function setDashFilter(grp, val){
   state.dashFilter[grp]=val;
   recordFilterUse(grp,val);
   state.dashSel=0;
-  /* Called from the palette this may run while a shipment is open — hand back to
+  /* Called from the palette this may run while a shipment is open: hand back to
      the router instead of painting the dashboard underneath the detail view. */
   if(state.current) go("#/"); else paintDashboard();
 }
@@ -885,7 +885,7 @@ async function renderDashboard(){
 function paintDashboard(){
   const s = state.shipments;
   view.classList.remove("dash-mode");   /* loading / empty states scroll normally */
-  state.current = null;   /* leaving detail view — keeps the palette's context commands accurate */
+  state.current = null;   /* leaving detail view: keeps the palette's context commands accurate */
   clearSubnav();
   document.getElementById("crumbs").innerHTML = '<b>Shipments</b>';
   if(s.length===0){
@@ -1023,7 +1023,7 @@ async function openShipment(id){
     renderDetail();
   }catch(e){
     if(e.status===404){
-      view.innerHTML = errorCard("Shipment not found", "No shipment with id "+id+". It may not have been generated yet — process inbox emails first.");
+      view.innerHTML = errorCard("Shipment not found", "No shipment with id "+id+". It may not have been generated yet: process inbox emails first.");
     }else{
       view.innerHTML = errorCard("Could not load shipment", e.message);
     }
@@ -1033,11 +1033,11 @@ async function openShipment(id){
 function findVer(vid){ return state.versions.find(v=>v.id===vid); }
 function verLabel(v){ return v? (v.doc_type+" v"+v.version_number) : "?"; }
 /* One side of the compare bar: role ("Baseline" / "Counterpart") + detected doc
-   type, then the version <select>. `selId` must stay `fromSel` / `toSel` — the
+   type, then the version <select>. `selId` must stay `fromSel` / `toSel`: the
    diff, the swap button and the auto-compare all look the selects up by id. */
 function cmpTile(selId, role, selectedId, opts){
   const v=findVer(+selectedId)||{};
-  const dt=(v.doc_type||"—").toUpperCase();
+  const dt=(v.doc_type||"-").toUpperCase();
   return '<label class="cmp-tile" data-doc="'+esc(dt)+'">'+
     '<span class="cmp-head">'+
       '<span class="cmp-dot"></span>'+
@@ -1059,7 +1059,7 @@ function syncCompareBar(){
     const tile=sel.closest(".cmp-tile");
     if(!tile) return;
     const opt=sel.options[sel.selectedIndex];
-    const dt=(opt&&opt.dataset.type)||"—";
+    const dt=(opt&&opt.dataset.type)||"-";
     tile.dataset.doc=dt;
     const slot=tile.querySelector('.cmp-type[data-type-slot="'+id+'"]');
     if(slot) slot.textContent=dt;
@@ -1084,7 +1084,7 @@ function setSubnav(items){
   subnavEl.hidden = false;
   requestAnimationFrame(scrollSpy);
 }
-/* Scroll the panel to the top of #view itself. Computing the offset is predictable —
+/* Scroll the panel to the top of #view itself. Computing the offset is predictable:
    scrollIntoView on a nested scroller depends on ancestor overflow and can land
    anywhere, and the offset stays correct while a smooth scroll is in flight. */
 function goSection(id){
@@ -1151,7 +1151,7 @@ function renderDetail(){
     '<div class="panel"><div class="panel-body">'+
       '<div class="flex" style="justify-content:space-between">'+
         '<div><div class="key" style="font-size:15px">'+esc(sh.shipment_key)+'</div>'+
-          '<div class="sub">Reference: '+esc(sh.reference_number||"—")+'</div></div>'+
+          '<div class="sub">Reference: '+esc(sh.reference_number||"-")+'</div></div>'+
         '<div class="flex">'+statusPill(sh.status||"VERIFIED")+'</div>'+
       '</div>'+
       '<div style="height:10px"></div>'+
@@ -1175,7 +1175,7 @@ function renderDetail(){
       if(v.duplicate_of_version_id!=null) tags.push('<span class="tag-dup">DUPLICATE</span>');
       h += '<div class="ver"><span class="vn">v'+v.version_number+'</span>'+
         '<span class="fn">'+esc(v.filename)+'</span>'+
-        '<span class="meta">'+(v.received_at?esc(String(v.received_at).slice(0,10)):"—")+'</span>'+
+        '<span class="meta">'+(v.received_at?esc(String(v.received_at).slice(0,10)):"-")+'</span>'+
         '<span class="ix">'+tags.join(" ")+(v.duplicate_of_version_id!=null?'<span class="muted small">copy of v'+esc(findVer(v.duplicate_of_version_id)?.version_number||"?")+'</span>':'')+'</span></div>';
     }
     return h;
@@ -1223,7 +1223,7 @@ function renderDetail(){
             cmpTile("toSel","To",defTo,opts)+
           '</div>'+
         '</div>'+
-        '<div class="note">Field-by-field comparison of the 7 tracked fields. This is deterministic — no AI interpretation is applied.</div>'+
+        '<div class="note">Field-by-field comparison of the 7 tracked fields. This is deterministic: no AI interpretation is applied.</div>'+
         '<div style="height:10px"></div>'+
         '<div id="diffOut"></div>'+
       '</div></div>';
@@ -1237,7 +1237,7 @@ function renderDetail(){
       '<div class="note" style="margin-top:8px">Compared against latest detected BL version. '+
       'The system detects discrepancies; a human decides the authoritative value.</div>';
   }else{
-    verNote = '<div class="note warn" style="margin-top:4px">Insufficient version data — need both a latest SI and a latest BL to compare.</div>';
+    verNote = '<div class="note warn" style="margin-top:4px">Insufficient version data: need both a latest SI and a latest BL to compare.</div>';
   }
   const verification =
     '<div class="panel" id="sec-verification"><div class="panel-head"><div class="ttl">'+icon("check")+'Latest Verification</div></div>'+
@@ -1263,7 +1263,7 @@ function renderDetail(){
         '<div class="ai-note">AI assistance can improve explanation wording. It is never the source of truth and never approves or overwrites a document.</div>'+
       '</div></div>';
 
-  /* The section nav is rendered into the topbar (#subnav), NOT into #view — it sits
+  /* The section nav is rendered into the topbar (#subnav), NOT into #view: it sits
      outside the scroll container so it never overlaps the panel underneath. */
   view.innerHTML = header+versionHistory+diffPanel+verification+resolutionCenter+resolutionStatus+aiPlaceholder;
   setSubnav([
@@ -1305,7 +1305,7 @@ function issueCard(it){
   if(res){
     sugg = 'Update BL <b>'+esc(label)+'</b> to <b>'+esc(fmtVal(field,res.suggested_value))+'</b>';
   }else{
-    sugg = 'No suggestion yet — click <b>Suggest</b> to generate a deterministic correction.';
+    sugg = 'No suggestion yet: click <b>Suggest</b> to generate a deterministic correction.';
   }
   const resStatus = res? statusPill(res.status) : '<span class="muted small">no resolution record</span>';
   return '<div class="issue">'+
@@ -1314,7 +1314,7 @@ function issueCard(it){
       '<div class="valbox"><div class="l">SI value</div><div class="v">'+esc(fmtVal(field,it.si_value))+'</div></div>'+
       '<div class="valbox"><div class="l">BL value</div><div class="v">'+esc(fmtVal(field,it.bl_value))+'</div></div>'+
     '</div>'+
-    '<div class="explain"><b>Difference:</b> '+esc(it.difference||"—")+'<br><b>Explanation:</b> '+esc(it.explanation||"—")+'</div>'+
+    '<div class="explain"><b>Difference:</b> '+esc(it.difference||"-")+'<br><b>Explanation:</b> '+esc(it.explanation||"-")+'</div>'+
     '<div class="suggest">'+sugg+'</div>'+
     '<div class="issue-actions">'+
       '<button class="btn" data-act="suggest" data-id="'+it.id+'"'+actAttrs("suggest")+'>Suggest</button>'+
@@ -1520,12 +1520,12 @@ document.getElementById("collapseBtn").addEventListener("click",toggleRail);
    palette badges are all derived from these tables so they cannot drift apart.
    IS_MAC / MODK live up top with SHIFTK, because the filter chips need them. */
 const NAV = {
-  gateway:   {href:"gateway.html",   key:"0", label:"Secure Ingestion Gateway",
-              desc:"Pre-ingestion attachment screening & quarantine \u2014 executable-header checks & multi-mailbox dispatch"},
+  gateway:   {href:"gateway.html",   key:"0", label:"Enterprise Hub",
+              desc:"Pre-ingestion quarantine buffer \u2014 AI triage, malware shield & multi-mailbox dispatch"},
   console:   {href:"/ui/",           key:"1", label:"Review Console",
-              desc:"Email-centric console — process the inbox and review SI \u2194 BL mismatches"},
+              desc:"Email-centric console: process the inbox and review SI \u2194 BL mismatches"},
   shipments: {href:"shipments.html", key:"2", label:"Advanced Shipment Workflow",
-              desc:"Shipment-centric console — version history, diffs and the resolution center"},
+              desc:"Shipment-centric console: version history, diffs and the resolution center"},
   back:      {href:"/ui/",           key:"B", label:"Back to Review Console",
               desc:"Return to the email-centric verification console"}
 };
@@ -1656,11 +1656,11 @@ function palPins(){
 }
 function palCmds(){
   const c=[
-    {ico:icon("shield"), title:"Open Secure Ingestion Gateway", meta:"Pre-ingestion attachment screening & quarantine", kbd:"0", run:()=>{ navTo(NAV.gateway.href); }},
+    {ico:icon("shield"), title:"Open Enterprise Hub", meta:"Multi-inbox intake, AI triage & dispatch", kbd:"0", run:()=>{ navTo(NAV.gateway.href); }},
     {ico:icon("home"), title:"Shipment Dashboard", meta:"Back to the shipment list", kbd:"G", run:goDashboard},
     {ico:icon("refresh"), title:"Reload current view", meta:"Re-fetch data from the API", run:()=>{ route(); }},
     {ico:icon(themeIconName(currentTheme())), title:"Switch theme",
-      meta:"Currently "+currentTheme()+" — switch to "+(currentTheme()==="dark"?"light":"dark"),
+      meta:"Currently "+currentTheme()+": switch to "+(currentTheme()==="dark"?"light":"dark"),
       kbd:"T", run:toggleTheme},
     {ico:icon("rail"), title:"Toggle sidebar", meta:"Expand / collapse the rail", kbd:"[", run:toggleRail},
     {ico:icon("bolt"), title:"Keyboard shortcuts", meta:"Every shortcut in one place", kbd:"?", run:openHelp},
@@ -1675,11 +1675,11 @@ function palCmds(){
 }
 function palRender(){
   const q=palQ.value.trim().toLowerCase();
-  /* Pinned filters sit above everything — same section, order and look as the Review
+  /* Pinned filters sit above everything: same section, order and look as the Review
      Console palette, so the two searches read as one product. */
   const pins = q ? [] : palPins();
   /* Group order mirrors the Review Console palette: pins, then what you touched
-     last, then commands, then results — so recents never hide below the fold. */
+     last, then commands, then results: so recents never hide below the fold. */
   const groups=[];
   const found=palShipItems(q);
   if(!q){
@@ -1722,7 +1722,7 @@ function palRender(){
     html+='</div>';
   }else if(!q){
     html+='<div class="pal-group">Your frequent filters</div>'+
-      '<div class="pal-hint">Filter the dashboard by verification or resolution — <b>the ones you use most get pinned here</b>. Or type <b>needs review</b>, <b>pending</b> or <b>unresolved</b>.</div>';
+      '<div class="pal-hint">Filter the dashboard by verification or resolution: <b>the ones you use most get pinned here</b>. Or type <b>needs review</b>, <b>pending</b> or <b>unresolved</b>.</div>';
   }
   for(const g of groups){
     html+='<div class="pal-group">'+g.label+'</div>';
@@ -1943,7 +1943,7 @@ document.addEventListener("keydown",e=>{
   }
 });
 
-/* theme toggle is a div — make it behave like a button when focused */
+/* theme toggle is a div: make it behave like a button when focused */
 document.getElementById("themeBtn").addEventListener("keydown",e=>{
   if(e.key==="Enter"||e.key===" "){ e.preventDefault(); toggleTheme(); }
 });

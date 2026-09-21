@@ -153,7 +153,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .step:last-child .line{display:none}
 .step.active .dot{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 6px 16px -6px rgba(45,212,191,.7)}
 .step.active .stxt b{color:var(--text)}
-/* NOTE: :not(.active) — .lit and .active share the same specificity, so a plain
+/* NOTE: :not(.active): .lit and .active share the same specificity, so a plain
    `.step.lit .dot` rule declared after would override the active dot's white icon
    and transparent border, making the icon vanish against the gradient. */
 .step.lit:not(.active) .dot{border-color:var(--accent);color:var(--accent)}
@@ -223,7 +223,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 .search-btn svg{width:15px;height:15px;flex:0 0 auto;color:var(--muted-2);transition:color .18s}
 .search-btn:hover svg{color:var(--accent)}
 .search-btn .s-ph{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* The Ctrl+K chip is the first thing to go when the inbox is dragged narrow —
+/* The Ctrl+K chip is the first thing to go when the inbox is dragged narrow:
    otherwise it gets clipped to "Ctr"/"Ctrl" and looks broken. Toggled by a
    ResizeObserver so it reacts to the draggable split, not just the viewport. */
 .search-btn .hk{transition:opacity .16s ease}
@@ -558,7 +558,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
   font-size:12.5px;font-weight:600;transition:background .18s,border-color .18s,color .18s,box-shadow .22s}
 .navlink:hover{border-color:var(--accent);color:var(--accent);background:var(--surface-hover)}
 .navlink svg{width:16px;height:16px;flex:0 0 auto;transition:color .18s,transform .18s}
-/* Active page — deliberately loud: accent tint + accent border + left bar + lit icon,
+/* Active page: deliberately loud: accent tint + accent border + left bar + lit icon,
    so "which console am I in?" is obvious at a glance even from across the room. */
 .navlink.active{border-color:color-mix(in srgb,var(--accent) 58%,transparent);color:var(--text);
   background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 16%,var(--surface-2)),var(--bg-2));
@@ -573,7 +573,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .app.collapsed .navlink span{display:none}
 .app.collapsed .navlink{justify-content:center;width:100%;padding:10px 0}
 .app.collapsed .nav-sec{align-items:center;width:100%}
-/* In rail mode there is no room for the left bar — the icon itself carries the state. */
+/* In rail mode there is no room for the left bar: the icon itself carries the state. */
 .app.collapsed .navlink.active{background:color-mix(in srgb,var(--accent) 24%,transparent);
   box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent),
     0 0 18px -6px color-mix(in srgb,var(--accent) 65%,transparent)}
@@ -676,7 +676,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
   <!-- ===================== SIDEBAR ===================== -->
   <aside class="sidebar" data-page-node-id="nPrwB4Jt2IEtpnUXVOvRca">
     <div class="brand" data-page-node-id="bpzGZd6y1i1fDOEILA6fKI">
-      <div class="mark" data-tip="ShipSync" data-tip-desc="AI-assisted shipping document verification — every SI ↔ BL pair is extracted, compared, and signed off by a human" data-tip-pos="right" data-page-node-id="YaLYjFOz1SCtLFnlSIGGUz">
+      <div class="mark" data-tip="ShipSync" data-tip-desc="AI-assisted shipping document verification: every SI ↔ BL pair is extracted, compared, and signed off by a human" data-tip-pos="right" data-page-node-id="YaLYjFOz1SCtLFnlSIGGUz">
         <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="YuX3xAN1XCrBDz2bUjTcx0">
           <path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="ypKSoBOLMAIE1wA90TyYAe"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="XL5jrb44AqtcQCJn3aGKww"/>
         </svg>
@@ -693,7 +693,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
     <div data-page-node-id="OmrnvHcXdFzmDFMHbcWVCB">
       <div class="wf-title" data-page-node-id="Cctt2017hDQ197iHOjEmK9">Pipeline</div>
       <div class="steps" id="steps" data-page-node-id="6JmNgsRGrTR0WPehwDx7AZ">
-        <div class="step" data-step="classify" data-tip="Classify" data-tip-desc="Triage every inbound mail — SI, invoice or spam — before extraction runs" data-tip-pos="right" data-page-node-id="7SKEs8PuPMblULhhXrt4lR"><div class="dot" data-page-node-id="gZrYYa1GvYHBweVNgYNtcc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="CBdB8vAWCktL7uogXzdTsv"><path d="M4 6h16M4 12h16M4 18h10" data-page-node-id="hAHYT4oLgHKVieEXIwVGYe"/></svg></div><div class="stxt" data-page-node-id="HuWBXBiVDDwX5CS7T2nDkg"><b data-page-node-id="3nrFpxEIvw0lAxKUuX5emW">Classify</b><span data-page-node-id="lmCcFT2AxSKNezw07SgkE5">Triage inbox: SI, invoice, spam…</span></div><div class="line" data-page-node-id="iQjZya6KZgGMhb5HFqtyMy"></div></div>
+        <div class="step" data-step="classify" data-tip="Classify" data-tip-desc="Triage every inbound mail: SI, invoice or spam: before extraction runs" data-tip-pos="right" data-page-node-id="7SKEs8PuPMblULhhXrt4lR"><div class="dot" data-page-node-id="gZrYYa1GvYHBweVNgYNtcc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="CBdB8vAWCktL7uogXzdTsv"><path d="M4 6h16M4 12h16M4 18h10" data-page-node-id="hAHYT4oLgHKVieEXIwVGYe"/></svg></div><div class="stxt" data-page-node-id="HuWBXBiVDDwX5CS7T2nDkg"><b data-page-node-id="3nrFpxEIvw0lAxKUuX5emW">Classify</b><span data-page-node-id="lmCcFT2AxSKNezw07SgkE5">Triage inbox: SI, invoice, spam…</span></div><div class="line" data-page-node-id="iQjZya6KZgGMhb5HFqtyMy"></div></div>
         <div class="step" data-step="extract" data-tip="Extract" data-tip-desc="Pull the 7 shipment fields out of the SI and the BL attachments" data-tip-pos="right" data-page-node-id="2uuWxgf3GjGOWBhWwR95cK"><div class="dot" data-page-node-id="C8rv6QTg9tCRDBmAJ6m3QU"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="5v35TqVixpyyNx8uPrELlw"><path d="M4 7V5a1 1 0 0 1 1-1h3l2 2h7a1 1 0 0 1 1 1v3" data-page-node-id="ihHh1hWmuIEHlcRER0kkqY"/><path d="M4 7v12a1 1 0 0 0 1 1h12" data-page-node-id="nQiH8Q8xK9u5XiAwXepXAY"/></svg></div><div class="stxt" data-page-node-id="954lqmcxmeM6CU7V6DE88w"><b data-page-node-id="H0Se1wKRmeM8zMm1K6DKTA">Extract</b><span data-page-node-id="JhUeGsVgn6AwHYwtG8TEzl">Pull 7 shipment fields from SI &amp; BL</span></div><div class="line" data-page-node-id="swbiVn1JZ8Ny4mZxLKeC1D"></div></div>
         <div class="step" data-step="compare" data-tip="Compare" data-tip-desc="Diff the extracted fields and surface every SI ↔ BL mismatch" data-tip-pos="right" data-page-node-id="XBCY5f0ARmsBiE69oIMCgK"><div class="dot" data-page-node-id="rQjhHYYByoJFa6PyIR58Hh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="UCYLKWWfIZNpofjkj1Ffoe"><path d="M3 12h7M14 12h7M12 3v7M12 14v7" data-page-node-id="Mtrdl1wfrp0lnzDRzBWthh"/><circle cx="12" cy="12" r="2" data-page-node-id="MecBV5PKagmEpSUjKaUEVa"/></svg></div><div class="stxt" data-page-node-id="cwoa9n5Syjo4kxaGids2SW"><b data-page-node-id="NaQGQ8S7BucK2j6HI410jS">Compare</b><span data-page-node-id="9aLfW8s2t5RQECP1gSKTYg">Surface mismatches, SI ↔ BL</span></div><div class="line" data-page-node-id="3fAphiRfIORilcmMxJuAWg"></div></div>
         <div class="step" data-step="escalate" data-tip="Escalate" data-tip-desc="Route ambiguous or low-confidence cases to a human reviewer" data-tip-pos="right" data-page-node-id="1IaOpFGgb7gwbsCRqk0Qs1"><div class="dot" data-page-node-id="KqBBjilHTViJd6fh47EPzX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="BdBmjdCgA7Lh8p5a0wUsJ8"><path d="M12 3l9 16H3z" data-page-node-id="cvFdrYy33Khp0RJHLdijGv"/><path d="M12 10v4M12 17h.01" data-page-node-id="WZmVI5E3zuFm769OKbUFA9"/></svg></div><div class="stxt" data-page-node-id="vCOVII7gkbu0qChjSr9417"><b data-page-node-id="geJNeUZxLUiFG6FkQ7AhkE">Escalate</b><span data-page-node-id="BimdHyQBMMVevjyTZlU6WJ">Route ambiguity to human review</span></div></div>
@@ -702,17 +702,17 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 
     <div class="nav-sec">
       <div class="wf-title">Workflows</div>
-      <a class="navlink" href="gateway.html" data-tip="Secure Ingestion Gateway" data-tip-desc="Pre-ingestion attachment screening & quarantine — executable-header checks & multi-mailbox dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Secure Ingestion Gateway">
+      <a class="navlink" href="gateway.html" data-tip="Enterprise Hub" data-tip-desc="Multi-inbox intake, AI triage, review & return-to-sender dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Enterprise Hub">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Secure Ingestion Gateway</span>
+        <span>Enterprise Hub</span>
         <span class="hk">0</span>
       </a>
-      <a class="navlink active" href="/ui/" data-tip="Review Console" data-tip-desc="Email-centric console — process the inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console">
+      <a class="navlink active" href="/ui/" data-tip="Review Console" data-tip-desc="Email-centric console: process the inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
         <span>Review Console</span>
         <span class="hk">1</span>
       </a>
-      <a class="navlink" href="shipments.html" data-tip="Advanced Shipment Workflow" data-tip-desc="Shipment-centric console — version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Advanced Shipment Workflow" data-page-node-id="navShipWf">
+      <a class="navlink" href="shipments.html" data-tip="Advanced Shipment Workflow" data-tip-desc="Shipment-centric console: version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Advanced Shipment Workflow" data-page-node-id="navShipWf">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
         <span>Advanced Shipment Workflow</span>
         <span class="hk">2</span>
@@ -750,7 +750,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
       <div id="intgList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
       <div style="font-size:10.5px;color:var(--muted-2);margin-top:8px;line-height:1.5">
         Emails processed through <b>POST /api/process</b> by the ShipMail
-        side panel. Loaded once from storage — opening the Dashboard does not
+        side panel. Loaded once from storage: opening the Dashboard does not
         reprocess anything.
       </div>
     </div>
@@ -783,7 +783,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
           <div class="ttl" data-page-node-id="gA2CWDli7YqEGsFsJDqZK3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="goxzBBzZogeTJc7BhPnrQv"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1" data-page-node-id="4UqgJx8OWBzQI5S0yFemIA"/></svg>Inbox</div>
           <span class="count" id="listCount" data-page-node-id="RIraeHzLf3BTGmplwRAWgP">0</span>
           <div class="filters" data-page-node-id="iDmBfLOb9wMuFxEv6tphcA">
-            <button type="button" class="search-btn" id="qBtn" data-tip="Search the inbox" data-tip-desc="Find an email by subject, sender, id — or type a command" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Search the inbox" data-page-node-id="VIuNb0s2SVOVXZq5pluQBB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="EtFuO8wDJV0DixXmZu4VbU" data-keep="1"><circle cx="11" cy="11" r="7" data-page-node-id="bvFEDelWr0IqFsxWrq1O9E"/><path d="M21 21l-4.3-4.3" data-page-node-id="lsoOefcWa4BfRVtDOibjqD"/></svg><span class="s-ph">Search…</span><span class="hk">Ctrl K</span></button>
+            <button type="button" class="search-btn" id="qBtn" data-tip="Search the inbox" data-tip-desc="Find an email by subject, sender, id: or type a command" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Search the inbox" data-page-node-id="VIuNb0s2SVOVXZq5pluQBB"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="EtFuO8wDJV0DixXmZu4VbU" data-keep="1"><circle cx="11" cy="11" r="7" data-page-node-id="bvFEDelWr0IqFsxWrq1O9E"/><path d="M21 21l-4.3-4.3" data-page-node-id="lsoOefcWa4BfRVtDOibjqD"/></svg><span class="s-ph">Search…</span><span class="hk">Ctrl K</span></button>
             <select id="f-cat" data-page-node-id="JEIl45AfgnDZ6egsmFuj1K"><option value="" data-page-node-id="GDBn06HYAn3gfxqh40K9CL">All categories</option></select>
             <select id="f-status" data-page-node-id="uoNnzAOZ1W388JhvqWk7XG"><option value="" data-page-node-id="RLwN10k8RiNgZp666cFlVR" data-keep="1">All statuses</option><option data-page-node-id="gwPvgEs2GxxwMoMP6YIxFQ">OK</option><option data-page-node-id="BsVNhJz4gxOGIbldFYi8g0">MISMATCH</option><option data-page-node-id="aj69F5OCy4tocJZzjelqL2">NEEDS_REVIEW</option><option>SKIPPED</option></select>
           </div>
@@ -850,7 +850,7 @@ const FIELDS_LABEL = {shipper:"Shipper",consignee:"Consignee",notify_party:"Noti
   port_of_loading:"Port of loading",port_of_discharge:"Port of discharge",
   container_count:"Container count",gross_weight_kg:"Gross weight (kg)"};
 
-/* ---------- field severity — front-end heuristic ----------
+/* ---------- field severity: front-end heuristic ----------
    The API exposes no severity column, so we grade each mismatch by how much a
    wrong value would cost at customs / on the manifest. Flagged as a heuristic in
    the UI so it is never mistaken for the engine's own judgement. */
@@ -860,15 +860,15 @@ const FIELD_SEVERITY = {
   port_of_loading:"med", port_of_discharge:"med"
 };
 const SEV_TITLE = {
-  high:"Parties / cargo quantities — a wrong value blocks customs release",
-  med :"Routing fields — a wrong port changes the voyage",
+  high:"Parties / cargo quantities: a wrong value blocks customs release",
+  med :"Routing fields: a wrong port changes the voyage",
   low :"Supporting detail"
 };
 const sevOf = f => FIELD_SEVERITY[f] || "low";
 
 /* ---------- token-level diff ----------
    Tokenise on word boundaries (keeping separators), then run an LCS so only the
-   tokens that truly differ get marked — e.g. "CNNTG" vs "CNNTA" inside two
+   tokens that truly differ get marked: e.g. "CNNTG" vs "CNNTA" inside two
    otherwise identical port strings. */
 function tokenize(v){
   return String(v==null?"":v).match(/[A-Za-z0-9]+(?:[.'’\/-][A-Za-z0-9]+)*|\s+|[^\sA-Za-z0-9]+/g) || [];
@@ -897,23 +897,23 @@ function lcsDiff(a,b){
    BL side are highlighted. Identical tokens stay plain on both sides. */
 function diffCells(si,bl){
   const ops = lcsDiff(tokenize(si),tokenize(bl));
-  if(!ops) return [ esc(si==null?"—":si), esc(bl==null?"—":bl) ];
+  if(!ops) return [ esc(si==null?"-":si), esc(bl==null?"-":bl) ];
   let L="",R="";
   for(let k=0;k<ops.length;k++){
     const t=ops[k][0], raw=ops[k][1], h=esc(raw);
-    /* whitespace-only drift is invisible — keep the character, drop the mark */
+    /* whitespace-only drift is invisible: keep the character, drop the mark */
     const blank=/^\s+$/.test(raw);
     if(t==="same"){ L+=h; R+=h; }
     else if(t==="del") L+= blank?h:'<span class="tk del">'+h+'</span>';
     else R+= blank?h:'<span class="tk ins">'+h+'</span>';
   }
-  return [ L||"—", R||"—" ];
+  return [ L||"-", R||"-" ];
 }
 
 /* ---------- decision audit trail ----------
    Machine stages are reconstructed from the stored report itself: the compat API
    exposes no timestamps for them, so we show the *stage* rather than fabricate a
-   clock time. Human decisions are timestamped in this browser at submit time —
+   clock time. Human decisions are timestamped in this browser at submit time:
    that is when the event genuinely happened. */
 const AUDIT_KEY="sdoc_audit_v1";
 const AUDIT_KIND={confirm:"confirmed the machine verdict",pass:"passed the shipment",
@@ -939,7 +939,7 @@ function renderAudit(d){
   nodes.push({cls:"acc", t:"Email received",
     d:"From <em>"+esc(e.from||"unknown")+"</em> · "+atts.length+" attachment"+(atts.length===1?"":"s")});
   nodes.push({cls:"acc", t:"Classified",
-    d:"Category <code>"+esc(r.category||"—")+"</code> · decided by <em>"+esc(r.decided_by||"rule")+"</em>"});
+    d:"Category <code>"+esc(r.category||"-")+"</code> · decided by <em>"+esc(r.decided_by||"rule")+"</em>"});
   if(cps.length){
     const okN=cps.filter(c=>c.match&&!c.missing).length;
     const dfN=cps.filter(c=>!c.match&&!c.missing).length;
@@ -949,7 +949,7 @@ function renderAudit(d){
     if(msN) bits.push("<em>"+msN+"</em> missing");
     nodes.push({cls:(dfN||msN)?"warn":"done", t:"SI ↔ draft BL compared", d:bits.join(" · ")});
   }
-  const vbits=["<code>"+esc(r.status||"—")+"</code>"];
+  const vbits=["<code>"+esc(r.status||"-")+"</code>"];
   if(r.has_defect&&(r.defect_fields||[]).length)
     vbits.push("defects: "+r.defect_fields.map(f=>"<em>"+esc(FIELDS_LABEL[f]||f)+"</em>").join(", "));
   if(r.review_reason) vbits.push("escalation reason <code>"+esc(r.review_reason)+"</code>");
@@ -962,12 +962,12 @@ function renderAudit(d){
       cls:ev.status==="OK"?"done":(ev.status==="MISMATCH"?"bad":"warn"),
       human:true, ts:ev.ts, note:ev.note,
       t:"Human "+(AUDIT_KIND[ev.kind]||"reviewed"),
-      d:"<code>"+esc(ev.status||"—")+"</code>"}));
+      d:"<code>"+esc(ev.status||"-")+"</code>"}));
   } else if(d.human_review){
     const hr=d.human_review;
     nodes.push({cls:"acc", human:true, ts:null, note:hr.note,
       t:"Human "+(hr.action==="confirm"?"confirmed the machine verdict":"overrode the verdict"),
-      d:"<code>"+esc(hr.status||"—")+"</code>"});
+      d:"<code>"+esc(hr.status||"-")+"</code>"});
   } else if(r.status==="MISMATCH"||r.status==="NEEDS_REVIEW"){
     nodes.push({cls:"todo", t:"Awaiting human decision",
       d:"Use the action bar below (<code>A</code> to confirm)"});
@@ -1000,8 +1000,8 @@ const ICON_FOCUS_MIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const esc = s => (s??"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const fmt = n => (n??0).toLocaleString();
 
-function catBadge(c){if(!c)return `<span class="badge cat" style="--c:var(--muted-2)">—</span>`;const col=`var(--cat-${c})`;return `<span class="badge cat" style="--c:${col}">${c.replace(/_/g," ")}</span>`;}
-function stBadge(s){if(!s)return `<span class="badge st" style="--c:var(--muted-2)">—</span>`;return `<span class="badge st ${s}">${s.replace(/_/g," ")}</span>`;}
+function catBadge(c){if(!c)return `<span class="badge cat" style="--c:var(--muted-2)">-</span>`;const col=`var(--cat-${c})`;return `<span class="badge cat" style="--c:${col}">${c.replace(/_/g," ")}</span>`;}
+function stBadge(s){if(!s)return `<span class="badge st" style="--c:var(--muted-2)">-</span>`;return `<span class="badge st ${s}">${s.replace(/_/g," ")}</span>`;}
 /* ---------- confidence heat strip ----------
    The compat API exposes no confidence/score field, so we do NOT invent one.
    Tone is read straight off the verdict; the differing-field count only deepens
@@ -1017,9 +1017,9 @@ function heatOf(r){
            : st==="NEEDS_REVIEW"  ? .82
            : st==="OK"            ? .78
            : .45;                       /* SKIPPED / unclassified: recessive */
-  const how = {MISMATCH:"Fields differ — needs a decision",
-               NEEDS_REVIEW:"Escalated — machine is not confident",
-               OK:"Cleared — no mismatch detected"}[st]||"Not classified — nothing to act on";
+  const how = {MISMATCH:"Fields differ: needs a decision",
+               NEEDS_REVIEW:"Escalated: machine is not confident",
+               OK:"Cleared: no mismatch detected"}[st]||"Not classified: nothing to act on";
   let tip=how+(n?` · ${n} field${n>1?"s":""} differ`:"")+(st?` · ${st}`:"");
   if(r&&r.decided_by==="human")tip+=" · human reviewed";
   return {k:tone[0],tone:tone[1],op:+op.toFixed(2),tip};
@@ -1038,7 +1038,7 @@ async function loadSummary(){
 
 /* ---------------------------------------------------------------- integrations
    The Dashboard and the Gmail side panel share one stored result set. This
-   reads that storage (GET /api/results) — it never reprocesses a document.
+   reads that storage (GET /api/results): it never reprocesses a document.
    Called once at boot; there is no polling timer anywhere. */
 async function loadIntegrations(){
   const box=$("#intgList"), sum=$("#intgSummary");
@@ -1055,7 +1055,7 @@ async function loadIntegrations(){
     sum.innerHTML=`<b>${rows.length}</b> stored result(s) · <span style="color:var(--bad)">${bad} mismatch</span> · <span style="color:var(--warn)">${rev} needs review</span>`;
     box.innerHTML=rows.map(r=>`
       <div style="display:flex;align-items:center;gap:8px;font-size:11.5px">
-        <span class="id">${esc(r.shipment_id||"—")}</span>
+        <span class="id">${esc(r.shipment_id||"-")}</span>
         <span style="color:var(--muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.email_id)}</span>
         ${stBadge(r.status)}
       </div>`).join("");
@@ -1075,13 +1075,13 @@ async function loadList(){
     const el=$("#list");
     if(!state.items.length){
       // Distinguish "your filters matched nothing" from "the backend has no data
-      // at all" — the latter means a misconfigured DATA_SOURCE, not a real empty result.
+      // at all": the latter means a misconfigured DATA_SOURCE, not a real empty result.
       el.innerHTML=(cat||st)
         ? `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span class="big">No emails match.</span><span>Nothing in the inbox matches the current category / status filter.</span><button class="btn" data-tip="Clear filters" data-tip-desc="Reset the category and status filters" data-tip-kbd="C" data-tip-pos="bottom" onclick="clearFilters()">Clear filters</button></div>`
         : `<div class="empty">
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>
              <span class="big">Inbox is empty</span>
-             <span>The API answered, but returned <b>0</b> emails — so the backend is reading an empty data folder, not a filter problem.</span>
+             <span>The API answered, but returned <b>0</b> emails: so the backend is reading an empty data folder, not a filter problem.</span>
              <span class="hint">DATA_SOURCE must point at the folder that contains <b>inbox/</b> + <b>attachments/</b>.<br>Set it in <b>backend/.env</b> and restart the server:<br><b>DATA_SOURCE=&lt;project&gt;/sdoc-hackathon-bundle</b></span>
              <button class="btn" onclick="loadList()">Retry</button>
            </div>`;
@@ -1147,7 +1147,7 @@ async function openEmail(id){
   try{
     const res=await fetch(API+"/api/emails/"+encodeURIComponent(id));
     const d=await res.json().catch(()=>null);
-    /* Guard: a 404 returns {detail:"email not found: …"} — no .email/.result.
+    /* Guard: a 404 returns {detail:"email not found: …"}: no .email/.result.
        Without this check renderDetail() would throw a confusing
        "Cannot read properties of undefined (reading 'status')". */
     if(!res.ok||!d||!d.email){
@@ -1193,7 +1193,7 @@ async function processEmail(id){
     const res=await fetch(API+"/emails/"+encodeURIComponent(id)+"/process",{method:"POST"});
     if(!res.ok) throw new Error("HTTP "+res.status);
     const r=await res.json();
-    toast(`Processed — ${r.status||"done"}.`);
+    toast(`Processed: ${r.status||"done"}.`);
     await loadList();
     await openEmail(id);
   }catch(err){
@@ -1211,7 +1211,7 @@ window.processEmail = processEmail;
 function hintRow(k,v){ return '<div class="eh"><span class="eh-k">'+esc(k)+'</span><span class="eh-v">'+esc(v)+'</span></div>'; }function renderEmptyDetail(){
   const rec=(recentIds().map(id=>(state.items||[]).find(x=>x.email_id===id)).filter(Boolean)).slice(0,4);
   const recHtml = rec.length
-    ? '<div class="rec-list">'+rec.map(r=>'<button class="rec-item" type="button" data-tip="Open email" data-tip-desc="Jump to this message" data-tip-pos="right" onclick="openEmail(\''+esc(r.email_id)+'\')"><span class="rec-from">'+esc(r.from||"—")+'</span><span class="rec-sub">'+esc(r.subject||"(no subject)")+'</span></button>').join("")+'</div>'
+    ? '<div class="rec-list">'+rec.map(r=>'<button class="rec-item" type="button" data-tip="Open email" data-tip-desc="Jump to this message" data-tip-pos="right" onclick="openEmail(\''+esc(r.email_id)+'\')"><span class="rec-from">'+esc(r.from||"-")+'</span><span class="rec-sub">'+esc(r.subject||"(no subject)")+'</span></button>').join("")+'</div>'
     : '<div class="muted small">Your recently opened emails will appear here.</div>';
   setDock("");
   $("#detail").innerHTML =
@@ -1276,11 +1276,11 @@ function renderDetail(d){
       const mark=c.missing?`<span class="vpill miss">${ICONS.miss} missing</span>`
         :c.match?`<span class="vpill ok">${ICONS.ok} match</span>`
         :`<span class="vpill bad">${ICONS.bad} differs</span>`;
-      const fld=FIELDS_LABEL[c.field]||(c.field||"—").replace(/_/g," ");
+      const fld=FIELDS_LABEL[c.field]||(c.field||"-").replace(/_/g," ");
       const sv=(c.match&&!c.missing)?null:sevOf(c.field);
       const sev=sv?`<span class="sev ${sv}" title="${esc(SEV_TITLE[sv])}">${sv.toUpperCase()}</span>`:"";
       const pair=(c.match||c.missing)
-        ? [esc(c.si_value==null?"—":c.si_value), esc(c.bl_value==null?"—":c.bl_value)]
+        ? [esc(c.si_value==null?"-":c.si_value), esc(c.bl_value==null?"-":c.bl_value)]
         : diffCells(c.si_value,c.bl_value);
       return `<tr class="cmp-row ${cls}"><td class="f">${fld}<small>${c.field}</small>${sev}</td>
         <td class="val si">${pair[0]}</td><td class="op">→</td>
@@ -1288,12 +1288,12 @@ function renderDetail(d){
     }).join("");
     cmp=`<section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h7M14 12h7M12 3v7M12 14v7"/><circle cx="12" cy="12" r="2"/></svg>SI → draft BL · field comparison</h3>
       <table class="cmp"><thead><tr><th>Field</th><th>Shipping Instruction</th><th></th><th>Draft Bill of Lading</th><th>Verdict</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="note-foot">${ICONS2.info}<span>Differing tokens are marked inline — <span class="tk del">SI only</span> vs <span class="tk ins">BL only</span>. Severity (HIGH/MED/LOW) is a front-end heuristic based on what a wrong value costs at customs; it is not produced by the engine.</span></div></section>`;
+      <div class="note-foot">${ICONS2.info}<span>Differing tokens are marked inline: <span class="tk del">SI only</span> vs <span class="tk ins">BL only</span>. Severity (HIGH/MED/LOW) is a front-end heuristic based on what a wrong value costs at customs; it is not produced by the engine.</span></div></section>`;
   }
   let review="", actBar="";
   if(r.status==="NEEDS_REVIEW"||r.status==="MISMATCH"||d.human_review){
     const hr=d.human_review;
-    const reason=r.status==="NEEDS_REVIEW"?`<div class="rb-why"><b>Escalation reason:</b> ${esc(r.review_reason||"—")}</div>`:"";
+    const reason=r.status==="NEEDS_REVIEW"?`<div class="rb-why"><b>Escalation reason:</b> ${esc(r.review_reason||"-")}</div>`:"";
     const recorded=hr?`<div class="recorded">${ICONS.ok}<span>Last decision: <b>${esc(hr.action)}</b>${hr.status?" → "+esc(hr.status):""}${hr.note?" · \u201c"+esc(hr.note)+"\u201d":""}</span></div>`:"";
     review=`<section><h3>${ICONS2.audit}Human review</h3>
       <div class="review-box ${r.status==='NEEDS_REVIEW'?'escalated':''}">
@@ -1302,7 +1302,7 @@ function renderDetail(d){
       </div></section>`;
     actBar=`<div class="act-bar dock">
           <button class="act primary" data-kind="confirm" data-tip="Accept verdict" data-tip-desc="Approve this email’s current verdict" data-tip-kbd="A" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','confirm',this)">${ICONS.ok} Accept verdict<span class="k">A</span></button>
-          <button class="act pass" data-kind="pass" data-tip="Mark passed" data-tip-desc="Skip this email — no mismatch" data-tip-kbd="O" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','pass',this)">${ICONS2.pass} Mark passed<span class="k">O</span></button>
+          <button class="act pass" data-kind="pass" data-tip="Mark passed" data-tip-desc="Skip this email: no mismatch" data-tip-kbd="O" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','pass',this)">${ICONS2.pass} Mark passed<span class="k">O</span></button>
           <button class="act flag" data-kind="mismatch" data-tip="Mark mismatch" data-tip-desc="Flag this email as SI↔BL mismatch" data-tip-kbd="M" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','mismatch',this)">${ICONS2.flag} Mark mismatch<span class="k">M</span></button>
           <button class="act back" data-kind="back" data-tip="Send back" data-tip-desc="Return this email for correction" data-tip-kbd="R" data-tip-pos="right" onclick="sendReview('${esc(e.email_id)}','back',this)">${ICONS2.back} Send back<span class="k">R</span></button>
           <input type="text" class="note-in" id="ov-note" placeholder="Reviewer note (optional)" maxlength="240" autocomplete="off">
@@ -1363,7 +1363,7 @@ function observeDiff(){
 
 /* ---------- attachment viewer ----------
    The action row (.ap) is permanent now, so opening a preview must NOT clobber
-   it — the preview lives in its own .aprev container below. Download is a plain
+   it: the preview lives in its own .aprev container below. Download is a plain
    <a download> so it works natively (streams, any file size) even if this JS
    never runs; flashSaved() is a cosmetic confirmation on top of that. */
 async function toggleAtt(head){
@@ -1373,7 +1373,7 @@ async function toggleAtt(head){
   if(card.dataset.open==="1"){card.dataset.open="0";prev.innerHTML="";return;}
   card.dataset.open="1";
   if(card.dataset.text!=="true"){
-    prev.innerHTML='<div class="loading">No inline preview for this file type — use Open or Download.</div>';
+    prev.innerHTML='<div class="loading">No inline preview for this file type: use Open or Download.</div>';
     return;
   }
   prev.innerHTML='<div class="loading">Loading preview…</div>';
@@ -1426,7 +1426,7 @@ async function sendReview(id,kind,btn){
     await loadSummary(); await loadList(); openEmail(id);
   }catch(err){
     if(btn) btn.disabled=false;
-    toast("Could not save the decision — "+(err.message||"network error"));
+    toast("Could not save the decision: "+(err.message||"network error"));
   }
 }
 let toastT;
@@ -1499,8 +1499,8 @@ function isTyping(){const el=document.activeElement;if(!el)return false;
 const MODK=IS_MAC?"\u2318":"Ctrl";
 const SHIFTK="\u21e7";
 const NAV={
-  gateway:  {href:"gateway.html",   key:"0", label:"Secure Ingestion Gateway",
-             desc:"Pre-ingestion attachment screening & quarantine \u2014 executable-header checks & multi-mailbox dispatch"},
+  gateway:  {href:"gateway.html",   key:"0", label:"Enterprise Hub",
+             desc:"Pre-ingestion quarantine buffer \u2014 AI triage, malware shield & multi-mailbox dispatch"},
   console:  {href:"/ui/",           key:"1", label:"Review Console",
              desc:"Email-centric console \u2014 process the inbox and review SI \u2194 BL mismatches"},
   shipments:{href:"shipments.html", key:"2", label:"Advanced Shipment Workflow",
@@ -1510,7 +1510,7 @@ const NAV={
 };
 const SHORTCUTS=[
   {section:"Navigation"},
-  {keys:[MODK,"K"], label:"Search the inbox", desc:"Find an email by subject, sender or id — or run a command"},
+  {keys:[MODK,"K"], label:"Search the inbox", desc:"Find an email by subject, sender or id: or run a command"},
   {keys:["0"], label:NAV.gateway.label,   desc:NAV.gateway.desc},
   {keys:["1"], label:NAV.console.label,   desc:NAV.console.desc},
   {keys:["2"], label:NAV.shipments.label, desc:NAV.shipments.desc},
@@ -1532,7 +1532,7 @@ const SHORTCUTS=[
 ];
 function navTo(h){ location.href=h; }
 function goGateway(){ location.href="gateway.html"; }
-/* `1` / `B` land on this console — don't reload when we are already here. */
+/* `1` / `B` land on this console: don't reload when we are already here. */
 function goConsole(){
   if(/\/ui\/(index\.html)?$/.test(location.pathname)) return;
   location.href="/ui/";
@@ -1579,7 +1579,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="t"||e.key==="T"){e.preventDefault();toggleTheme();}
   if(e.key==="f"||e.key==="F"){e.preventDefault();toggleFocus();}
   if(e.key==="["){e.preventDefault();toggleRail();}
-  /* verdict shortcuts (A/O/M/R) — they only fire when the open email actually
+  /* verdict shortcuts (A/O/M/R): they only fire when the open email actually
      renders an action bar, so they stay inert on passed / skipped mail. Modifier
      combos are ignored so Ctrl+A (select all) still works. */
   const vk=(e.metaKey||e.ctrlKey||e.altKey)?null:
@@ -1588,7 +1588,7 @@ document.addEventListener("keydown",e=>{
     const vb=document.querySelector('.act[data-kind="'+vk+'"]');
     if(vb){e.preventDefault();vb.click();return;}
   }
-  /* Inbox shortcuts — only on the list view (no email open). Refresh (R) yields to
+  /* Inbox shortcuts: only on the list view (no email open). Refresh (R) yields to
      the "Send back" verdict when an action bar is present, handled just above. */
   if(!state.active && !e.metaKey && !e.ctrlKey && !e.altKey){
     if(e.key==="r"||e.key==="R"){ e.preventDefault(); loadSummary(); loadList(); toast("Inbox refreshed"); return; }
@@ -1795,11 +1795,11 @@ function buildCmds(){
   const firstMismatch=state.items.find(r=>r.status==="MISMATCH");
   const firstReview=state.items.find(r=>r.status==="NEEDS_REVIEW");
   CMDS=[
-    {t:"Open Secure Ingestion Gateway",sub:"Pre-ingestion attachment screening & quarantine",ico:ICONS2.shield,k:"0",run:goGateway},
+    {t:"Open Enterprise Hub",sub:"Multi-inbox intake, AI triage & dispatch",ico:ICONS2.shield,k:"0",run:goGateway},
     {t:"Go to first mismatch",sub:firstMismatch?firstMismatch.email_id:"none in current view",ico:ICONS2.jump,run:()=>firstMismatch&&openEmail(firstMismatch.email_id)},
     {t:"Go to first review",sub:firstReview?firstReview.email_id:"none in current view",ico:ICONS2.jump,run:()=>firstReview&&openEmail(firstReview.email_id)},
     {t:"Toggle focus mode",sub:"Hide inbox · expand comparison",ico:ICONS2.focus,k:"F",run:toggleFocus},
-    {t:"Switch theme",sub:"Currently "+curTheme()+" — switch to "+(curTheme()==="dark"?"light":"dark"),ico:themeIconSvg(curTheme()),k:"T",run:toggleTheme},
+    {t:"Switch theme",sub:"Currently "+curTheme()+": switch to "+(curTheme()==="dark"?"light":"dark"),ico:themeIconSvg(curTheme()),k:"T",run:toggleTheme},
     {t:"Toggle sidebar",sub:"Expand / collapse rail",ico:ICONS2.rail,k:"[",run:toggleRail},
     {t:"Open Advanced Shipment Workflow",sub:"Shipment-centric console",ico:ICONS2.ship,k:"2",run:goShipments},
     {t:"Keyboard shortcuts",sub:"Every shortcut in one place",ico:ICONS2.kbd,k:"?",run:openHelp},
@@ -1828,7 +1828,7 @@ function renderPalette(){
     html+=`<div class="pal-group">Your frequent filters</div>`;
     html+=top.length
       ? `<div class="pal-pins">`+top.map(s=>`<button type="button" class="pal-pin" onclick="pinRun('${s.key}')"><span class="dot" style="background:${STATUS_DOT[s.key]}"></span>${STATUS_LABEL[s.key]}<span class="pal-pin-c">${s.count}</span></button>`).join("")+`</div>`
-      : `<div class="pal-hint">Type a status like <b>mismatch</b> or <b>review</b>, or filter the inbox by status — the ones you use most get pinned here.</div>`;
+      : `<div class="pal-hint">Type a status like <b>mismatch</b> or <b>review</b>, or filter the inbox by status: the ones you use most get pinned here.</div>`;
   }
   let last=null;
   palShown.forEach((c,i)=>{
@@ -1846,7 +1846,7 @@ async function loadRecents(){
     const got=await Promise.all(ids.map(id=>
       fetch(API+"/api/emails/"+encodeURIComponent(id)).then(r=>r.ok?r.json():null).catch(()=>null)));
     palRecent=got.filter(Boolean).map(d=>({kind:"recent",t:d.email.subject||"(no subject)",
-      sub:`${d.email.email_id} · ${d.email.from||"—"} · ${(d.result&&d.result.status)||"not processed"}`,ico:ICONS2.clock,run:()=>openEmail(d.email.email_id)}));
+      sub:`${d.email.email_id} · ${d.email.from||"-"} · ${(d.result&&d.result.status)||"not processed"}`,ico:ICONS2.clock,run:()=>openEmail(d.email.email_id)}));
   }catch(_){ palRecent=[]; }
   renderPalette();
 }
@@ -1858,7 +1858,7 @@ async function palSearchEmails(q){
     const r=await (await fetch(url)).json();
     if(my!==palSeq)return;
     palEmails=(r.items||[]).map(e=>({kind:"email",t:e.subject||"(no subject)",
-      sub:`${e.email_id} · ${e.from||"—"} · ${e.status}`,ico:ICONS2.mail,run:()=>openEmail(e.email_id)}));
+      sub:`${e.email_id} · ${e.from||"-"} · ${e.status}`,ico:ICONS2.mail,run:()=>openEmail(e.email_id)}));
   }catch(_){ if(my!==palSeq)return; palEmails=[]; }
   renderPalette();
 }
@@ -1906,7 +1906,7 @@ $("#palList").addEventListener("click",e=>{
 });
 
 loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h)openEmail(h); else renderEmptyDetail();});
-loadIntegrations();   /* stored API results only — no reprocessing */
+loadIntegrations();   /* stored API results only: no reprocessing */
 </script>
 </body>
 </html>
