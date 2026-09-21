@@ -244,7 +244,7 @@ class StagedEmailRecord(Base):
 
 
 class GatewayPolicyRecord(Base):
-    """Runtime configuration policy for the email security gateway."""
+    """Runtime configuration policy for the email secure ingestion gateway."""
     __tablename__ = "gateway_policy"
 
     id = Column(Integer, primary_key=True, autoincrement=True)

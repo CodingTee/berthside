@@ -702,9 +702,9 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 
     <div class="nav-sec">
       <div class="wf-title">Workflows</div>
-      <a class="navlink" href="gateway.html" data-tip="Security Gateway" data-tip-desc="Pre-ingestion quarantine buffer — AI triage, malware shield & multi-mailbox dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Security Gateway">
+      <a class="navlink" href="gateway.html" data-tip="Secure Ingestion Gateway" data-tip-desc="Pre-ingestion attachment screening & quarantine — executable-header checks & multi-mailbox dispatch" data-tip-kbd="0" data-tip-pos="right" aria-label="Secure Ingestion Gateway">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Security Gateway</span>
+        <span>Secure Ingestion Gateway</span>
         <span class="hk">0</span>
       </a>
       <a class="navlink active" href="/ui/" data-tip="Review Console" data-tip-desc="Email-centric console — process the inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console">
@@ -1499,8 +1499,8 @@ function isTyping(){const el=document.activeElement;if(!el)return false;
 const MODK=IS_MAC?"\u2318":"Ctrl";
 const SHIFTK="\u21e7";
 const NAV={
-  gateway:  {href:"gateway.html",   key:"0", label:"Security Gateway",
-             desc:"Pre-ingestion quarantine buffer \u2014 AI triage, malware shield & multi-mailbox dispatch"},
+  gateway:  {href:"gateway.html",   key:"0", label:"Secure Ingestion Gateway",
+             desc:"Pre-ingestion attachment screening & quarantine \u2014 executable-header checks & multi-mailbox dispatch"},
   console:  {href:"/ui/",           key:"1", label:"Review Console",
              desc:"Email-centric console \u2014 process the inbox and review SI \u2194 BL mismatches"},
   shipments:{href:"shipments.html", key:"2", label:"Advanced Shipment Workflow",
@@ -1795,7 +1795,7 @@ function buildCmds(){
   const firstMismatch=state.items.find(r=>r.status==="MISMATCH");
   const firstReview=state.items.find(r=>r.status==="NEEDS_REVIEW");
   CMDS=[
-    {t:"Open Security Gateway",sub:"Pre-ingestion quarantine buffer & AI engine control",ico:ICONS2.shield,k:"0",run:goGateway},
+    {t:"Open Secure Ingestion Gateway",sub:"Pre-ingestion attachment screening & quarantine",ico:ICONS2.shield,k:"0",run:goGateway},
     {t:"Go to first mismatch",sub:firstMismatch?firstMismatch.email_id:"none in current view",ico:ICONS2.jump,run:()=>firstMismatch&&openEmail(firstMismatch.email_id)},
     {t:"Go to first review",sub:firstReview?firstReview.email_id:"none in current view",ico:ICONS2.jump,run:()=>firstReview&&openEmail(firstReview.email_id)},
     {t:"Toggle focus mode",sub:"Hide inbox · expand comparison",ico:ICONS2.focus,k:"F",run:toggleFocus},

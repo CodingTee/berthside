@@ -1,4 +1,4 @@
-"""Router for the Email Security & Staging Gateway Console (/ui/gateway.html).
+"""Router for the Secure Ingestion Gateway Console (/ui/gateway.html).
 
 Capabilities:
 1. Ingestion Buffer & Quarantine management (PE binary, double-ext, zip bombs).
