@@ -392,25 +392,19 @@ function renderKPIs(){
   const pct=v=>tot?Math.round(v/tot*100):0;
   const other=Math.max(0,tot-(ok+mm+nr));
   $("#kpis").innerHTML=`
-    <div class="kpi accent"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9 6 9-6M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1"/></svg>Emails processed</div><div class="num">${fmt(tot)}</div><div class="sub">across the operations inbox</div></div>
-    <div class="kpi"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Cleared · OK</div><div class="num" style="color:var(--ok)">${fmt(ok)}</div><div class="sub">${pct(ok)}% no mismatch</div></div>
-    <div class="kpi"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>Mismatches</div><div class="num" style="color:var(--bad)">${fmt(mm)}</div><div class="sub">fields differ · SI ↔ BL</div></div>
-    <div class="kpi"><div class="lab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>Escalated</div><div class="num" style="color:var(--warn)">${fmt(nr)}</div><div class="sub">${fmt(s.reviewed||0)} human reviews</div></div>
-    <div style="grid-column:1/-1">
-      <div class="dist">
-        <span class="seg" style="flex:${ok};background:var(--ok)" title="OK ${ok}"></span>
-        <span class="seg" style="flex:${mm};background:var(--bad)" title="Mismatch ${mm}"></span>
-        <span class="seg" style="flex:${nr};background:var(--warn)" title="Review ${nr}"></span>
-        <span class="seg other" style="flex:${other};background:var(--border-strong)" title="Other ${other}"></span>
+    <div class="dist-panel">
+      <div class="dist-bar" role="img" aria-label="Inbox verification outcome distribution">
+        <span class="dist-seg d-ok" id="revSegOk" style="flex-grow:${ok}"></span>
+        <span class="dist-seg d-bad" id="revSegMm" style="flex-grow:${mm}"></span>
+        <span class="dist-seg d-warn" id="revSegNr" style="flex-grow:${nr}"></span>
+        <span class="dist-seg d-other" id="revSegOther" style="flex-grow:${other}"></span>
       </div>
-      <div class="dist-cap">
-        <span style="flex:${ok}">OK ${pct(ok)}%</span>
-        <span style="flex:${mm}">Mismatch ${pct(mm)}%</span>
-        <span style="flex:${nr}">Review ${pct(nr)}%</span>
-        <span style="flex:${other}">Other ${pct(other)}%</span>
-      </div>
-      <div class="kpi-foot">
-        <span class="updated" id="updatedAt"></span>
+      <div class="dist-legend">
+        <span class="dl-item"><i class="dl-dot" style="background:var(--text)"></i>Emails processed <b>${fmt(tot)}</b></span>
+        <span class="dl-item" title="${pct(ok)}% no mismatch"><i class="dl-dot d-ok"></i>Cleared &middot; OK <b>${fmt(ok)}</b></span>
+        <span class="dl-item" title="fields differ · SI ↔ BL"><i class="dl-dot d-bad"></i>Mismatches <b>${fmt(mm)}</b></span>
+        <span class="dl-item" title="${fmt(s.reviewed||0)} human reviews"><i class="dl-dot d-warn"></i>Escalated <b>${fmt(nr)}</b></span>
+        <span class="dl-item updated" id="updatedAt" style="margin-left:auto;font-family:var(--mono);color:var(--muted-2);"></span>
         <button class="btn ghost sm" type="button" data-tip="Refresh inbox" data-tip-desc="Re-fetch emails and KPIs" data-tip-kbd="R" data-tip-pos="bottom" onclick="loadSummary();loadList();toast('Inbox refreshed')">&#8635; Refresh</button>
       </div>
     </div>`;

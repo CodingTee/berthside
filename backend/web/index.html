@@ -853,6 +853,31 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .main-wrapper { flex: 1; display: flex; flex-direction: column; padding: 18px 22px; gap: 16px; overflow-y: auto; overflow-x: hidden; }
 
 /* KPI Strip */
+.dist-panel { display: flex; flex-direction: column; gap: 7px; padding: 10px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); flex-shrink: 0; box-shadow: var(--shadow); }
+.dist-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; background: var(--surface-3); }
+.dist-seg { flex-basis: 0; min-width: 0; display: block; transition: flex-grow .35s ease; }
+.dist-seg.d-ok { background: var(--ok); }
+.dist-seg.d-pending { background: #a855f7; }
+.dist-seg.d-spam { background: var(--warn); }
+.dist-seg.d-warn { background: var(--warn); }
+.dist-seg.d-bad { background: var(--bad); }
+.dist-seg.d-other { background: var(--border-strong); }
+.dist-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); }
+.dl-item { display: inline-flex; align-items: center; gap: 6px; }
+.dl-item b { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; }
+.dl-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
+.dl-dot.d-ok { background: var(--ok); }
+.dl-dot.d-pending { background: #a855f7; }
+.dl-dot.d-spam { background: var(--warn); }
+.dl-dot.d-warn { background: var(--warn); }
+.dl-dot.d-bad { background: var(--bad); }
+.dl-dot.d-other { background: var(--border-strong); }
+/* Trust-matrix kebab + modal, channel chips */
+.mx-kebab { white-space: nowrap; font-family: var(--mono); font-size: 11px; }
+.mx-modal-box { width: 880px; max-height: 86vh; overflow-y: auto; gap: 12px; }
+.mx-tools-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.mx-tools-row .gw-search { min-width: 220px; margin-left: auto; }
+.chan-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 9px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; flex-shrink: 0; }
 .kpi-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow); position: relative; overflow: hidden; }
 .kpi-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); opacity: 0.8; }
@@ -1330,27 +1355,20 @@ table.list tbody tr.sel .key{color:var(--accent)}
     
     <!-- VIEW 1: GATEWAY & SANDBOX -->
     <div id="viewGateway" class="console-view" hidden>
-      <!-- KPI Row -->
-      <div class="kpi-row">
-        <div class="kpi-card">
-          <span class="kpi-num" id="kpiTotal">520</span>
-          <span class="kpi-lbl">📥 Total Ingested Emails</span>
+      <!-- Inbound outcome distribution bar (compact KPI) -->
+      <div class="dist-panel">
+        <div class="dist-bar" role="img" aria-label="Inbound email outcome distribution">
+          <span class="dist-seg d-ok" id="distSegSafe" style="flex-grow:1"></span>
+          <span class="dist-seg d-pending" id="distSegPending" style="flex-grow:0"></span>
+          <span class="dist-seg d-spam" id="distSegSpam" style="flex-grow:0"></span>
+          <span class="dist-seg d-bad" id="distSegBlocked" style="flex-grow:0"></span>
         </div>
-        <div class="kpi-card ok">
-          <span class="kpi-num" id="kpiSafe">520</span>
-          <span class="kpi-lbl">✅ Clean &amp; Ingested</span>
-        </div>
-        <div class="kpi-card bad">
-          <span class="kpi-num" id="kpiBlocked">1</span>
-          <span class="kpi-lbl">⛔ Malware &amp; Trojans Blocked</span>
-        </div>
-        <div class="kpi-card warn">
-          <span class="kpi-num" id="kpiSpam">2</span>
-          <span class="kpi-lbl">🚫 Spam &amp; Phishing Quarantined</span>
-        </div>
-        <div class="kpi-card purple">
-          <span class="kpi-num" id="kpiPending">1</span>
-          <span class="kpi-lbl">⏳ Awaiting Manual Triage</span>
+        <div class="dist-legend">
+          <span class="dl-item"><i class="dl-dot" style="background:var(--text)"></i>Total Ingested <b id="kpiTotal">520</b></span>
+          <span class="dl-item"><i class="dl-dot d-ok"></i>Clean &amp; Ingested <b id="kpiSafe">520</b></span>
+          <span class="dl-item"><i class="dl-dot d-pending"></i>Awaiting Manual Triage <b id="kpiPending">1</b></span>
+          <span class="dl-item"><i class="dl-dot d-spam"></i>Spam &amp; Phishing <b id="kpiSpam">2</b></span>
+          <span class="dl-item"><i class="dl-dot d-bad"></i>Malware Blocked <b id="kpiBlocked">1</b></span>
         </div>
       </div>
 
@@ -1375,6 +1393,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
               <option value="auto">⚡ Smart Auto-Ingest (Auto-pass verified clean docs)</option>
               <option value="manual">🛡️ Strict Manual Triage (Operator approval required)</option>
             </select>
+            <button class="btn btn-sm mx-kebab" id="mxKebab" type="button" data-tip="Per-source trust overrides" onclick="Gateway.openMatrixModal()">&#8943; <span id="mxKebabSum">sources</span></button>
           </div>
 
           <!-- Mailbox Source Filter -->
@@ -1393,64 +1412,10 @@ table.list tbody tr.sel .key{color:var(--accent)}
         </div>
 
         <div style="display:flex;gap:8px;align-items:center;">
+          <span class="chan-chip" title="Inbound channel (IMAP)">📥 <span id="imapChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></span>
+          <span class="chan-chip" title="Outbound channel (SMTP)">📤 <span id="smtpChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></span>
           <button class="btn" type="button" onclick="Gateway.pollImap()" title="Check live IMAP inbox for new emails sent from your Gmail">📥 Poll IMAP Inbox</button>
           <button class="btn btn-primary" type="button" onclick="Gateway.openSimModal()">⚡ Simulate Incoming Email</button>
-        </div>
-      </div>
-
-      <!-- Live Channel Status Bar -->
-      <div id="channelBar" style="display:flex;justify-content:space-between;align-items:center;padding:7px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--border);margin-bottom:12px;font-size:12px;color:var(--muted);flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
-          <div><span style="font-weight:600;color:var(--text);">📥 Inbound (IMAP):</span> <span id="imapChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></div>
-          <div><span style="font-weight:600;color:var(--text);">📤 Outbound (SMTP):</span> <span id="smtpChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></div>
-        </div>
-        <div style="font-size:11.5px;color:var(--muted-2);">
-          💡 Configure <code style="background:var(--surface-3);padding:2px 5px;border-radius:4px;border:1px solid var(--border-strong);">.env</code> (IMAP_HOST / SMTP_HOST) to activate real email ingestion from your private Gmail.
-        </div>
-      </div>
-
-      <!-- Source Trust Matrix -->
-      <div class="matrix-panel">
-        <div class="matrix-head">
-          <div class="matrix-head-l">
-            <button class="matrix-toggle" id="mxToggle" type="button" aria-expanded="true" aria-controls="mxBody" title="Collapse the source list" onclick="Gateway.toggleMatrix()">&#9662;</button>
-            <div class="matrix-title">&#128225; Source Trust Matrix <span class="matrix-sub">&#183; per-mailbox ingest policy</span></div>
-            <span class="matrix-sum" id="mxSummary"></span>
-          </div>
-          <div class="matrix-tools">
-            <div class="gw-search">
-              <span class="gw-search-ico">&#128269;</span>
-              <input id="mxSearch" type="text" placeholder="Search source or role&#8230;" oninput="Gateway.onMatrixSearch(this.value)" />
-              <button id="mxSearchClear" class="gw-search-clear" type="button" onclick="Gateway.clearMatrixSearch()" title="Clear search" hidden>&#10005;</button>
-            </div>
-            <button class="btn btn-sm" type="button" id="mxAddBtn" onclick="Gateway.toggleAddSource()">&#65291; Add source</button>
-            <button class="btn btn-sm" type="button" onclick="Gateway.reapplyPolicy()">&#9889; Re-apply Policy to Backlog</button>
-          </div>
-        </div>
-        <div class="matrix-body" id="mxBody">
-          <div class="matrix-hint">Set a source to <b>Auto</b> and verified mail flows straight through; <b>Manual</b> holds it for operator triage. <b>Inherit</b> follows the global policy above.</div>
-          <div class="mx-add" id="mxAdd" hidden>
-            <span class="mx-add-lbl">New source</span>
-            <input class="mx-in-mb" id="mxAddMb" type="text" placeholder="source@averis.com" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
-            <input class="mx-in-role" id="mxAddRole" type="text" placeholder="Role label (optional)" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
-            <button class="btn btn-sm btn-primary" type="button" onclick="Gateway.addSource()">Add source</button>
-            <button class="btn btn-sm" type="button" onclick="Gateway.closeAddSource()">Cancel</button>
-            <span class="mx-add-err" id="mxAddErr"></span>
-          </div>
-          <div class="mx-tbl-wrap">
-            <table class="mx-tbl">
-              <thead>
-                <tr>
-                  <th>Mailbox Source</th>
-                  <th>Trust Policy</th>
-                  <th data-tip="The policy actually applied &#8212; the per-source override when one is set, otherwise the global ingestion mode">Effective</th>
-                  <th data-tip="Emails from this source still waiting for operator triage">Awaiting</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="matrixGrid"></tbody>
-            </table>
-          </div>
         </div>
       </div>
 
@@ -1561,22 +1526,19 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
     <!-- VIEW 4: OUTSTREAM BUFFER (post-classification disposition) -->
     <div id="viewOutstream" class="console-view" hidden>
-      <div class="kpi-row">
-        <div class="kpi-card">
-          <span class="kpi-num" id="outKpiTotal">0</span>
-          <span class="kpi-lbl">📨 Classified Emails</span>
+      <!-- Reply outcome distribution bar (compact KPI) -->
+      <div class="dist-panel">
+        <div class="dist-bar" role="img" aria-label="Reply queue outcome distribution">
+          <span class="dist-seg d-warn" id="outSegAwaiting" style="flex-grow:0"></span>
+          <span class="dist-seg d-ok" id="outSegSent" style="flex-grow:0"></span>
+          <span class="dist-seg d-pending" id="outSegReview" style="flex-grow:0"></span>
+          <span class="dist-seg d-other" id="outSegOther" style="flex-grow:0"></span>
         </div>
-        <div class="kpi-card warn">
-          <span class="kpi-num" id="outKpiAwaiting">0</span>
-          <span class="kpi-lbl">⏳ Awaiting Reply</span>
-        </div>
-        <div class="kpi-card ok">
-          <span class="kpi-num" id="outKpiSent">0</span>
-          <span class="kpi-lbl">Sent (SMTP accepted)</span>
-        </div>
-        <div class="kpi-card purple">
-          <span class="kpi-num" id="outKpiReview">0</span>
-          <span class="kpi-lbl">🛡️ Needs Human Review</span>
+        <div class="dist-legend">
+          <span class="dl-item"><i class="dl-dot" style="background:var(--text)"></i>Classified <b id="outKpiTotal">0</b></span>
+          <span class="dl-item"><i class="dl-dot d-warn"></i>Awaiting Reply <b id="outKpiAwaiting">0</b></span>
+          <span class="dl-item"><i class="dl-dot d-ok"></i>Sent (SMTP accepted) <b id="outKpiSent">0</b></span>
+          <span class="dl-item"><i class="dl-dot d-pending"></i>Needs Human Review <b id="outKpiReview">0</b></span>
         </div>
       </div>
 
@@ -1601,6 +1563,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
               <option value="manual">🛡️ Manual (queue for human)</option>
               <option value="auto">⚡ Auto (send reply automatically)</option>
             </select>
+            <button class="btn btn-sm mx-kebab" id="outKebab" type="button" data-tip="Per-source reply policy" onclick="Outstream.openMatrixModal()">&#8943; <span id="outKebabSum">sources</span></button>
           </div>
           <div class="cg-item">
             <span>🔎 Search:</span>
@@ -1612,16 +1575,6 @@ table.list tbody tr.sel .key{color:var(--accent)}
           <button class="btn btn-sm" type="button" onclick="Outstream.reload()">🔄 Refresh</button>
         </div>
       </div>
-
-      <details class="matrix-panel"><summary style="padding:14px;cursor:pointer">Reply settings · auto / manual by source</summary>
-        <div class="matrix-head">
-          <div>
-            <div class="matrix-title">📡 Response Disposition Policy <span class="matrix-sub">· per-mailbox auto / manual (post-classification)</span></div>
-            <div class="matrix-sub">Auto sends the reply automatically; Manual parks it for a human. Inherit follows the global policy above. Single-item overrides on each row win over everything.</div>
-          </div>
-        </div>
-        <div class="matrix-grid" id="outMatrixGrid"></div>
-      </details>
 
       <div class="table-panel">
         <div class="table-header">
@@ -1687,6 +1640,61 @@ table.list tbody tr.sel .key{color:var(--accent)}
 <script src="/ui/js/review.js"></script>
 
 <!-- ===================== GATEWAY MODALS ===================== -->
+<!-- Response Disposition Policy modal (opened from the Response Policy kebab) -->
+<div class="modal-overlay hidden" id="outMatrixModal">
+  <div class="modal-box mx-modal-box">
+    <div class="modal-head">
+      <span>📡 Response Disposition Policy <span class="matrix-sub">&middot; per-mailbox auto / manual</span></span>
+      <button class="btn btn-sm" type="button" onclick="Outstream.closeMatrixModal()">&#10005;</button>
+    </div>
+    <div class="matrix-hint">Auto sends the reply automatically; Manual parks it for a human. Inherit follows the global policy above. Single-item overrides on each row win over everything.</div>
+    <div class="matrix-grid" id="outMatrixGrid"></div>
+  </div>
+</div>
+
+<!-- Source Trust Matrix modal (opened from the Ingestion Policy kebab) -->
+<div class="modal-overlay hidden" id="mxModal">
+  <div class="modal-box mx-modal-box">
+    <div class="modal-head">
+      <span>📵 Source Trust Matrix <span class="matrix-sub">&middot; per-mailbox ingest policy</span></span>
+      <button class="btn btn-sm" type="button" onclick="Gateway.closeMatrixModal()">&#10005;</button>
+    </div>
+    <div class="mx-tools-row">
+      <span class="matrix-sum" id="mxSummary"></span>
+      <div class="gw-search">
+        <span class="gw-search-ico">&#128269;</span>
+        <input id="mxSearch" type="text" placeholder="Search source or role&#8230;" oninput="Gateway.onMatrixSearch(this.value)" />
+        <button id="mxSearchClear" class="gw-search-clear" type="button" onclick="Gateway.clearMatrixSearch()" title="Clear search" hidden>&#10005;</button>
+      </div>
+      <button class="btn btn-sm" type="button" id="mxAddBtn" onclick="Gateway.toggleAddSource()">&#65291; Add source</button>
+      <button class="btn btn-sm" type="button" onclick="Gateway.reapplyPolicy()">&#9889; Re-apply Policy to Backlog</button>
+    </div>
+    <div class="matrix-hint">Set a source to <b>Auto</b> and verified mail flows straight through; <b>Manual</b> holds it for operator triage. <b>Inherit</b> follows the global policy above.</div>
+    <div class="mx-add" id="mxAdd" hidden>
+      <span class="mx-add-lbl">New source</span>
+      <input class="mx-in-mb" id="mxAddMb" type="text" placeholder="source@averis.com" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
+      <input class="mx-in-role" id="mxAddRole" type="text" placeholder="Role label (optional)" onkeydown="if(event.key===&#39;Enter&#39;)Gateway.addSource()" />
+      <button class="btn btn-sm btn-primary" type="button" onclick="Gateway.addSource()">Add source</button>
+      <button class="btn btn-sm" type="button" onclick="Gateway.closeAddSource()">Cancel</button>
+      <span class="mx-add-err" id="mxAddErr"></span>
+    </div>
+    <div class="mx-tbl-wrap">
+      <table class="mx-tbl">
+        <thead>
+          <tr>
+            <th>Mailbox Source</th>
+            <th>Trust Policy</th>
+            <th data-tip="The policy actually applied &#8212; the per-source override when one is set, otherwise the global ingestion mode">Effective</th>
+            <th data-tip="Emails from this source still waiting for operator triage">Awaiting</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="matrixGrid"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- Simulation Modal -->
 <div class="modal-overlay hidden" id="simModal">
   <div class="modal-box">

@@ -168,6 +168,7 @@
     setText("outKpiReview", review);
     setText("outReplyCounter", `↩ Reply needed: ${awaiting}`);
     setText("outCountBadge", `(${total} email${total === 1 ? "" : "s"})`);
+    renderDist({ awaiting, sent, review, other: Math.max(0, total - awaiting - sent - review) });
 
     const tbody = $("outList");
     if(!tbody) return;
@@ -182,6 +183,17 @@
   }
 
   function onSearch(){ render(); }
+
+  function renderDist(parts){
+    const segs = [["outSegAwaiting", parts.awaiting], ["outSegSent", parts.sent],
+      ["outSegReview", parts.review], ["outSegOther", parts.other]];
+    const total = segs.reduce((a, s) => a + (Number(s[1]) || 0), 0);
+    segs.forEach(([id, v]) => {
+      const el = $(id);
+      if(!el) return;
+      el.style.flexGrow = total > 0 ? String(Number(v) || 0) : "1";
+    });
+  }
 
   // ---- row rendering -------------------------------------------------------
   function rowHtml(it){
@@ -293,6 +305,24 @@
         </div>`;
     });
     grid.innerHTML = html;
+
+    const total = mbs.length;
+    const auto = mbs.filter(mb => {
+      const forced = (pol.disposition_policies || {})[mb];
+      return (forced || pol.disposition_mode || "manual") === "auto";
+    }).length;
+    const kebab = $("outKebabSum");
+    if(kebab) kebab.textContent = total + " src · " + auto + " auto / " + (total - auto) + " manual";
+  }
+
+  function openMatrixModal(){
+    const m = $("outMatrixModal");
+    if(m) m.classList.remove("hidden");
+    renderMatrix();
+  }
+  function closeMatrixModal(){
+    const m = $("outMatrixModal");
+    if(m) m.classList.add("hidden");
   }
 
   // ---- policy writes -------------------------------------------------------
@@ -471,5 +501,7 @@
     closeReturnModal,
     confirmReturn,
     bulkReplyEligible,
+    openMatrixModal,
+    closeMatrixModal,
   };
 })();
