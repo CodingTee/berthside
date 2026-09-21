@@ -90,7 +90,12 @@ def classify(email: dict) -> Classification:
     # These never carry real shipping documents and always sit before the
     # intent rules, so catching them can only *help* (it also removes the
     # false positives they otherwise create in BL_COMPARISON / INVOICE_QUERY).
-    if any(h in sender for h in SPAM_DOMAIN_HINTS) or "spam" in sender or "spam" in subject:
+    # Only the domain half is inspected, and only on a word boundary: a bare
+    # "spam" substring anywhere in the address would swallow real senders
+    # (no-spam.doc@shipper.com), and the subject is already covered by the
+    # word-boundary regex above.
+    domain = sender.rsplit("@", 1)[-1] if "@" in sender else ""
+    if any(h in sender for h in SPAM_DOMAIN_HINTS) or re.search(r"\bspam\b", domain):
         return Classification("SPAM", 0.95, "spam marker / domain detected")
 
     spam_score = 0
