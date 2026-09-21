@@ -68,22 +68,117 @@ def gmail_connect():
         raise HTTPException(501, str(exc)) from exc
 
 
+# Design tokens copied from web/index.html's :root block, so backend-generated
+# pages (the OAuth callback, 404s) share the Dashboard/ShipMail look — same
+# colors, font stack, radii and gradient accent — instead of a bare error page.
+# Both themes ship; the page follows the shared `sdoc-theme` key via the small
+# script at the bottom of each page.
+RESULT_PAGE_CSS = """
+:root{
+  --bg:#080d18; --surface-2:#0f1829; --surface-3:#152036;
+  --border:rgba(148,163,184,.17); --border-strong:rgba(148,163,184,.30);
+  --text:#f2f6ff; --muted:#a3b2c9; --muted-2:#7f8ea8;
+  --accent:#2dd4bf;
+  --grad:linear-gradient(135deg,#2dd4bf 0%,#38bdf8 52%,#6366f1 100%);
+  --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
+  --shadow:0 18px 50px -20px rgba(0,0,0,.65);
+  --radius:14px;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono","SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+}
+[data-theme="light"]{
+  --bg:#eef2f8; --surface-2:#ffffff; --surface-3:#f5f8fc;
+  --border:rgba(15,23,42,.10); --border-strong:rgba(15,23,42,.18);
+  --text:#0f1b2d; --muted:#54657f; --muted-2:#5e6d82;
+  --accent:#0d9488;
+  --grad:linear-gradient(135deg,#0d9488 0%,#0284c7 52%,#4f46e5 100%);
+  --ok:#059669; --warn:#d97706; --bad:#e11d48;
+  --shadow:0 18px 45px -22px rgba(15,23,42,.30);
+}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+     background:var(--bg);color:var(--text);font:15px/1.65 var(--sans)}
+.card{position:relative;overflow:hidden;max-width:560px;margin:24px;width:100%;
+     background:var(--surface-2);border:1px solid var(--border-strong);
+     border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 34px 28px}
+.card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--grad)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:16px;
+     font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+     color:var(--muted-2)}
+.brand .mark{width:24px;height:24px;border-radius:7px;background:var(--grad);
+     display:inline-grid;place-items:center;color:#fff;flex:0 0 auto}
+.brand .mark svg{width:14px;height:14px}
+h1{margin:0 0 10px;font-size:20px;line-height:1.35}
+.body{color:var(--muted)}
+.body b{color:var(--text)}
+.body code{font-family:var(--mono);font-size:12.5px;color:var(--accent);
+     background:var(--surface-3);border:1px solid var(--border);
+     border-radius:6px;padding:1px 6px;overflow-wrap:anywhere}
+.back{display:inline-flex;align-items:center;gap:8px;margin-top:20px;padding:9px 16px;
+     border-radius:10px;background:var(--surface-3);border:1px solid var(--border-strong);
+     color:var(--accent);text-decoration:none;font-weight:600;font-size:13px;
+     transition:filter .15s}
+.back:hover{filter:brightness(1.12)}
+.back svg{width:14px;height:14px}
+.back-row{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+"""
+
+RESULT_PAGE_THEME_JS = (
+    "<script>try{var t=localStorage.getItem(\"sdoc-theme\")||"
+    "localStorage.getItem(\"shipmail-theme\");"
+    "if(t===\"light\"||t===\"dark\")"
+    "document.documentElement.setAttribute(\"data-theme\",t);}catch(_){}</script>"
+)
+
+RESULT_PAGE_MARK = (
+    "<div class=\"brand\"><span class=\"mark\"><svg viewBox=\"0 0 24 24\" "
+    "fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" "
+    "stroke-linecap=\"round\" stroke-linejoin=\"round\">"
+    "<path d=\"M3 8l9-5 9 5v8l-9 5-9-5z\"/><path d=\"M3 8l9 5 9-5M12 13v8\"/>"
+    "</svg></span>ShipSync</div>"
+)
+
+RESULT_PAGE_BACK = (
+    "<a class=\"back\" href=\"/shipmail/\">"
+    "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" "
+    "stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">"
+    "<path d=\"M9 14L4 9l5-5\"/><path d=\"M4 9h10a6 6 0 0 1 0 12h-3\"/></svg>"
+    "Back to ShipMail</a>"
+)
+
+
+def result_page(title: str, body: str, ok: bool = False) -> HTMLResponse:
+    """A themed result page using the product's own design tokens.
+
+    `ok` picks the status color (green success / red failure); the rest of the
+    look is identical to the Dashboard so the OAuth callback never feels like a
+    foreign page. Shared with main.py's 404 handler via RESULT_PAGE_CSS.
+    """
+    tone = "var(--ok)" if ok else "var(--bad)"
+    return HTMLResponse(f"""<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>{title}</title>
+<style>{RESULT_PAGE_CSS}</style>
+</head>
+<body>
+<div class="card">
+  {RESULT_PAGE_MARK}
+  <h1 style="color:{tone}">{title}</h1>
+  <div class="body">{body}</div>
+  {RESULT_PAGE_BACK}
+</div>
+{RESULT_PAGE_THEME_JS}
+</body>
+</html>""")
+
+
 @router.get("/oauth-callback", response_class=HTMLResponse,
             summary="OAuth callback for Google Gmail authorization")
 def gmail_oauth_callback(code: str | None = None, error: str | None = None):
     def page(title: str, body: str, ok: bool = False) -> HTMLResponse:
-        color = "#22c55e" if ok else "#f87171"
-        return HTMLResponse(f"""<!doctype html><meta charset="utf-8">
-<title>{title}</title>
-<body style="font:15px/1.6 system-ui;background:#0b1020;color:#e5e7eb;
-             display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
-  <div style="max-width:560px;background:#131a2e;border:1px solid #2a3555;
-              border-radius:14px;padding:28px 32px">
-    <h1 style="margin:0 0 10px;font-size:19px;color:{color}">{title}</h1>
-    <div style="color:#c7cfe3">{body}</div>
-    <p style="margin:18px 0 0"><a href="/shipmail/" style="color:#7dd3fc">
-      Back to ShipMail</a></p>
-  </div></body>""")
+        return result_page(title, body, ok)
 
     if error:
         return page("Gmail authorization failed",

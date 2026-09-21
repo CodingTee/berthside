@@ -37,6 +37,12 @@ from app.routers import (
     reviews,
     shipments,
 )
+from app.routers.gmail import (
+    RESULT_PAGE_BACK,
+    RESULT_PAGE_CSS,
+    RESULT_PAGE_MARK,
+    RESULT_PAGE_THEME_JS,
+)
 
 
 logging.basicConfig(
@@ -158,16 +164,16 @@ async def _http_error(request: Request, exc: StarletteHTTPException):
     return HTMLResponse(
         status_code=404,
         content=(
-            "<!doctype html><meta charset='utf-8'><title>Not found</title>"
-            "<body style=\"font:15px/1.6 system-ui;background:#0b1020;color:#e5e7eb;"
-            "display:flex;align-items:center;justify-content:center;height:100vh;margin:0\">"
-            "<div style=\"max-width:560px;background:#131a2e;border:1px solid #2a3555;"
-            "border-radius:14px;padding:28px 32px\">"
-            "<h1 style='margin:0 0 10px;font-size:19px;color:#fbbf24'>Page not found</h1>"
-            f"<div style='color:#c7cfe3'><code>{request.url.path}</code> does not exist.</div>"
-            "<p style='margin:16px 0 0'><a href='/shipmail/' style='color:#7dd3fc'>"
-            "Go to ShipMail</a> &middot; "
-            "<a href='/ui/' style='color:#7dd3fc'>Dashboard</a></p></div></body>"
+            "<!doctype html><html lang=\"en\" data-theme=\"dark\"><head>"
+            "<meta charset='utf-8'><title>Not found</title>"
+            f"<style>{RESULT_PAGE_CSS}</style></head><body><div class='card'>"
+            + RESULT_PAGE_MARK
+            + "<h1 style=\"color:var(--warn)\">Page not found</h1>"
+            + f"<div class=\"body\"><code>{request.url.path}</code> does not exist.</div>"
+            + "<div class=\"back-row\">"
+            + "<a class=\"back\" href=\"/shipmail/\">Go to ShipMail</a>"
+            + "<a class=\"back\" href=\"/ui/\">Dashboard</a>"
+            + "</div></div>" + RESULT_PAGE_THEME_JS + "</body></html>"
         ),
     )
 
@@ -186,22 +192,26 @@ async def _unhandled_error(request: Request, exc: Exception):
     logger = logging.getLogger("sdoc.errors")
     logger.error("Unhandled error on %s %s\n%s", request.method, request.url.path, tb)
     tail = "".join(tb.strip().splitlines(keepends=True)[-6:])
+    tail = tail.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     return HTMLResponse(
         status_code=500,
         content=(
-            "<!doctype html><meta charset='utf-8'><title>ShipSync error</title>"
-            "<body style=\"font:15px/1.6 system-ui;background:#0b1020;color:#e5e7eb;"
-            "display:flex;align-items:center;justify-content:center;height:100vh;margin:0\">"
-            "<div style=\"max-width:680px;background:#131a2e;border:1px solid #2a3555;"
-            "border-radius:14px;padding:28px 32px\">"
-            "<h1 style='margin:0 0 10px;font-size:19px;color:#f87171'>ShipSync hit an error</h1>"
-            f"<div style='color:#c7cfe3'>Path: <code>{request.url.path}</code></div>"
-            f"<pre style='white-space:pre-wrap;background:#0b1020;border:1px solid #2a3555;"
-            f"border-radius:8px;padding:12px;color:#fca5a5;font-size:12px;overflow:auto'>"
-            f"{tail}</pre>"
-            "<p style='margin:14px 0 0'>The full traceback is in the server log.</p>"
-            "<p style='margin:8px 0 0'><a href='/shipmail/' style='color:#7dd3fc'>"
-            "Back to ShipMail</a></p></div></body>"
+            "<!doctype html><html lang=\"en\" data-theme=\"dark\"><head>"
+            "<meta charset='utf-8'><title>ShipSync error</title>"
+            f"<style>{RESULT_PAGE_CSS}</style>"
+            "<style>.card{max-width:680px}"
+            ".card pre{white-space:pre-wrap;background:var(--bg);"
+            "border:1px solid var(--border-strong);border-radius:8px;padding:12px;"
+            "color:var(--bad);font-size:12px;overflow:auto;font-family:var(--mono)}"
+            ".body .path{font-family:var(--mono);font-size:12.5px;color:var(--accent)}"
+            "</style></head><body><div class='card'>"
+            + RESULT_PAGE_MARK
+            + "<h1 style=\"color:var(--bad)\">ShipSync hit an error</h1>"
+            + f"<div class=\"body\">Path: <span class=\"path\">{request.url.path}</span></div>"
+            + f"<pre>{tail}</pre>"
+            + "<div class=\"body\" style=\"margin-top:10px\">The full traceback is in the server log.</div>"
+            + "<div class=\"back-row\">" + RESULT_PAGE_BACK + "</div>"
+            + "</div>" + RESULT_PAGE_THEME_JS + "</body></html>"
         ),
     )
 
