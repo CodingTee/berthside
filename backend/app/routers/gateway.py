@@ -95,6 +95,9 @@ class GatewayConfigIn(BaseModel):
     engine: Optional[str] = None  # "cascade" | "ollama" | "rule"
     ingest_mode: Optional[str] = None  # "auto" | "manual"
     source_policies: Optional[Dict[str, str]] = None  # {mailbox: "auto" | "manual"}
+    # Outstream (post-classification) response disposition, mirrored from ingest.
+    disposition_mode: Optional[str] = None  # "auto" | "manual"
+    disposition_policies: Optional[Dict[str, str]] = None  # {mailbox: "auto" | "manual"}
 
 
 class BulkIn(BaseModel):
@@ -138,6 +141,23 @@ def effective_ingest_mode(pol: GatewayPolicyRecord, mailbox: Optional[str]) -> s
     if mailbox and mailbox in overrides:
         return overrides[mailbox]
     return pol.ingest_mode or "auto"
+
+
+def effective_disposition(pol: GatewayPolicyRecord, mailbox: Optional[str],
+                          item_override: Optional[str] = None) -> str:
+    """Resolve the effective RESPONSE/disposition policy for a mailbox.
+
+    Resolution order: per-item override > per-source policy > global default.
+    This governs the *outstream* buffer (auto-send the SIMULATED reply vs park
+    the email for a human), distinct from ``effective_ingest_mode`` which
+    governs the *instream* classification intake.
+    """
+    if item_override and item_override != "INHERIT":
+        return item_override
+    overrides = pol.disposition_policies or {}
+    if mailbox and mailbox in overrides:
+        return overrides[mailbox]
+    return pol.disposition_mode or "manual"
 
 
 # ---------------------------------------------------------------------------
@@ -197,6 +217,8 @@ def gateway_status(db: Session = Depends(get_db)):
             "engine": pol.engine,
             "ingest_mode": pol.ingest_mode,
             "source_policies": pol.source_policies or {},
+            "disposition_mode": pol.disposition_mode,
+            "disposition_policies": pol.disposition_policies or {},
             "updated_at": pol.updated_at.isoformat() if pol.updated_at else None,
         },
         "source_staged": source_staged,
@@ -235,12 +257,22 @@ def update_gateway_config(payload: GatewayConfigIn, db: Session = Depends(get_db
             if mode in ("auto", "manual"):
                 cleaned[mb] = mode
         pol.source_policies = cleaned
+    if payload.disposition_mode in ("auto", "manual"):
+        pol.disposition_mode = payload.disposition_mode
+    if payload.disposition_policies is not None:
+        cleaned = {}
+        for mb, mode in payload.disposition_policies.items():
+            if mode in ("auto", "manual"):
+                cleaned[mb] = mode
+        pol.disposition_policies = cleaned
     db.commit()
     return {
         "message": "Policy updated",
         "engine": pol.engine,
         "ingest_mode": pol.ingest_mode,
         "source_policies": pol.source_policies or {},
+        "disposition_mode": pol.disposition_mode,
+        "disposition_policies": pol.disposition_policies or {},
     }
 
 
@@ -491,6 +523,49 @@ def _build_return_receipt(staged: StagedEmailRecord):
             f"Best regards,\n"
             f"Documentation Operations Desk\n"
             f"{staged.source_mailbox}"
+        )
+    return decision, subject, body
+
+
+def build_outstream_receipt(email_rec: EmailRecord, report) -> tuple[str, str, str]:
+    """Compose a return/amendment receipt for an already-classified email.
+
+    Mirrors ``_build_return_receipt`` but operates on an ``EmailRecord`` — the
+    post-classification outstream domain — instead of a staged row. The
+    decision flips to REJECTED when classification flagged a mismatch or an
+    escalation, otherwise VERIFIED. ``build_outstream_receipt`` is imported by
+    the frontend-compat router so the outstream buffer can dispatch replies
+    through the same origin-aware path.
+    """
+    from app.services.email_utils import clean_subject
+
+    clean_subj = clean_subject(email_rec.subject or "")
+    ref = email_rec.email_id
+    is_rejection = bool(report and report.status in ("MISMATCH", "NEEDS_REVIEW"))
+    if is_rejection:
+        decision = "REJECTED"
+        subject = f"URGENT: B/L Document Amendment Required (Discrepancy) - Ref #{ref}"
+        reason = (report.review_reason or
+                  "Discrepancies identified between Shipping Instruction (SI) and "
+                  "Carrier Bill of Lading (B/L).")
+        body = (
+            f"Dear Documentation Operations / Shipping Team,\n\n"
+            f"Regarding the submission for '{clean_subj}' (reference {ref}):\n\n"
+            f"Automated comparison between the Shipping Instruction (SI) and Bill of "
+            f"Lading (B/L) detected discrepancies:\n"
+            f"\u2022 Issue Identified: {reason}\n"
+            f"\u2022 Tracking Reference: {ref}\n\n"
+            f"Please verify and confirm the correct figures with the carrier.\n\n"
+            f"Best regards,\nDocumentation Operations Desk"
+        )
+    else:
+        decision = "VERIFIED"
+        subject = f"CONFIRMATION: Document Verification Complete - Ref #{ref}"
+        body = (
+            f"Dear Shipping Documentation Team / Customer,\n\n"
+            f"Thank you for your submission for '{clean_subj}' (reference {ref}).\n\n"
+            f"Automated verification has PASSED with 0 discrepancies (SI \u2194 B/L aligned).\n\n"
+            f"Best regards,\nDocumentation Operations Desk"
         )
     return decision, subject, body
 

@@ -59,10 +59,20 @@ def _migrate_columns(eng, session_factory) -> None:
         cols = {row[1] for row in conn.execute(text("PRAGMA table_info(emails)")).fetchall()}
         if "source_mailbox" not in cols:
             conn.execute(text("ALTER TABLE emails ADD COLUMN source_mailbox VARCHAR(128)"))
+        if "disposition_override" not in cols:
+            conn.execute(text("ALTER TABLE emails ADD COLUMN disposition_override VARCHAR(16) DEFAULT 'INHERIT'"))
 
         gp_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(gateway_policy)")).fetchall()}
         if "source_policies" not in gp_cols:
             conn.execute(text("ALTER TABLE gateway_policy ADD COLUMN source_policies TEXT"))
+        if "disposition_mode" not in gp_cols:
+            conn.execute(text("ALTER TABLE gateway_policy ADD COLUMN disposition_mode VARCHAR(16) DEFAULT 'manual'"))
+        if "disposition_policies" not in gp_cols:
+            conn.execute(text("ALTER TABLE gateway_policy ADD COLUMN disposition_policies TEXT"))
+
+        de_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(dispatched_emails)")).fetchall()}
+        if "email_id" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN email_id VARCHAR(128)"))
 
     # Backfill source_mailbox for rows written before the column existed
     from app.models import EmailRecord as _ER

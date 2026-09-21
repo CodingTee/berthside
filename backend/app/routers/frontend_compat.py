@@ -22,7 +22,15 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models import ReportRecord, ReviewRecord
+from app.models import (
+    DispatchRecord,
+    EmailRecord,
+    GatewayPolicyRecord,
+    ReportRecord,
+    ReviewRecord,
+    infer_source_mailbox,
+)
+from app.routers.gateway import build_outstream_receipt, effective_disposition
 from app.services import inbox_service, workflow
 
 settings = get_settings()
@@ -30,6 +38,20 @@ settings = get_settings()
 router = APIRouter(prefix="/api", tags=["frontend-compat"])
 
 _CATEGORIES = ["BL_COMPARISON", "SI_REQUEST", "INVOICE_QUERY", "GENERAL", "SPAM"]
+
+
+def _get_disposition_policy(db: Session) -> GatewayPolicyRecord:
+    """Fetch (or lazily create) the gateway policy row for disposition lookups."""
+    pol = db.query(GatewayPolicyRecord).first()
+    if not pol:
+        pol = GatewayPolicyRecord(
+            engine="rule", ingest_mode="auto",
+            disposition_mode="manual", disposition_policies={},
+        )
+        db.add(pol)
+        db.commit()
+        db.refresh(pol)
+    return pol
 
 
 # --------------------------------------------------------------------- summary
@@ -109,13 +131,25 @@ def list_emails(
     category: Optional[str] = None,
     status: Optional[str] = None,
     q: Optional[str] = None,
-    limit: int = Query(500, ge=1, le=500),
+    limit: int = Query(500, ge=1, le=2000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Inbox list with the same filters the UI sends."""
+    """Inbox list with the same filters the UI sends.
+
+    Outstream-relevant fields (source mailbox, disposition, reply state) are
+    enriched from EmailRecord / GatewayPolicyRecord / DispatchRecord so the
+    Outstream tab can render the post-classification disposition buffer without
+    a second round-trip.
+    """
     emails = inbox_service.all_emails()
     rep_map = {r.email_id: r for r in db.query(ReportRecord).all()}
+
+    # EmailRecords carry the source mailbox + per-item disposition override.
+    email_rec_map = {e.email_id: e for e in db.query(EmailRecord).all()}
+    # A DispatchRecord linked by email_id means a reply was already dispatched.
+    dispatched_eids = {d.email_id for d in db.query(DispatchRecord.email_id).all() if d.email_id}
+    pol = _get_disposition_policy(db)
 
     items = []
     for e in emails:
@@ -129,17 +163,40 @@ def list_emails(
             hay = f"{eid} {e.get('from', '')} {e.get('subject', '')}".lower()
             if q.lower() not in hay:
                 continue
+
+        email_rec = email_rec_map.get(eid)
+        mb = (email_rec.source_mailbox
+              if email_rec and email_rec.source_mailbox
+              else infer_source_mailbox(eid, e.get("from")))
+        override = (email_rec.disposition_override
+                    if email_rec and email_rec.disposition_override
+                    else "INHERIT")
+        eff = effective_disposition(pol, mb, override)
+        has_dispatch = eid in dispatched_eids
+        rstatus = r.status if r else None
+        if has_dispatch:
+            reply_state = "sent"
+        elif rstatus in ("MISMATCH", "NEEDS_REVIEW"):
+            reply_state = "awaiting"
+        else:
+            reply_state = "none"
+
         items.append({
             "email_id": eid,
             "from": e.get("from") or "",
             "subject": e.get("subject") or "",
             "n_attachments": len(e.get("attachments") or []),
             "category": r.category if r else None,
-            "status": r.status if r else None,
+            "status": rstatus,
             "has_defect": bool(r.has_defect) if r else False,
             "defect_fields": (r.defect_fields or []) if r else [],
             "review_reason": r.review_reason if r else None,
             "decided_by": "human" if (r and r.reviewed) else "rule",
+            "source_mailbox": mb,
+            "disposition_override": override,
+            "effective_disposition": eff,
+            "has_dispatch": has_dispatch,
+            "reply_state": reply_state,
         })
 
     total = len(items)
@@ -262,6 +319,119 @@ def review(email_id: str, payload: FrontendReviewIn,
             "decided_by": "human",
         },
     }
+
+
+# --------------------------------------------------- outstream disposition
+class DispositionIn(BaseModel):
+    override: str                       # INHERIT | AUTO | MANUAL
+
+
+class OutstreamReturnIn(BaseModel):
+    subject: Optional[str] = None
+    body: Optional[str] = None
+    dry_run: bool = False
+
+
+@router.post("/emails/{email_id}/disposition")
+def set_disposition(email_id: str, payload: DispositionIn,
+                    db: Session = Depends(get_db)):
+    """Set the per-item disposition override for an email.
+
+    INHERIT falls back to the per-source / global disposition policy; AUTO or
+    MANUAL pins it. Resolution is ``effective_disposition`` in the gateway
+    router, so this is the single-item lever of the outstream buffer.
+    """
+    if payload.override not in ("INHERIT", "AUTO", "MANUAL"):
+        raise HTTPException(400, "override must be one of INHERIT | AUTO | MANUAL")
+    email_rec = db.query(EmailRecord).filter_by(email_id=email_id).first()
+    if not email_rec:
+        raise HTTPException(404, f"email not found: {email_id}")
+    email_rec.disposition_override = payload.override
+    db.commit()
+    pol = _get_disposition_policy(db)
+    mb = email_rec.source_mailbox or infer_source_mailbox(email_id, email_rec.sender)
+    eff = effective_disposition(pol, mb, email_rec.disposition_override)
+    return {
+        "email_id": email_id,
+        "disposition_override": email_rec.disposition_override,
+        "effective_disposition": eff,
+    }
+
+
+@router.post("/emails/{email_id}/return")
+def outstream_return(email_id: str, payload: OutstreamReturnIn,
+                     db: Session = Depends(get_db)):
+    """Dispatch the post-classification reply for an ingested email.
+
+    Reuses the gateway's origin-aware receipt builder and persists a
+    DispatchRecord (delivery=SIMULATED unless a live SMTP host is configured).
+    This is the outstream analogue of the gateway's return-to-sender: the email
+    is already classified, so the disposition decides whether the reply goes
+    out automatically or waits for a human.
+    """
+    email_rec = db.query(EmailRecord).filter_by(email_id=email_id).first()
+    if not email_rec:
+        raise HTTPException(404, f"email not found: {email_id}")
+    report = db.query(ReportRecord).filter_by(email_id=email_id).first()
+    decision, subj, body = build_outstream_receipt(email_rec, report)
+    subject = payload.subject or subj
+    body = payload.body or body
+    mb = email_rec.source_mailbox or infer_source_mailbox(email_id, email_rec.sender)
+
+    if payload.dry_run:
+        return {
+            "email_id": email_id, "reply_via": mb, "decision": decision,
+            "subject": subject, "body": body, "dry_run": True,
+        }
+
+    from app.services.smtp_dispatcher import dispatch_smtp_email
+    smtp_res = dispatch_smtp_email(
+        to_email=email_rec.sender or mb,
+        subject=subject,
+        body=body,
+        sender=mb,
+    )
+    rec = DispatchRecord(
+        email_id=email_id,
+        stage_id=f"OUT-{email_id}",
+        source_mailbox=mb,
+        recipient=email_rec.sender or mb,
+        decision=decision,
+        subject=subject,
+        body=body,
+        channel=mb,
+        delivery=smtp_res.get("delivery", "SIMULATED"),
+    )
+    db.add(rec)
+    db.commit()
+    db.refresh(rec)
+    return {
+        "email_id": email_id, "reply_via": mb, "decision": decision,
+        "subject": subject, "body": body,
+        "dispatch_id": rec.id, "delivery": rec.delivery,
+    }
+
+
+@router.get("/emails/{email_id}/dispatch-history")
+def outstream_dispatch_history(email_id: str, db: Session = Depends(get_db)):
+    """List prior outstream replies dispatched for an email."""
+    rows = (
+        db.query(DispatchRecord)
+        .filter_by(email_id=email_id)
+        .order_by(DispatchRecord.id.desc())
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "decision": r.decision,
+            "subject": r.subject,
+            "channel": r.channel,
+            "delivery": r.delivery,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+        }
+        for r in rows
+    ]
 
 
 # ---------------------------------------------------------------- attachments

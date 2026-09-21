@@ -54,7 +54,7 @@ def test_imap_mocked_pull_and_stage(db_session):
     msg["Subject"] = "Draft BL BKG-7719 for Verification"
     msg["Message-ID"] = "<msg-999@customercorp.com>"
     msg.set_content("Please find attached the draft B/L and SI.")
-    msg.add_attachment(b"Dummy PDF content for testing", maintype="application", subtype="pdf", filename="Draft_BL.pdf")
+    msg.add_attachment(b"%PDF-1.4 Mock Draft BL Content", maintype="application", subtype="pdf", filename="Draft_BL.pdf")
     raw_bytes = msg.as_bytes()
 
     try:
@@ -203,4 +203,148 @@ def test_imap_batch_forwarded_attachments_unpacked(db_session):
         settings.imap_port = 993
         settings.imap_user = ""
         settings.imap_password = ""
+
+
+def test_imap_spam_silent_drop_no_reply(db_session):
+    """Verify that spam emails (e.g. 'I am SPAM') are quarantined and NEVER trigger auto-reply."""
+    settings = get_settings()
+    settings.imap_host = "imap.example.com"
+    settings.imap_port = 993
+    settings.imap_user = "hub@example.com"
+    settings.imap_password = "password"
+    settings.auto_reply_on_verification = True
+
+    msg = EmailMessage()
+    msg["From"] = "Spammer <spammer@junkmailer.com>"
+    msg["To"] = "hub@example.com"
+    msg["Subject"] = "I am SPAM - win free lottery click here"
+    msg["Message-ID"] = "<spam-101@junkmailer.com>"
+    msg.set_content("Congratulations you won a lottery prize!")
+    raw_bytes = msg.as_bytes()
+
+    try:
+        with patch("imaplib.IMAP4_SSL") as mock_imap_cls, \
+             patch("app.services.imap_poller.dispatch_smtp_email") as mock_smtp:
+            mock_mail = MagicMock()
+            mock_imap_cls.return_value = mock_mail
+            mock_mail.search.return_value = ("OK", [b"1"])
+            mock_mail.fetch.return_value = ("OK", [(b"1 (RFC822 {100})", raw_bytes)])
+
+            res = poll_imap_inbox(db_session)
+            assert res["status"] == "SUCCESS"
+            assert res["polled_count"] == 1
+
+            staged = db_session.query(StagedEmailRecord).filter_by(sender="spammer@junkmailer.com").first()
+            assert staged is not None
+            assert staged.category == "SPAM"
+            assert staged.status == "QUARANTINED"
+
+            # STRICT VERIFICATION: NO auto-reply sent! Silent drop!
+            mock_smtp.assert_not_called()
+    finally:
+        settings.imap_host = ""
+        settings.imap_port = 993
+        settings.imap_user = ""
+        settings.imap_password = ""
+
+
+def test_imap_malware_silent_drop_no_reply(db_session):
+    """Verify that dangerous executable payloads are blocked and NEVER trigger auto-reply."""
+    settings = get_settings()
+    settings.imap_host = "imap.example.com"
+    settings.imap_port = 993
+    settings.imap_user = "hub@example.com"
+    settings.imap_password = "password"
+    settings.auto_reply_on_verification = True
+
+    msg = EmailMessage()
+    msg["From"] = "Attacker <attacker@evil.org>"
+    msg["To"] = "hub@example.com"
+    msg["Subject"] = "Urgent Bill of Lading Document"
+    msg["Message-ID"] = "<malware-666@evil.org>"
+    msg.set_content("Please run the attached shipping doc updater.")
+    msg.add_attachment(b"MZ\x90\x00\x03fake-executable-bytes", maintype="application", subtype="octet-stream", filename="B_L_Update.exe")
+    raw_bytes = msg.as_bytes()
+
+    try:
+        with patch("imaplib.IMAP4_SSL") as mock_imap_cls, \
+             patch("app.services.imap_poller.dispatch_smtp_email") as mock_smtp:
+            mock_mail = MagicMock()
+            mock_imap_cls.return_value = mock_mail
+            mock_mail.search.return_value = ("OK", [b"1"])
+            mock_mail.fetch.return_value = ("OK", [(b"1 (RFC822 {100})", raw_bytes)])
+
+            res = poll_imap_inbox(db_session)
+            assert res["status"] == "SUCCESS"
+            assert res["polled_count"] == 1
+
+            staged = db_session.query(StagedEmailRecord).filter_by(sender="attacker@evil.org").first()
+            assert staged is not None
+            assert staged.security_status == "BLOCKED"
+            assert staged.status == "QUARANTINED"
+
+            # STRICT VERIFICATION: NO auto-reply sent! Zero backscatter!
+            mock_smtp.assert_not_called()
+    finally:
+        settings.imap_host = ""
+        settings.imap_port = 993
+        settings.imap_user = ""
+        settings.imap_password = ""
+
+
+def test_imap_forwarded_receipt_includes_action_links(db_session):
+    """Verify that when an operator forwards a customer's email, the receipt contains 1-click mailto and Gmail from: search links."""
+    settings = get_settings()
+    settings.imap_host = "imap.example.com"
+    settings.imap_port = 993
+    settings.imap_user = "hub@example.com"
+    settings.imap_password = "password"
+    settings.auto_reply_on_verification = True
+
+    msg = EmailMessage()
+    msg["From"] = "Operator <testuse1491@gmail.com>"
+    msg["To"] = "hub@example.com"
+    msg["Subject"] = "Fwd: BKG-9900 Draft BL for Verification"
+    msg["Message-ID"] = "<fwd-101@gmail.com>"
+    fwd_body = (
+        "---------- Forwarded message ---------\n"
+        "From: Alice Shipper <alice@shipper-corp.com>\n"
+        "Subject: BKG-9900 Draft BL for Verification\n"
+        "To: testuse1491@gmail.com\n\n"
+        "Attached draft documents."
+    )
+    msg.set_content(fwd_body)
+    msg.add_attachment(b"%PDF-1.4 Mock Draft BL Content", maintype="application", subtype="pdf", filename="Draft_BL.pdf")
+    raw_bytes = msg.as_bytes()
+
+    try:
+        with patch("imaplib.IMAP4_SSL") as mock_imap_cls, \
+             patch("app.services.imap_poller.dispatch_smtp_email") as mock_smtp:
+            mock_mail = MagicMock()
+            mock_imap_cls.return_value = mock_mail
+            mock_mail.search.return_value = ("OK", [b"1"])
+            mock_mail.fetch.return_value = ("OK", [(b"1 (RFC822 {100})", raw_bytes)])
+            mock_smtp.return_value = {"delivery": "SENT_SMTP", "channel": "SMTP"}
+
+            res = poll_imap_inbox(db_session)
+            assert res["status"] == "SUCCESS"
+            assert res["polled_count"] == 1
+
+            mock_smtp.assert_called_once()
+            call_kwargs = mock_smtp.call_args[1]
+            # Must reply to the operator
+            assert call_kwargs["to_email"] == "testuse1491@gmail.com"
+            # Body must have mailto to alice
+            assert "mailto:alice%40shipper-corp.com" in call_kwargs["body"] or "mailto:alice@shipper-corp.com" in call_kwargs["body"]
+            # Body must have Gmail search with from: operator
+            assert "from%3Aalice%40shipper-corp.com" in call_kwargs["body"]
+            # HTML body must have action button
+            assert "from:alice@shipper-corp.com" in call_kwargs.get("html_body", "")
+    finally:
+        settings.imap_host = ""
+        settings.imap_port = 993
+        settings.imap_user = ""
+        settings.imap_password = ""
+
+
 

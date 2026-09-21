@@ -20,12 +20,14 @@ function switchView(name){
   const navGateway = document.getElementById("navGateway");
   const navReview = document.getElementById("navReview");
   const navLifecycle = document.getElementById("navLifecycle");
+  const navOutstream = document.getElementById("navOutstream");
   const viewGateway = document.getElementById("viewGateway");
   const viewReview = document.getElementById("viewReview");
   const viewLifecycle = document.getElementById("viewLifecycle");
+  const viewOutstream = document.getElementById("viewOutstream");
 
-  [navGateway, navReview, navLifecycle].forEach(btn => btn && btn.classList.remove("active"));
-  [viewGateway, viewReview, viewLifecycle].forEach(v => v && (v.hidden = true));
+  [navGateway, navReview, navLifecycle, navOutstream].forEach(btn => btn && btn.classList.remove("active"));
+  [viewGateway, viewReview, viewLifecycle, viewOutstream].forEach(v => v && (v.hidden = true));
 
   if(name === "gateway"){
     if(navGateway) navGateway.classList.add("active");
@@ -37,6 +39,11 @@ function switchView(name){
     if(viewLifecycle) viewLifecycle.hidden = false;
     if(!window.location.hash.startsWith("#lifecycle")) history.replaceState(null, "", "#lifecycle");
     if(window.Lifecycle && window.Lifecycle.init) window.Lifecycle.init();
+  } else if(name === "outstream"){
+    if(navOutstream) navOutstream.classList.add("active");
+    if(viewOutstream) viewOutstream.hidden = false;
+    if(window.location.hash !== "#outstream") history.replaceState(null, "", "#outstream");
+    if(window.Outstream && window.Outstream.init) window.Outstream.init();
   } else {
     if(navReview) navReview.classList.add("active");
     if(viewReview) viewReview.hidden = false;
@@ -72,6 +79,7 @@ document.addEventListener("keydown", e => {
   if(e.key === "0"){ e.preventDefault(); switchView("gateway"); }
   else if(e.key === "1"){ e.preventDefault(); switchView("review"); }
   else if(e.key === "2"){ e.preventDefault(); switchView("lifecycle"); }
+  else if(e.key === "3"){ e.preventDefault(); switchView("outstream"); }
   else if(e.key === "b" || e.key === "B"){ e.preventDefault(); switchView("review"); }
 });
 
@@ -80,6 +88,7 @@ window.addEventListener("hashchange", () => {
   const h = window.location.hash;
   if(h === "#gateway") switchView("gateway");
   else if(h.startsWith("#lifecycle")) switchView("lifecycle");
+  else if(h === "#outstream") switchView("outstream");
   else if(h === "#review") switchView("review");
 });
 
@@ -88,6 +97,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const h = window.location.hash;
   if(h === "#gateway") switchView("gateway");
   else if(h.startsWith("#lifecycle")) switchView("lifecycle");
+  else if(h === "#outstream") switchView("outstream");
   else switchView("review");
 });
 
@@ -1229,6 +1239,11 @@ table.list tbody tr.sel .key{color:var(--accent)}
         <span>Shipment Lifecycle</span>
         <span class="hk">2</span>
       </button>
+      <button class="navlink" id="navOutstream" type="button" onclick="switchView('outstream')" data-tip="Outstream Buffer" data-tip-desc="Post-classification disposition: SI to BL mismatches, per-source auto / manual reply &amp; reply-needed queue" data-tip-kbd="3" data-tip-pos="right" aria-label="Outstream Buffer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9z"/></svg>
+        <span>Outstream Buffer</span>
+        <span class="hk">3</span>
+      </button>
     </div>
 
     <div class="panel-box" data-page-node-id="TGnqw11nrbhOZG9Nn4vgFP">
@@ -1462,6 +1477,100 @@ table.list tbody tr.sel .key{color:var(--accent)}
       <div class="lc-content" id="lcView"></div>
     </div>
 
+    <!-- VIEW 4: OUTSTREAM BUFFER (post-classification disposition) -->
+    <div id="viewOutstream" class="console-view" hidden>
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <span class="kpi-num" id="outKpiTotal">0</span>
+          <span class="kpi-lbl">📨 Classified Emails</span>
+        </div>
+        <div class="kpi-card warn">
+          <span class="kpi-num" id="outKpiAwaiting">0</span>
+          <span class="kpi-lbl">⏳ Awaiting Reply</span>
+        </div>
+        <div class="kpi-card ok">
+          <span class="kpi-num" id="outKpiSent">0</span>
+          <span class="kpi-lbl">✅ Replied / Dispatched</span>
+        </div>
+        <div class="kpi-card purple">
+          <span class="kpi-num" id="outKpiReview">0</span>
+          <span class="kpi-lbl">🛡️ Needs Human Review</span>
+        </div>
+      </div>
+
+      <div class="control-bar">
+        <div class="cg-left">
+          <div class="cg-item">
+            <span>📬 Mailbox Source:</span>
+            <select class="select-ctl" id="outSelMailbox" onchange="Outstream.render()">
+              <option value="ALL">All Sources (Unified Outstream)</option>
+              <option value="sdoc-hackathon-bundle@averis.com">Carrier EDI / API Webhook (Benchmark)</option>
+              <option value="operations@shipsync.demo">Direct Mail Influx (Live Ops)</option>
+              <option value="docs.export@averis.com">docs.export@averis.com</option>
+              <option value="booking@averis.com">booking@averis.com</option>
+              <option value="april.shipping@averis.com">april.shipping@averis.com</option>
+              <option value="finance@averis.com">finance@averis.com</option>
+              <option value="transpacific@averis.com">transpacific@averis.com</option>
+            </select>
+          </div>
+          <div class="cg-item">
+            <span>↩️ Response Policy:</span>
+            <select class="select-ctl" id="outSelMode" onchange="Outstream.setGlobalDisposition()">
+              <option value="manual">🛡️ Manual (queue for human)</option>
+              <option value="auto">⚡ Auto (send reply automatically)</option>
+            </select>
+          </div>
+          <div class="cg-item">
+            <span>🔎 Search:</span>
+            <input id="outSearch" class="select-ctl" type="text" placeholder="subject, sender or id…" oninput="Outstream.onSearch()" style="min-width:200px;">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span class="reply-counter" id="outReplyCounter" style="font-weight:700;color:var(--warn);font-size:13px;">↩ Reply needed: 0</span>
+          <button class="btn btn-sm" type="button" onclick="Outstream.reload()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div class="matrix-panel">
+        <div class="matrix-head">
+          <div>
+            <div class="matrix-title">📡 Response Disposition Policy <span class="matrix-sub">· per-mailbox auto / manual (post-classification)</span></div>
+            <div class="matrix-sub">Auto sends the reply automatically; Manual parks it for a human. Inherit follows the global policy above. Single-item overrides on each row win over everything.</div>
+          </div>
+        </div>
+        <div class="matrix-grid" id="outMatrixGrid"></div>
+      </div>
+
+      <div class="table-panel">
+        <div class="table-header">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>📨 Outstream Buffer · Classified &amp; Dispositioned</span>
+            <span id="outCountBadge" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
+          </div>
+          <div class="bulk-bar">
+            <button class="btn btn-sm btn-primary" type="button" onclick="Outstream.bulkReplyEligible()">⚡ Auto-reply all eligible</button>
+            <button class="btn btn-sm" type="button" onclick="Outstream.reload()">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="table-body">
+          <table class="staged-tbl">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Category / Status</th>
+                <th>Mismatch (SI ↔ BL)</th>
+                <th>Source</th>
+                <th>Disposition</th>
+                <th>Reply</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="outList"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 <div class="palette" id="palette" hidden>
@@ -1579,6 +1688,38 @@ table.list tbody tr.sel .key{color:var(--accent)}
 
 <script src="/ui/js/gateway.js"></script>
 <script src="/ui/js/lifecycle.js"></script>
+<script src="/ui/js/outstream.js"></script>
 
+<!-- Outstream Return Modal (post-classification reply / clarification) -->
+<div class="modal-overlay hidden" id="outReturnModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>↩ Outstream Reply / Clarification Request</span>
+      <button class="btn btn-sm" type="button" onclick="Outstream.closeReturnModal()">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);line-height:1.5;">
+      Dispatch the post-classification reply. The message is routed back to the sender via the email's origin mailbox channel.
+    </div>
+    <div style="display:flex;gap:12px;font-size:12px;padding:8px 12px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+      <div><b>Routing via:</b> <span id="outRetVia" style="color:var(--accent);">-</span></div>
+      <div><b>To:</b> <span id="outRetTo">-</span></div>
+      <div id="outRetDelivery" style="color:var(--muted-2);"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <label style="font-size:12px;color:var(--muted);">Subject</label>
+      <input id="outRetSub" style="background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:var(--sans);font-size:12.5px;outline:none;">
+    </div>
+    <textarea id="outRetBody" style="width:100%;height:150px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+      <a id="outRetMailtoBtn" href="#" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.4);" target="_blank">
+        🚀 Open Local Email (mailto)
+      </a>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" type="button" onclick="Outstream.closeReturnModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="Outstream.confirmReturn()">📨 Dispatch Reply</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
