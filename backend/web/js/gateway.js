@@ -6,6 +6,14 @@
   let currentScenario = "clean_bl";
   let currentReturnStage = null;
   let statusPollTimer = null;
+  let gatewayItems = [];        // last loaded staged list (mailbox-scoped)
+  let gatewaySearch = "";        // active search query
+  let gatewayIncludeQuar = false; // 'Include quarantine' toggle
+  let gatewayMatrix = [];       // rendered source list  [{mb,role,mode,inherit,staged,custom}]
+  let matrixSearch = "";        // active Source Trust Matrix search query
+  const MX_COLLAPSE_KEY = "sdoc-mx-collapsed";   // "1" = source list collapsed
+  const MX_SOURCES_KEY  = "sdoc-mx-sources";     // {mailbox: role} registry of UI-added sources
+  const INB_COLLAPSE_KEY = "sdoc-inb-collapsed"; // "1" = Inbound Stream table collapsed
 
   const SRC_ROLES = {
     "sdoc-hackathon-bundle@averis.com": "Benchmark EDI / API bundle",
@@ -121,7 +129,8 @@
     try{
       const res = await fetch(url);
       const data = await res.json();
-      renderStagedList(data);
+      gatewayItems = Array.isArray(data) ? data : [];
+      applyGatewayFilter();
     }catch(e){
       console.error(e);
     }
@@ -151,7 +160,7 @@
       let actionBtns = "";
       if(it.status === "STAGED"){
         actionBtns = `
-          <div style="display:flex;gap:6px;align-items:center;">
+          <div class="act-wrap">
             <button class="btn btn-sm btn-primary" onclick="Gateway.approveEmail('${it.stage_id}')">✅ Approve & Ingest</button>
             <button class="btn btn-sm btn-danger" onclick="Gateway.openReturn('${it.stage_id}', true)">📤 Reject & Clarify</button>
           </div>
@@ -161,7 +170,7 @@
           actionBtns = `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
         } else {
           actionBtns = `
-            <div style="display:flex;gap:6px;align-items:center;">
+            <div class="act-wrap">
               <button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="Gateway.approveEmail('${it.stage_id}')">🔓 Release & Ingest</button>
               <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', true)">↩️ Return to Sender</button>
             </div>
@@ -169,21 +178,21 @@
         }
       } else if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
         actionBtns = `
-          <div style="display:flex;gap:6px;align-items:center;">
+          <div class="act-wrap">
             <span style="color:var(--ok);font-weight:600;font-size:12px;">✓ Ingested</span>
             <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', false)">↩️ Return to Sender</button>
           </div>
         `;
       } else if(it.status === "RETURNED"){
         actionBtns = `
-          <div style="display:flex;gap:6px;align-items:center;">
+          <div class="act-wrap">
             <span style="color:var(--accent);font-weight:600;font-size:12px;">↩️ Returned via ${it.source_mailbox}</span>
             <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', false)">Return Again</button>
           </div>
         `;
       } else {
         actionBtns = `
-          <div style="display:flex;gap:6px;align-items:center;">
+          <div class="act-wrap">
             <span style="color:var(--muted);font-size:12px;">Rejected</span>
             <button class="btn btn-sm" onclick="Gateway.openReturn('${it.stage_id}', false)">↩️ Return to Sender</button>
           </div>
@@ -191,7 +200,7 @@
       }
 
       html += `
-        <tr>
+        <tr data-id="${it.stage_id}">
           <td style="font-family:var(--mono);font-size:12px;">${it.stage_id}</td>
           <td><span class="pill pill-src">${it.source_mailbox}</span><span class="eff-tag ${effectiveMode(it.source_mailbox) === 'auto' ? 'auto' : 'manual'}">${effectiveMode(it.source_mailbox) === 'auto' ? 'AUTO' : 'MANUAL'}</span></td>
           <td>
@@ -211,6 +220,10 @@
     tbody.innerHTML = html;
   }
 
+  async function _approveOne(stageId){
+    try{ const res = await fetch(`/api/v1/gateway/emails/${stageId}/approve`, {method: "POST"}); return res.ok; }
+    catch(e){ return false; }
+  }
   async function approveEmail(stageId){
     try{
       const res = await fetch(`/api/v1/gateway/emails/${stageId}/approve`, {method: "POST"});
@@ -337,47 +350,248 @@
     }
   }
 
-  function renderMatrix(policies, counts, mailboxes){
-    const grid = document.getElementById("matrixGrid");
-    if(!grid) return;
-    if(!mailboxes || mailboxes.length === 0){
-      grid.innerHTML = "";
-      return;
+  /* ---- Source Trust Matrix · one row per source ---------------------------- */
+  function mxEsc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+  function mxExtra(){
+    try{
+      const o = JSON.parse(localStorage.getItem(MX_SOURCES_KEY) || "{}");
+      return (o && typeof o === "object" && !Array.isArray(o)) ? o : {};
+    }catch(e){ return {}; }
+  }
+  function mxSaveExtra(o){ try{ localStorage.setItem(MX_SOURCES_KEY, JSON.stringify(o)); }catch(e){} }
+  function mxRoleOf(mb){ return SRC_ROLES[mb] || mxExtra()[mb] || "Mailbox source"; }
+
+  function applyMatrixCollapse(){
+    const body = document.getElementById("mxBody");
+    const btn = document.getElementById("mxToggle");
+    if(!body) return;
+    const collapsed = localStorage.getItem(MX_COLLAPSE_KEY) === "1";
+    body.hidden = collapsed;
+    if(btn){
+      btn.textContent = collapsed ? "\u25B8" : "\u25BE";
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      btn.title = collapsed ? "Expand the source list" : "Collapse the source list";
     }
-    let html = "";
-    mailboxes.forEach(mb => {
-      const forced = policies[mb];
-      const mode = forced || effectiveMode(mb);
-      const inherit = !forced;
-      const staged = (counts && counts[mb]) || 0;
-      const shortMb = mb.length > 30 ? mb.slice(0, 28) + "…" : mb;
-      html += `
-        <div class="mx-card">
-          <div class="mx-top">
-            <div>
-              <div class="mx-mb" title="${mb}">${shortMb}</div>
-              <div class="mx-role">${SRC_ROLES[mb] || "Mailbox source"}</div>
-            </div>
-            ${inherit
-              ? `<span class="mx-pill inherit">Inherits global</span>`
-              : `<span class="mx-pill forced">Overridden</span>`}
-          </div>
-          <div class="mx-bottom">
-            <div class="seg" data-mb="${mb}">
-              <button class="${inherit ? "active inherit" : "inherit"}" onclick="Gateway.setSourcePolicy('${mb.replace(/'/g, "\\'")}', 'inherit')">Inherit</button>
-              <button class="${mode === 'auto' && !inherit ? "active auto" : "auto"}" onclick="Gateway.setSourcePolicy('${mb.replace(/'/g, "\\'")}', 'auto')">Auto</button>
-              <button class="${mode === 'manual' && !inherit ? "active manual" : "manual"}" onclick="Gateway.setSourcePolicy('${mb.replace(/'/g, "\\'")}', 'manual')">Manual</button>
-            </div>
-            <div class="mx-actions">
-              <button class="btn btn-sm btn-primary" onclick="Gateway.bulkApproveMailbox('${mb.replace(/'/g, "\\'")}')">Approve</button>
-              <button class="btn btn-sm" onclick="Gateway.bulkReturnMailbox('${mb.replace(/'/g, "\\'")}')">Return</button>
-            </div>
-          </div>
-          <div class="mx-count">Awaiting triage: <b>${staged}</b> &nbsp;·&nbsp; Effective: <b style="color:${mode==='auto'?'var(--ok)':'var(--warn)'}">${mode.toUpperCase()}</b></div>
-        </div>
-      `;
+  }
+  function setMatrixCollapsed(collapsed){
+    try{ localStorage.setItem(MX_COLLAPSE_KEY, collapsed ? "1" : "0"); }catch(e){}
+    applyMatrixCollapse();
+  }
+  function toggleMatrix(){
+    const body = document.getElementById("mxBody");
+    if(!body) return;
+    setMatrixCollapsed(!body.hidden);
+  }
+
+  /* ---- Inbound Stream panel · the same collapse affordance as the matrix --- */
+  function applyInboundCollapse(){
+    const body = document.getElementById("inbBody");
+    if(!body) return;
+    const panel = document.getElementById("inbPanel");
+    const btn = document.getElementById("inbToggle");
+    const collapsed = localStorage.getItem(INB_COLLAPSE_KEY) === "1";
+    body.hidden = collapsed;
+    if(panel) panel.classList.toggle("collapsed", collapsed);
+    if(btn){
+      btn.textContent = collapsed ? "\u25B8" : "\u25BE";
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      btn.title = collapsed ? "Expand the inbound stream" : "Collapse the inbound stream";
+    }
+  }
+  function setInboundCollapsed(collapsed){
+    try{ localStorage.setItem(INB_COLLAPSE_KEY, collapsed ? "1" : "0"); }catch(e){}
+    applyInboundCollapse();
+  }
+  function toggleInbound(){
+    const body = document.getElementById("inbBody");
+    if(!body) return;
+    setInboundCollapsed(!body.hidden);
+  }
+  function expandInbound(){
+    const body = document.getElementById("inbBody");
+    if(body && body.hidden) setInboundCollapsed(false);
+  }
+
+  function renderMatrix(policies, counts, mailboxes){
+    const tbody = document.getElementById("matrixGrid");
+    if(!tbody) return;
+    const extra = mxExtra();
+    const list = [];
+    (mailboxes || []).forEach(mb => { if(mb && list.indexOf(mb) < 0) list.push(mb); });
+    Object.keys(extra).forEach(mb => { if(mb && list.indexOf(mb) < 0) list.push(mb); });
+    gatewayMatrix = list.map(mb => {
+      const forced = policies ? policies[mb] : null;
+      return {
+        mb: mb,
+        role: mxRoleOf(mb),
+        mode: forced || effectiveMode(mb),
+        inherit: !forced,
+        staged: (counts && counts[mb]) || 0,
+        custom: !SRC_ROLES[mb]
+      };
     });
-    grid.innerHTML = html;
+    applyMatrixCollapse();
+    syncMailboxFilter(list);
+    renderMatrixRows();
+  }
+
+  function syncMailboxFilter(list){
+    const sel = document.getElementById("selMailbox");
+    if(!sel) return;
+    const have = {};
+    for(let i = 0; i < sel.options.length; i++) have[sel.options[i].value] = true;
+    list.forEach(mb => {
+      if(have[mb]) return;
+      const o = document.createElement("option");
+      o.value = mb;
+      o.textContent = mb + " (" + mxRoleOf(mb) + ")";
+      sel.appendChild(o);
+      have[mb] = true;
+    });
+  }
+
+  function renderMatrixRows(){
+    const tbody = document.getElementById("matrixGrid");
+    if(!tbody) return;
+    const q = matrixSearch.trim().toLowerCase();
+    const rows = q
+      ? gatewayMatrix.filter(it => it.mb.toLowerCase().indexOf(q) >= 0 || it.role.toLowerCase().indexOf(q) >= 0)
+      : gatewayMatrix;
+    if(!gatewayMatrix.length){
+      tbody.innerHTML = '<tr><td class="mx-none" colspan="5">No mailbox sources registered yet.</td></tr>';
+    } else if(!rows.length){
+      tbody.innerHTML = '<tr><td class="mx-none" colspan="5">No source matches \u201C' + mxEsc(matrixSearch.trim()) + '\u201D.</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(mxRowHtml).join("");
+    }
+    const clr = document.getElementById("mxSearchClear");
+    if(clr) clr.hidden = !matrixSearch.trim();
+    updateMatrixSummary(rows.length);
+  }
+
+  function mxRowHtml(it){
+    const attr = mxEsc(it.mb);
+    const js = it.mb.replace(/'/g, "\\'");
+    const mode = it.mode;
+    return '<tr data-mb="' + attr + '">'
+      + '<td><div class="mx-mb" title="' + attr + '">' + mxEsc(it.mb) + '</div>'
+      + '<div class="mx-role" title="' + mxEsc(it.role) + '">' + mxEsc(it.role) + '</div></td>'
+      + '<td><div class="seg" data-mb="' + attr + '">'
+      + '<button class="' + (it.inherit ? 'active inherit' : 'inherit') + '" onclick="Gateway.setSourcePolicy(\'' + js + '\', \'inherit\')">Inherit</button>'
+      + '<button class="' + (!it.inherit && mode === 'auto' ? 'active auto' : 'auto') + '" onclick="Gateway.setSourcePolicy(\'' + js + '\', \'auto\')">Auto</button>'
+      + '<button class="' + (!it.inherit && mode === 'manual' ? 'active manual' : 'manual') + '" onclick="Gateway.setSourcePolicy(\'' + js + '\', \'manual\')">Manual</button>'
+      + '</div></td>'
+      + '<td><span class="mx-eff"><b style="color:' + (mode === 'auto' ? 'var(--ok)' : 'var(--warn)') + '">' + mode.toUpperCase() + '</b>'
+      + (it.inherit ? '<span class="mx-pill inherit">Inherits global</span>' : '<span class="mx-pill forced">Overridden</span>')
+      + '</span></td>'
+      + '<td><span class="mx-cnt' + (it.staged ? '' : ' zero') + '">' + it.staged + '</span></td>'
+      + '<td><div class="mx-actions">'
+      + '<button class="btn btn-sm btn-primary" onclick="Gateway.bulkApproveMailbox(\'' + js + '\')">Approve</button>'
+      + '<button class="btn btn-sm" onclick="Gateway.bulkReturnMailbox(\'' + js + '\')">Return</button>'
+      + (it.custom ? '<button class="btn btn-sm btn-danger" title="Remove this source from the matrix" aria-label="Remove source" onclick="Gateway.removeSource(\'' + js + '\')">\u2715</button>' : '')
+      + '</div></td></tr>';
+  }
+
+  function updateMatrixSummary(shown){
+    const el = document.getElementById("mxSummary");
+    if(!el) return;
+    const total = gatewayMatrix.length;
+    const over = gatewayMatrix.filter(it => !it.inherit).length;
+    const waiting = gatewayMatrix.reduce((a, it) => a + it.staged, 0);
+    const q = matrixSearch.trim();
+    let s = (q && typeof shown === "number" && shown !== total)
+      ? shown + " / " + total + " sources"
+      : total + (total === 1 ? " source" : " sources");
+    s += " \u00B7 " + over + " overridden";
+    if(waiting) s += " \u00B7 " + waiting + " awaiting triage";
+    el.textContent = s;
+  }
+
+  function onMatrixSearch(v){
+    matrixSearch = v || "";
+    if(matrixSearch.trim()){
+      const body = document.getElementById("mxBody");
+      if(body && body.hidden) setMatrixCollapsed(false);
+    }
+    renderMatrixRows();
+  }
+  function clearMatrixSearch(){
+    matrixSearch = "";
+    const el = document.getElementById("mxSearch");
+    if(el){ el.value = ""; el.focus(); }
+    renderMatrixRows();
+  }
+
+  function openAddSource(){
+    const box = document.getElementById("mxAdd");
+    if(!box) return;
+    setMatrixCollapsed(false);
+    box.hidden = false;
+    const err = document.getElementById("mxAddErr"); if(err) err.textContent = "";
+    const mb = document.getElementById("mxAddMb"); if(mb){ mb.value = ""; mb.focus(); }
+    const role = document.getElementById("mxAddRole"); if(role) role.value = "";
+  }
+  function closeAddSource(){
+    const box = document.getElementById("mxAdd");
+    if(box) box.hidden = true;
+    const err = document.getElementById("mxAddErr"); if(err) err.textContent = "";
+  }
+  function toggleAddSource(){
+    const box = document.getElementById("mxAdd");
+    if(!box) return;
+    if(box.hidden) openAddSource(); else closeAddSource();
+  }
+
+  async function addSource(){
+    const mbEl = document.getElementById("mxAddMb");
+    const roleEl = document.getElementById("mxAddRole");
+    const errEl = document.getElementById("mxAddErr");
+    const fail = m => { if(errEl) errEl.textContent = m; if(mbEl && mbEl.focus) mbEl.focus(); };
+    const mb = ((mbEl && mbEl.value) || "").trim().toLowerCase();
+    const role = ((roleEl && roleEl.value) || "").trim();
+    if(!mb) return fail("Enter the source mailbox address.");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mb)) return fail("That does not look like a valid email address.");
+    if(gatewayMatrix.some(it => it.mb.toLowerCase() === mb)) return fail("This source is already in the matrix.");
+    const extra = mxExtra();
+    extra[mb] = role;
+    mxSaveExtra(extra);
+    const sp = Object.assign({}, (window.hubPolicy && window.hubPolicy.source_policies) || {});
+    sp[mb] = "manual";   // a brand-new source is held for operator triage by default
+    try{
+      await fetch("/api/v1/gateway/config", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({source_policies: sp})
+      });
+    }catch(e){}
+    closeAddSource();
+    toast("Source " + mb + " added \u00B7 held for manual triage", "ok");
+    loadStatus();
+  }
+
+  function removeSource(mb){
+    const extra = mxExtra();
+    delete extra[mb];
+    mxSaveExtra(extra);
+    const sp = Object.assign({}, (window.hubPolicy && window.hubPolicy.source_policies) || {});
+    delete sp[mb];
+    const sel = document.getElementById("selMailbox");
+    if(sel){
+      for(let i = 0; i < sel.options.length; i++){
+        if(sel.options[i].value === mb){ sel.options[i].remove(); break; }
+      }
+      if(sel.value === mb) sel.value = "ALL";
+    }
+    gatewayMatrix = gatewayMatrix.filter(it => it.mb !== mb);
+    renderMatrixRows();
+    toast("Source " + mb + " removed from the matrix", "ok");
+    fetch("/api/v1/gateway/config", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({source_policies: sp})
+    }).then(() => { loadStatus(); }).catch(() => { loadStatus(); });
   }
 
   async function setSourcePolicy(mb, mode){
@@ -427,14 +641,32 @@
 
   function _bulkLabel(){
     const mb = _currentFilter();
-    const el = document.getElementById("bulkSrcLabel");
-    if(el) el.textContent = mb === "ALL" ? "(all sources)" : "(" + mb + ")";
+    const src = mb === "ALL" ? "all sources" : mb;
+    const q = gatewaySearch.trim();
+    const scope = q ? ' · "' + q + '"' : ' · ' + src;
+    const a = document.getElementById("bulkScopeLabel"); if(a) a.textContent = scope;
+    const r = document.getElementById("retScopeLabel"); if(r) r.textContent = scope;
   }
 
-  async function bulkApprove(scope){
+  async function bulkApprove(){
     _bulkLabel();
     const mb = _currentFilter();
-    const include_quarantined = (scope === "visible");
+    const q = gatewaySearch.trim().toLowerCase();
+    if(q){
+      const ids = getVisibleStageIds();
+      if(!ids.length){ toast("No matching rows to approve", "bad"); return; }
+      let ok=0, skip=0;
+      for(const id of ids){
+        const it = gatewayItems.find(x => x.stage_id === id);
+        if(it && (it.status === "STAGED" || (it.status === "QUARANTINED" && it.security_status !== "BLOCKED"))){
+          if(await _approveOne(id)) ok++; else skip++;
+        } else skip++;
+      }
+      toast(`Approved ${ok} matching (skipped ${skip} not actionable)`, "ok");
+      loadStatus(); loadStagedEmails();
+      return;
+    }
+    const include_quarantined = gatewayIncludeQuar;
     try{
       const res = await fetch("/api/v1/gateway/emails/bulk-approve", {
         method: "POST",
@@ -452,9 +684,19 @@
     }
   }
 
-  async function bulkReturn(scope){
+  async function bulkReturn(){
     _bulkLabel();
     const mb = _currentFilter();
+    const q = gatewaySearch.trim().toLowerCase();
+    if(q){
+      const ids = getVisibleStageIds();
+      if(!ids.length){ toast("No matching rows to return", "bad"); return; }
+      let ok=0;
+      for(const id of ids){ if(await _returnOne(id)) ok++; }
+      toast(`Returned ${ok} matching via origin mailbox`, "ok");
+      loadStatus(); loadStagedEmails();
+      return;
+    }
     try{
       const res = await fetch("/api/v1/gateway/emails/bulk-return", {
         method: "POST",
@@ -508,6 +750,47 @@
     }
   }
 
+  function getVisibleStageIds(){
+    const ids = [];
+    document.querySelectorAll("#stagedList tr[data-id]").forEach(tr => ids.push(tr.getAttribute("data-id")));
+    return ids;
+  }
+  async function _returnOne(stageId){
+    try{ const res = await fetch(`/api/v1/gateway/emails/${stageId}/return`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({dry_run:false})}); return res.ok; }
+    catch(e){ return false; }
+  }
+  function onSearch(v){
+    gatewaySearch = v || "";
+    const clr = document.getElementById("gwSearchClear");
+    if(clr) clr.hidden = !gatewaySearch.trim();
+    if(gatewaySearch.trim()) expandInbound();   // typing while collapsed reveals the rows
+    applyGatewayFilter();
+  }
+  function clearSearch(){
+    gatewaySearch = "";
+    const inp = document.getElementById("gwSearch");
+    if(inp) inp.value = "";
+    const clr = document.getElementById("gwSearchClear");
+    if(clr) clr.hidden = true;
+    applyGatewayFilter();
+  }
+  function onIncQuar(checked){ gatewayIncludeQuar = !!checked; }
+  function applyGatewayFilter(){
+    const q = gatewaySearch.trim().toLowerCase();
+    let list = gatewayItems;
+    if(q){
+      list = list.filter(it =>
+        (it.stage_id||"").toLowerCase().includes(q) ||
+        (it.sender||"").toLowerCase().includes(q) ||
+        (it.subject||"").toLowerCase().includes(q) ||
+        (it.source_mailbox||"").toLowerCase().includes(q) ||
+        (it.status||"").toLowerCase().includes(q) ||
+        (it.category||"").toLowerCase().includes(q)
+      );
+    }
+    renderStagedList(list);
+    _bulkLabel();
+  }
   function startPolling(){
     if(!statusPollTimer){
       statusPollTimer = setInterval(() => {
@@ -587,8 +870,19 @@
     executeDrop,
     setSourcePolicy,
     reapplyPolicy,
+    toggleMatrix,
+    toggleInbound,
+    onMatrixSearch,
+    clearMatrixSearch,
+    toggleAddSource,
+    closeAddSource,
+    addSource,
+    removeSource,
     bulkApprove,
     bulkReturn,
+    onSearch,
+    clearSearch,
+    onIncQuar,
     bulkApproveMailbox,
     bulkReturnMailbox,
     startPolling,
@@ -600,6 +894,7 @@
       const b = document.getElementById("retBody");
       if(s) s.addEventListener("input", updateMailtoLink);
       if(b) b.addEventListener("input", updateMailtoLink);
+      applyInboundCollapse();   // restore the operator's collapse choice before the first paint
       loadStatus();
       loadStagedEmails();
       loadChannelStatus();
