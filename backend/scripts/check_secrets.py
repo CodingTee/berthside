@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Files that must never be tracked.
 FORBIDDEN_FILES = [
     ".env", ".env.local", ".env.production",
-    "sdoc.db", "*.sqlite", "*.sqlite3",
+    "sdoc.db", "sdoc_enterprise.db", "sdoc_oauth.db", "*.sqlite", "*.sqlite3",
     "ground_truth.json",           # official answer key — never commit
 ]
 
@@ -65,7 +65,7 @@ def main() -> int:
     # 1. sensitive files that git would actually commit
     for f in sorted(tracked):
         name = Path(f).name
-        if name in {".env", "sdoc.db", "ground_truth.json"} or \
+        if name in {".env", "sdoc.db", "sdoc_enterprise.db", "sdoc_oauth.db", "ground_truth.json"} or \
            name.endswith((".sqlite", ".sqlite3")):
             problems.append(f"TRACKED by git: {f}")
         if "attachment" in f.lower() or f.startswith("inbox/"):

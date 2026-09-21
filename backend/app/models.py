@@ -241,6 +241,25 @@ class GmailMessageRecord(Base):
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
 
+class ShipmailAssignmentRecord(Base):
+    """Triage decision for one email in the ShipMail (OAuth) workspace.
+
+    The hub distributes mail per source mailbox; the operator inbox has a single
+    source, so the decision is per email instead. ``AUTO`` means the message may
+    be cleared automatically, ``HOLD`` parks it for a human verdict and
+    ``IGNORE`` takes it out of the actionable queue. Stored in the OAuth
+    database: this is operator mail, not the hub corpus.
+    """
+    __tablename__ = "shipmail_assignments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email_id = Column(String(128), unique=True, index=True, nullable=False)
+    assignment = Column(String(16), default="HOLD")  # AUTO | HOLD | IGNORE
+    note = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 class StagedEmailRecord(Base):
     """Emails held in the pre-ingestion staging buffer / quarantine gate."""
     __tablename__ = "staged_emails"

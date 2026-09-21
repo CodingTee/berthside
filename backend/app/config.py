@@ -80,11 +80,13 @@ class Settings(BaseSettings):
             path = BACKEND_ROOT / path
         return str(path.resolve())
 
-    # -- database ----------------------------------------------------------
-    # Local dev default: SQLite file next to the backend root.
-    # Production (Supabase / any Postgres):
-    #   postgresql+psycopg2://postgres:<password>@<host>:5432/postgres
-    database_url: str = f"sqlite:///{BACKEND_ROOT / 'sdoc.db'}"
+    # -- database (Dual-Track Physical Isolation) ---------------------------
+    # 1. Enterprise Hub DB: 520 dataset, carrier EDI, gateway quarantine, audits
+    database_url_enterprise: str = f"sqlite:///{BACKEND_ROOT / 'sdoc_enterprise.db'}"
+    # 2. OAuth DB: personal operator real Gmail mailbox, operator tokens & verdicts
+    database_url_oauth: str = f"sqlite:///{BACKEND_ROOT / 'sdoc_oauth.db'}"
+    # Default / legacy database URL (aliased to enterprise hub)
+    database_url: str = f"sqlite:///{BACKEND_ROOT / 'sdoc_enterprise.db'}"
 
     # -- AI ----------------------------------------------------------------
     # "rule"     -> deterministic built-in classifier/extractor (default, offline)

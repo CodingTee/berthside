@@ -1,4 +1,4 @@
-"""Router for the Enterprise IDP Hub Console (/ui/gateway.html).
+"""Router for the Enterprise Hub Console (the Gateway tab at /ui/#gateway).
 
 Capabilities:
 1. Ingestion Buffer & Quarantine management (PE binary, double-ext, zip bombs).
@@ -367,9 +367,9 @@ def _ingest_staged(staged: StagedEmailRecord, db: Session) -> str:
 
 def _return_staged(staged: StagedEmailRecord, db: Session, subject=None, body=None):
     """Build the origin-aware receipt, persist it, and flip the row to RETURNED."""
-    decision, subj, body = _build_return_receipt(staged)
-    subject = subject or subj
-    body = body or body
+    decision, default_subject, default_body = _build_return_receipt(staged)
+    subject = subject or default_subject
+    body = body or default_body
 
     rec = DispatchRecord(
         stage_id=staged.stage_id,

@@ -1,7 +1,7 @@
 """Test harness: keep every test off the real database and the real disk.
 
 Without this, any test that exercises the stateful endpoints writes to the
-developer's `backend/sdoc.db` and `backend/data/ingested/`. That already
+developer's `backend/sdoc_enterprise.db` and `backend/data/ingested/`. That already
 happened: a stray `EXT-TEST-0099` ended up in the dev database, and because
 `inbox_service.all_emails()` merges ingested rows into the inbox, a local
 evaluation started reporting 521 emails instead of the official 520.

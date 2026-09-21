@@ -10,7 +10,7 @@ Covers:
 These run under `tests/conftest.py`, which points every test at a throwaway
 database and a temporary ingest directory. This file previously lived in
 `scripts/` with a `__main__` runner and no isolation, so running it wrote an
-`EXT-TEST-0099` row into the real `sdoc.db` and two files into
+`EXT-TEST-0099` row into the real hub database and two files into
 `backend/data/ingested/`. Keep it in `tests/` and drive it with pytest:
 
     python -m pytest tests/test_ingest_api.py -v -s

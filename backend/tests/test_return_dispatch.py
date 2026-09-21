@@ -78,6 +78,9 @@ def test_dispatch_persists_and_marks_returned(client, db_session):
     assert rec.stage_id == "STG-TEST1"
     assert rec.recipient == "shipper@fastocean.com"
     assert rec.decision == "VERIFIED"
+    # The operator's edited text is what leaves, not the generated default.
+    assert rec.subject == "Re: custom"
+    assert rec.body == "custom body"
     staged = db_session.query(StagedEmailRecord).filter_by(stage_id="STG-TEST1").first()
     assert staged.status == "RETURNED"
 

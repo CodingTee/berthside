@@ -133,7 +133,7 @@ async function loadSummary(){
 async function loadQueue(){
   const q = await (await fetch(API+"/api/review-queue")).json();
   const host = $("#queue");
-  if(!q.groups.length){host.innerHTML='<div class="empty">No escalations — the queue is clear. 🎉</div>';return;}
+  if(!q.groups.length){host.innerHTML='<div class="empty">No escalations: the queue is clear. 🎉</div>';return;}
   host.innerHTML = q.groups.map((g,i)=>`
     <div class="group" data-i="${i}">
       <div class="ghead" onclick="toggleGroup(${i})">
@@ -169,13 +169,13 @@ async function openDetail(id){
       const cls=c.missing?"miss":(c.match?"match":"diff");
       const mark=c.missing?`<span class="vpill miss">missing</span>`:c.match?`<span class="vpill ok">match</span>`:`<span class="vpill bad">differs</span>`;
       const fld=FIELDS_LABEL[c.field]||c.field;
-      return `<tr class="cmp-row ${cls}"><td class="f">${fld}</td><td class="val">${esc(c.si_value??"—")}</td><td class="val">${esc(c.bl_value??"—")}</td><td>${mark}</td></tr>`;
+      return `<tr class="cmp-row ${cls}"><td class="f">${fld}</td><td class="val">${esc(c.si_value??"-")}</td><td class="val">${esc(c.bl_value??"-")}</td><td>${mark}</td></tr>`;
     }).join("");
     cmp=`<section><h3>SI → draft BL · field comparison</h3>
       <table class="cmp"><thead><tr><th>Field</th><th>Shipping Instruction</th><th>Draft Bill of Lading</th><th>Verdict</th></tr></thead><tbody>${rows}</tbody></table></section>`;
   }
   const reason = r.status==="NEEDS_REVIEW"
-    ? `<div class="reason-box"><b>Escalation reason:</b> ${esc(r.review_reason||"—")}. The engine could not decide automatically — review and confirm or override in the <a href="/ui/#${esc(id)}" style="color:var(--accent)">Review Console</a>.</div>`
+    ? `<div class="reason-box"><b>Escalation reason:</b> ${esc(r.review_reason||"-")}. The engine could not decide automatically: review and confirm or override in the <a href="/ui/#${esc(id)}" style="color:var(--accent)">Review Console</a>.</div>`
     : "";
   $("#detailHost").innerHTML = `
     <div class="detail" style="background:var(--surface-2);border:1px solid var(--border);border-radius:14px;margin-top:8px;overflow:hidden">

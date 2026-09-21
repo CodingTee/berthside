@@ -18,12 +18,12 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.database import SessionLocal, get_db, init_db
+from app.database import OAuthSessionLocal, SessionLocal, get_db, init_db
 from app.models import EmailRecord, infer_source_mailbox
 from app.routers import (
     ai_assist,
@@ -128,6 +128,19 @@ class SafeStaticFiles(StaticFiles):
             if exc.status_code == 404 and self.html and "." not in last:
                 return await super().get_response("", scope)
             raise
+
+
+# The consoles were merged into /ui/ (see web/index.html). The old page URLs
+# are still in bookmarks, so they redirect server-side. A static stub would
+# boot the retired markup, and its poller, before navigating away.
+@app.get("/ui/gateway.html", include_in_schema=False)
+def _legacy_gateway_page():
+    return RedirectResponse(url="/ui/#gateway", status_code=302)
+
+
+@app.get("/ui/shipments.html", include_in_schema=False)
+def _legacy_shipments_page():
+    return RedirectResponse(url="/ui/#lifecycle", status_code=302)
 
 
 if WEB_DIR.is_dir():
@@ -407,11 +420,15 @@ async def on_shutdown() -> None:
 
 
 async def _gmail_poll_loop() -> None:
-    """Optional background poller for the dedicated Gmail demo account."""
+    """Optional background poller for the dedicated Gmail demo account.
+
+    Writes to the OAuth session: synced operator mail and its verdicts belong
+    to the ShipMail workspace, and the hub database must stay untouched by it.
+    """
     from app.integrations.gmail import sync as gmail_sync
 
     while True:
-        db = SessionLocal()
+        db = OAuthSessionLocal()
         try:
             gmail_sync.poll_and_process(db, limit=settings.gmail_max_results)
         except Exception as exc:  # noqa: BLE001

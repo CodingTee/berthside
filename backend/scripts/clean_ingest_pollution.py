@@ -75,7 +75,11 @@ def main() -> int:
     args = ap.parse_args()
 
     stamp = time.strftime("%Y%m%d-%H%M%S")
-    db_path = BACKEND_ROOT / "sdoc.db"
+    hub_url = get_settings().database_url_enterprise
+    if not hub_url.startswith("sqlite"):
+        print("this cleanup script only supports a SQLite hub database")
+        return 1
+    db_path = Path(hub_url.replace("sqlite:///", "", 1))
     ingest_root = Path(get_settings().ingest_dir)
     target_dir = ingest_root / args.target
 
@@ -102,14 +106,15 @@ def main() -> int:
 
     backup = BACKEND_ROOT / f"cleanup-backup-{stamp}"
     backup.mkdir(parents=True, exist_ok=False)
-    shutil.copy2(db_path, backup / "sdoc.db")
+    backup_db = backup / db_path.name
+    shutil.copy2(db_path, backup_db)
     if target_dir.is_dir():
         shutil.move(str(target_dir), str(backup / args.target))
         print(f"moved  {target_dir}  ->  {backup / args.target}")
-    print(f"backed up {db_path.name} -> {backup / 'sdoc.db'}")
+    print(f"backed up {db_path.name} -> {backup_db}")
 
     # Verify the backup opens and holds the same rows before deleting anything.
-    check = sqlite3.connect(backup / "sdoc.db")
+    check = sqlite3.connect(backup_db)
     backed_up = check.execute("select count(*) from emails").fetchone()[0]
     check.close()
     live = sqlite3.connect(db_path).execute(

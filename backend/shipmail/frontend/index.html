@@ -3,7 +3,7 @@
 <head data-page-node-id="ic4zKkZ90yw1KHUmgFmJTE">
 <meta charset="UTF-8" data-page-node-id="3mE233muXX4AWspqKJvETD">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="RgevWJ0Mot2GImjKp1L7SI">
-<title>ShipMail — Operations inbox</title>
+<title>ShipMail · Operations inbox</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='.52' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cg transform='translate(4,4)' fill='none' stroke='white' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='m3.5 7 8.5 6 8.5-6'/%3E%3C/g%3E%3C/svg%3E" data-page-node-id="DcIg3VSDbrevPN3NfJEHl2">
 <script>
 /* The theme is chosen before first paint so the mail console never flashes the
@@ -18,7 +18,7 @@
 /* ==========================================================================
    ShipMail is a product of its own, but it speaks the Operations Console's
    design language. Everything above the "ShipMail additions" banner is copied
-   verbatim from backend/web/index.html — that file owns the tokens, the rail
+   verbatim from backend/web/index.html: that file owns the tokens, the rail
    primitives, the pill set, the tooltip / shortcut-sheet / command-palette
    modules and the focus rings. When the Console changes, re-sync this block
    rather than inventing a second visual language here.
@@ -163,7 +163,7 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .step:last-child .line{display:none}
 .step.active .dot{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 6px 16px -6px rgba(45,212,191,.7)}
 .step.active .stxt b{color:var(--text)}
-/* NOTE: :not(.active) — .lit and .active share the same specificity, so a plain
+/* NOTE: :not(.active) shares specificity with .lit and .active, so a plain
    `.step.lit .dot` rule declared after would override the active dot's white icon
    and transparent border, making the icon vanish against the gradient. */
 .step.lit:not(.active) .dot{border-color:var(--accent);color:var(--accent)}
@@ -237,7 +237,7 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 .search-btn svg{width:15px;height:15px;flex:0 0 auto;color:var(--muted-2);transition:color .18s}
 .search-btn:hover svg{color:var(--accent)}
 .search-btn .s-ph{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* The Ctrl+K chip is the first thing to go when the inbox is dragged narrow —
+/* The Ctrl+K chip is the first thing to go when the inbox is dragged narrow:
    otherwise it gets clipped to "Ctr"/"Ctrl" and looks broken. Toggled by a
    ResizeObserver so it reacts to the draggable split, not just the viewport. */
 .search-btn .hk{transition:opacity .16s ease}
@@ -450,6 +450,10 @@ pre.body{white-space:pre-wrap;font-size:12.4px;line-height:1.6;background:var(--
 .empty{padding:60px 24px;text-align:center;color:var(--muted-2);display:flex;flex-direction:column;align-items:center;gap:12px}
 .empty svg{width:42px;height:42px;opacity:.5}
 .empty .big{font-size:14px;color:var(--muted);font-weight:600}
+.empty .scope{border-top:1px solid var(--border);padding-top:12px;max-width:420px;text-align:left;
+  font-size:11.5px;line-height:1.7;color:var(--muted-2)}
+.empty .scope b{color:var(--text);font-weight:600}
+.empty .scope a{color:var(--accent);font-weight:600}
 .empty .hint{font:11.5px/1.7 var(--mono);color:var(--muted-2);text-align:left;max-width:430px;
   background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
 .empty .hint b{color:var(--text);font-weight:600}
@@ -564,7 +568,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
   font-size:12.5px;font-weight:600;transition:background .18s,border-color .18s,color .18s,box-shadow .22s}
 .navlink:hover{border-color:var(--accent);color:var(--accent);background:var(--surface-hover)}
 .navlink svg{width:16px;height:16px;flex:0 0 auto;transition:color .18s,transform .18s}
-/* Active page — deliberately loud: accent tint + accent border + left bar + lit icon,
+/* Active page, deliberately loud: accent tint + accent border + left bar + lit icon,
    so "which console am I in?" is obvious at a glance even from across the room. */
 .navlink.active{border-color:color-mix(in srgb,var(--accent) 58%,transparent);color:var(--text);
   background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 16%,var(--surface-2)),var(--bg-2));
@@ -579,7 +583,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .app.collapsed .navlink span{display:none}
 .app.collapsed .navlink{justify-content:center;width:100%;padding:10px 0}
 .app.collapsed .nav-sec{align-items:center;width:100%}
-/* In rail mode there is no room for the left bar — the icon itself carries the state. */
+/* In rail mode there is no room for the left bar: the icon itself carries the state. */
 .app.collapsed .navlink.active{background:color-mix(in srgb,var(--accent) 24%,transparent);
   box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 50%,transparent),
     0 0 18px -6px color-mix(in srgb,var(--accent) 65%,transparent)}
@@ -680,15 +684,15 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 /* ==========================================================================
    ShipMail additions.
 
-   Shell: the layout of a mail client — a full-width top bar (identity, search,
-   mail source, theme, the ShipSync link, account) sitting above a flat
-   three-column body: mail rail | conversation list | reading pane. The ShipSync
-   verdict panel docks as an optional fourth column and is closed by default.
+   Shell: the layout of a mail client: a full-width top bar (identity, search,
+   mail source, theme, account) sitting above a flat three-column body: mail
+   rail | conversation list | reading pane. The ShipSync verdict panel docks as
+   an optional fourth column and is closed by default.
 
    "Flat" is deliberate: the columns run edge to edge and are separated by
    hairlines, the way a mail client does it. The only rounded, elevated surfaces
-   left on this page are the overlays — command palette, composer, shortcut
-   sheet and toast — which come straight from the Console.
+   left on this page are the overlays (command palette, composer, shortcut
+   sheet and toast), which come straight from the Console.
    ========================================================================== */
 .mail-app{flex-direction:column;--rail-w:244px;--inbox-w:376px;--ship-w:384px}
 .mail-app.collapsed{--rail-w:72px}
@@ -696,7 +700,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 /* ---------- top bar ---------- */
 /* z-index 30, not 3, on purpose: this bar hosts the "You" card, which drops
    down over the reading pane. backdrop-filter makes the bar a stacking
-   context, so the card's own z-index is trapped in here — the BAR must
+   context, so the card's own z-index is trapped in here: the BAR must
    out-rank the reading pane's sticky .mailbar (z-index:3) and the column
    grips (z-index:20), or the card's top edge gets painted over the moment a
    message is open. It still sits below the overlays (toast 50, palette 80,
@@ -707,14 +711,44 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 .topbar .right{margin-left:auto;display:flex;align-items:center;gap:8px;flex:0 0 auto}
 
-.logo{display:flex;align-items:center;gap:10px;flex:0 0 auto;user-select:none}
-.logo .lmark{width:32px;height:32px;border-radius:9px;background:var(--grad);display:grid;place-items:center;
-  flex:0 0 auto;box-shadow:0 8px 20px -10px rgba(45,212,191,.85)}
-.logo .lmark svg{width:17px;height:17px}
-.logo b{font-size:17px;font-weight:800;letter-spacing:-.2px;white-space:nowrap}
-.logo .ltag{display:inline-flex;align-items:center;height:34px;font-size:11px;font-weight:700;
-  color:var(--muted-2);border:1px solid var(--border);border-radius:10px;padding:0 12px;
-  letter-spacing:.3px;white-space:nowrap}
+/* ---------- Workspace Switcher ---------- */
+.ws-switcher{position:relative;display:flex;align-items:center}
+.ws-trigger{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);
+  border-radius:11px;padding:5px 11px 5px 7px;cursor:pointer;color:var(--text);font:inherit;transition:.18s;
+  text-align:left;user-select:none;max-width:240px}
+.ws-trigger:hover{border-color:var(--accent);background:var(--surface-hover)}
+.ws-trigger:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus-ring)}
+.ws-icon{width:30px;height:30px;border-radius:8px;background:var(--grad);display:grid;place-items:center;flex:0 0 auto;box-shadow:0 6px 16px -6px rgba(45,212,191,.7)}
+.ws-icon svg{width:16px;height:16px}
+.ws-meta{display:flex;flex-direction:column;min-width:0;flex:1}
+.ws-name{font-size:13px;font-weight:750;letter-spacing:-.1px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-tag{font-size:9.5px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-weight:600;line-height:1.2}
+.ws-arrow{width:13px;height:13px;color:var(--muted-2);margin-left:4px;flex:0 0 auto;transition:transform .2s ease}
+.ws-trigger[aria-expanded="true"] .ws-arrow{transform:rotate(180deg);color:var(--accent)}
+.ws-dropdown{position:absolute;top:calc(100% + 8px);left:0;width:340px;background:var(--surface-2);border:1px solid var(--border-strong);
+  border-radius:14px;box-shadow:0 20px 50px -10px rgba(0,0,0,.65);z-index:100;overflow:hidden;display:flex;flex-direction:column;
+  animation:wsFade .18s cubic-bezier(.2,.8,.2,1)}
+.ws-dropdown[hidden]{display:none}
+@keyframes wsFade{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.ws-dropdown-header{padding:10px 14px 6px;font-size:10px;font-weight:700;color:var(--muted-2);letter-spacing:.8px;text-transform:uppercase}
+.ws-opt{display:flex;align-items:center;gap:12px;padding:10px 14px;text-decoration:none;color:var(--text);transition:background .15s;border-top:1px solid var(--border)}
+.ws-opt:first-of-type{border-top:0}
+.ws-opt:hover{background:var(--surface-hover)}
+.ws-opt.active{background:color-mix(in srgb,var(--accent) 12%,var(--surface-2))}
+.ws-opt-icon{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}
+.ws-opt-icon.ent-icon{background:linear-gradient(135deg,#0e7490,#4338ca)}
+.ws-opt-icon.mail-icon{background:linear-gradient(135deg,#2dd4bf,#38bdf8)}
+.ws-opt-icon svg{width:17px;height:17px}
+.ws-opt-text{flex:1;min-width:0}
+.ws-opt-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.ws-pill{font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:999px;background:var(--surface-3);color:var(--muted);border:1px solid var(--border);letter-spacing:.4px}
+.ws-pill.live{background:var(--ok-bg);color:var(--ok);border-color:var(--ok-bd)}
+.ws-opt-desc{font-size:10.5px;color:var(--muted-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-check{width:15px;height:15px;color:var(--accent);margin-left:auto;flex:0 0 auto}
+.ws-dropdown-footer{padding:8px 14px;background:var(--surface-3);border-top:1px solid var(--border);font-size:10.5px;color:var(--muted-2);display:flex;align-items:center;justify-content:space-between}
+.ws-dropdown-footer code{font-family:var(--mono);color:var(--accent);font-weight:600;background:var(--surface-2);padding:2px 6px;border-radius:4px;border:1px solid var(--border)}
+.ws-dropdown-footer span{display:inline-flex;align-items:center;gap:5px}
+.ws-dropdown-footer svg{width:13px;height:13px;flex:0 0 auto}
 
 .top-search{flex:1;max-width:560px;height:38px;display:flex;align-items:center;gap:8px;min-width:0;
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
@@ -748,18 +782,6 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
   font:inherit;padding:0;transition:.16s}
 .icon-btn svg{width:16px;height:16px}
 .icon-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--surface-hover)}
-
-/* The one visible door between the two products. Everything else in ShipMail
-   that mentions ShipSync is a result that system produced. */
-.ss-launch{display:inline-flex;align-items:center;gap:7px;height:34px;flex:0 0 auto;text-decoration:none;
-  font-size:12.5px;font-weight:650;color:var(--text);background:var(--surface);
-  border:1px solid var(--border);border-radius:10px;padding:0 12px 0 5px;transition:.16s}
-.ss-launch .mark{width:24px;height:24px;border-radius:8px;background:var(--grad);display:grid;
-  place-items:center;flex:0 0 auto}
-.ss-launch .mark svg{width:13px;height:13px}
-.ss-launch .ext{width:12px;height:12px;color:var(--muted-2);transition:.16s}
-.ss-launch:hover{border-color:var(--accent);color:var(--accent);background:var(--surface-hover)}
-.ss-launch:hover .ext{color:var(--accent);transform:translate(1px,-1px)}
 
 .avatar{width:34px;height:34px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;
   background:var(--grad);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;
@@ -800,13 +822,13 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .mail-app .detail-panel{background:var(--bg)}
 .mail-app .ship-panel{border-left:1px solid var(--border);
   background:linear-gradient(180deg,var(--surface-2),var(--bg-2))}
-/* in a grid the column owns the width — the rail must not carry its own */
+/* in a grid the column owns the width: the rail must not carry its own */
 .mail-app .sidebar{width:auto;flex:0 0 auto;padding:14px 12px;gap:10px}
 
 /* ---------- draggable column dividers ----------
    The two verticals in the body are live: list | reading pane, and (when the
    verdict panel is docked) reading pane | verdict. A grip is a 9px strip
-   straddling the hairline — wide enough to grab, narrow enough that the list's
+   straddling the hairline: wide enough to grab, narrow enough that the list's
    own edge stays clickable. Dragging writes the same custom properties the grid
    already reads (--inbox-w / --ship-w), so no other rule has to know a drag
    happened, and the grip's left offset follows for free. */
@@ -822,7 +844,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 .col-grip:focus-visible{outline:none}
 .grip-list{left:calc(var(--rail-w) + var(--inbox-w))}
 .grip-ship{left:calc(100% - var(--ship-w))}
-/* the width read-out that follows the grip — only while it is in play */
+/* the width read-out that follows the grip, only while it is in play */
 .col-grip .col-badge{position:absolute;top:50%;left:calc(100% + 9px);transform:translateY(-50%);
   white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .14s;
   font:600 10.5px/1 var(--mono);letter-spacing:.3px;color:var(--text);
@@ -857,12 +879,12 @@ body.resizing .mail-body{user-select:none}
 .mbx-unread .ct{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 
 /* Rail rhythm: #mailboxes / #labels are plain wrapper divs, so the `.nav-sec{gap:10px}`
-   above only separates the wrappers — the rows INSIDE them had no gap at all, and the
+   above only separates the wrappers. The rows INSIDE them had no gap at all, and the
    43px cards fused into one tall block (probe measured gaps of [0,0,0,0,0,0]). Give the
    wrappers their own column gap so the rail breathes like the Workflows nav on the
    ShipSync rail, whose three .navlink cards are direct children of `.nav-sec{gap:8px}`.
    Collapsed (icon-rail) mode keeps its tighter 6px from the `.mail-app.collapsed`
-   block below — that selector is (1,2,0) and out-ranks this one. */
+   block below: that selector is (1,2,0) and out-ranks this one. */
 #mailboxes,#labels{display:flex;flex-direction:column;gap:8px}
 
 .note-src{font-size:10.3px;color:var(--muted-2);line-height:1.55;margin-top:9px}
@@ -872,7 +894,7 @@ body.resizing .mail-body{user-select:none}
 
 /* ---------- collapsed rail: square icon buttons, not a chain of beads --------
    Two things were wrong in rail mode. (1) #mailboxes / #labels are plain blocks
-   inside a centre-aligned flex column, so each shrank to its widest child —
+   inside a centre-aligned flex column, so each shrank to its widest child.
    every .navlink inherited that ~18px width and rendered as a narrow capsule
    floating in the middle of the rail. (2) Rows had no gap, so seven 38px pills
    with a 10px radius fused into a bead chain. Fixed here: the wrappers go
@@ -898,7 +920,7 @@ body.resizing .mail-body{user-select:none}
 .mail-app.collapsed .compose-btn svg{width:18px;height:18px}
 
 /* ---------- conversation list ---------- */
-/* 52px header, folder name left, count right — the filter selects squeezed in
+/* 52px header, folder name left, count right. The filter selects squeezed in
    between them share the same line rather than adding a second row. */
 .listbar{display:flex;align-items:center;gap:8px;height:52px;padding:0 16px;flex:0 0 auto;
   border-bottom:1px solid var(--border);background:var(--surface-2);position:relative;z-index:2}
@@ -1059,9 +1081,9 @@ body.resizing .mail-body{user-select:none}
 /* ---------- responsive ---------- */
 @media(max-width:1500px){.mail-app{--inbox-w:344px;--ship-w:356px}}
 @media(max-width:1300px){.mail-app{--rail-w:226px;--inbox-w:320px}}
-/* the top bar sheds its lowest-value items first: rail toggle, source chip, then the link label */
+/* the top bar sheds its lowest-value items first: rail toggle, then the source chip */
 @media(max-width:1240px){.topbar .conn-chip{display:none}}
-@media(max-width:1120px){.topbar .logo .ltag{display:none}.topbar .ss-launch span:not(.mark){display:none}}
+@media(max-width:1120px){.topbar .ws-trigger .ws-meta{display:none}}
 @media(max-width:1020px){.topbar .avatar{display:none}}
 @media(max-width:1180px){
   .mail-app .mail-body,.mail-app.focus .mail-body,
@@ -1082,6 +1104,146 @@ body.resizing .mail-body{user-select:none}
   .inbox-panel{display:none}
   .listbar .lb-filters{display:none}
 }
+/* ------------------------------------------------------- review console ----
+   The workspace's own console. It swaps the mail surface without leaving the
+   page: the rail keeps the mode switch, so the two views stay one click apart
+   and no second workspace has to be opened. */
+.rv-switch{display:flex;gap:6px;flex:0 0 auto}
+.rv-sw-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 8px;
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:10px;
+  font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:.16s}
+.rv-sw-btn svg{width:15px;height:15px;flex:0 0 auto}
+.rv-sw-btn:hover{border-color:var(--accent);color:var(--accent)}
+.rv-sw-btn.active{background:color-mix(in srgb,var(--accent) 18%,transparent);
+  border-color:color-mix(in srgb,var(--accent) 46%,transparent);color:var(--accent)}
+.app.collapsed .rv-switch{flex-direction:column}
+.app.collapsed .rv-sw-btn{padding:11px 0}
+.app.collapsed .rv-sw-btn span{display:none}
+
+/* Review mode keeps the rail and drops the three mail panels and the grips.
+   Listed with the focus and ship-on variants so the column count matches
+   whatever the mail view had set, at equal or higher specificity. */
+.mail-app.review-on .mail-body,
+.mail-app.review-on.ship-off .mail-body,
+.mail-app.review-on:not(.ship-off) .mail-body,
+.mail-app.review-on.focus .mail-body,
+.mail-app.review-on.focus:not(.ship-off) .mail-body{grid-template-columns:var(--rail-w) minmax(0,1fr)}
+.mail-app.review-on .inbox-panel,
+.mail-app.review-on .detail-panel,
+.mail-app.review-on .ship-panel,
+.mail-app.review-on .col-grip,
+.mail-app.review-on .sidebar .nav-sec,
+.mail-app.review-on .compose-btn{display:none}
+
+.review-body{min-height:0;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+.review-body[hidden]{display:none}
+@media(max-width:820px){
+  /* The rail is hidden here, so the review surface takes the whole width. */
+  .mail-app.review-on .mail-body,
+  .mail-app.review-on:not(.ship-off) .mail-body{grid-template-columns:1fr}
+}
+
+.rv-head{display:flex;align-items:center;gap:12px;padding:16px 20px 0;flex:0 0 auto}
+.rv-head .rv-mark{width:30px;height:30px;border-radius:10px;background:var(--grad-btn);
+  display:grid;place-items:center;flex:0 0 auto}
+.rv-head .rv-mark svg{width:16px;height:16px}
+.rv-head b{display:block;font-size:15px;letter-spacing:-.2px}
+.rv-head .rv-sub{font-size:11.5px;color:var(--muted-2)}
+.rv-head .rv-scope{margin-left:auto;display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--muted-2)}
+.rv-head .rv-scope code{font:11.5px/1 var(--mono);color:var(--accent);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:6px;padding:2px 6px}
+
+.rv-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;
+  padding:14px 20px 0;flex:0 0 auto}
+.rv-kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;
+  padding:11px 13px;display:flex;flex-direction:column;gap:2px}
+.rv-kpi .rv-kpi-n{font-size:20px;font-weight:750;letter-spacing:-.5px}
+.rv-kpi .rv-kpi-l{font-size:10.5px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted-2)}
+.rv-kpi.warn{border-color:color-mix(in srgb,var(--warn) 34%,transparent)}
+.rv-kpi.warn .rv-kpi-n{color:var(--warn)}
+.rv-kpi.bad{border-color:color-mix(in srgb,var(--bad) 34%,transparent)}
+.rv-kpi.bad .rv-kpi-n{color:var(--bad)}
+.rv-kpi.muted .rv-kpi-n{color:var(--muted-2)}
+@media(max-width:1180px){.rv-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.rv-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.rv-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 20px;flex:0 0 auto}
+.rv-sel{font:inherit;font-size:12.5px;color:var(--text);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:9px;padding:7px 9px}
+.rv-q{font:inherit;font-size:12.5px;color:var(--text);background:var(--surface-2);
+  border:1px solid var(--border);border-radius:9px;padding:7px 10px;min-width:230px}
+.rv-count{font-size:11.5px;color:var(--muted-2)}
+.rv-bulk{margin-left:auto;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rv-selinfo{font-size:11.5px;color:var(--muted)}
+
+.rv-scroll{flex:1;min-height:0;overflow:auto;padding:0 20px 20px}
+.rv-table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+.rv-table th{position:sticky;top:0;z-index:2;background:var(--surface-2);text-align:left;
+  font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted-2);
+  font-weight:650;padding:9px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.rv-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.rv-table tbody tr:hover{background:var(--surface-hover)}
+.rv-table tr.rv-flash{animation:rvflash 1.5s ease}
+@keyframes rvflash{0%{background:color-mix(in srgb,var(--accent) 26%,transparent)}
+  100%{background:transparent}}
+.rv-chk{width:34px}
+.rv-act{width:158px}
+.rv-subj{font:inherit;font-weight:600;color:var(--text);cursor:pointer;text-align:left;
+  background:none;border:0;padding:0}
+.rv-subj:hover{color:var(--accent);text-decoration:underline}
+.rv-snip{display:block;font-size:11px;color:var(--muted-2);margin-top:2px;max-width:440px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-mono{font:11.5px/1.5 var(--mono);color:var(--muted)}
+.rv-docs{font-size:11.5px;color:var(--muted)}
+.rv-miss{color:var(--warn)}
+.rv-seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;
+  background:var(--surface-2)}
+.rv-seg-btn{font:inherit;font-size:11px;font-weight:650;padding:5px 9px;border:0;
+  background:transparent;color:var(--muted);cursor:pointer;transition:.14s}
+.rv-seg-btn + .rv-seg-btn{border-left:1px solid var(--border)}
+.rv-seg-btn:hover{color:var(--accent);background:var(--surface-hover)}
+.rv-seg-btn.on{color:#fff;background:var(--grad-btn)}
+.rv-seg-btn.on[data-assignment="IGNORE"]{background:var(--muted-2)}
+.rv-act-cell{display:flex;gap:6px;align-items:center}
+.rv-mini{font:inherit;font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:8px;
+  border:1px solid var(--border);background:var(--surface-3);color:var(--muted);
+  cursor:pointer;transition:.16s;white-space:nowrap}
+.rv-mini:hover{border-color:var(--accent);color:var(--accent)}
+.rv-mini.done{color:var(--ok);border-color:var(--ok-bd);background:var(--ok-bg);cursor:default}
+.rv-loading,.rv-err{padding:44px 10px;text-align:center;color:var(--muted-2)}
+.rv-err{color:var(--bad)}
+
+.rv-modal{position:fixed;inset:0;z-index:80;background:rgba(4,8,16,.62);display:flex;
+  align-items:center;justify-content:center;padding:26px}
+.rv-modal[hidden]{display:none}
+.rv-card{width:min(720px,100%);max-height:88vh;overflow:auto;background:var(--surface-2);
+  border:1px solid var(--border-strong);border-radius:14px;padding:20px 22px;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.7)}
+.rv-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.rv-card-head b{font-size:15px}
+.rv-card-head .icon-btn{margin-left:auto}
+.rv-meta{font-size:12px;color:var(--muted);margin-bottom:14px}
+.rv-meta code{font:11.5px/1 var(--mono);color:var(--accent);background:var(--surface-3);
+  border:1px solid var(--border);border-radius:6px;padding:2px 6px}
+.rv-lbl{display:block;font-size:11px;letter-spacing:.7px;text-transform:uppercase;
+  color:var(--muted-2);font-weight:650;margin-bottom:12px}
+.rv-lbl input,.rv-lbl textarea{display:block;width:100%;margin-top:6px;font:13px/1.6 var(--mono);
+  color:var(--text);background:var(--surface-3);border:1px solid var(--border);border-radius:9px;
+  padding:9px 11px;box-sizing:border-box;resize:vertical}
+.rv-note{font-size:11.5px;line-height:1.7;color:var(--muted-2);background:var(--surface-3);
+  border:1px solid var(--border);border-radius:9px;padding:9px 11px}
+.rv-card-foot{display:flex;justify-content:flex-end;gap:9px;margin-top:16px}
+
+/* The rail carries the switch, so a hidden rail needs its own way back. */
+.rv-back{margin-left:auto}
+@media(min-width:821px){.rv-back{display:none}}
+@media(max-width:820px){.rv-head .rv-scope{display:none}}
+
+.rv-table tbody tr.rv-picked{background:color-mix(in srgb,var(--accent) 11%,transparent)}
+.rv-mini:disabled,.rv-seg-btn:disabled{opacity:.42;cursor:not-allowed}
+.rv-mini:disabled:hover{border-color:var(--border);color:var(--muted)}
+.rv-chk input{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
 </style>
 </head>
 
@@ -1090,19 +1252,51 @@ body.resizing .mail-body{user-select:none}
 
   <!-- ===================== TOP BAR ===================== -->
   <div class="topbar" data-page-node-id="gkA8GODfAiWgQkyaYGQX16">
-    <div class="logo" data-page-node-id="A1gi2MnApOkEBPO6D9u6RQ">
-      <span class="lmark" data-tip="ShipMail" data-tip-desc="The operations inbox for shipping-document mail — read it here, verify it in ShipSync" data-tip-pos="bottom" data-page-node-id="gfGIvgzBDenX4Cy1Pg6e1O">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="nwdl59dBBKB7Ndt4JnIWws">
-          <rect x="2.5" y="5" width="19" height="14" rx="2.5" data-page-node-id="gHgjHfIb7lpGtlrF1XIioT"/><path d="m3.5 7 8.5 6 8.5-6" data-page-node-id="fyIQRz7YoxjpJ3rPFZOXC4"/>
-        </svg>
-      </span>
-      <b data-page-node-id="DAcf3Pe4KfspzG81qkc46K">ShipMail</b>
+    <div class="ws-switcher" id="wsSwitcher">
+      <button class="ws-trigger" id="wsTrigger" type="button" aria-haspopup="true" aria-expanded="false" data-tip="Switch Workspace" data-tip-desc="Switch between Enterprise IDP Hub and ShipMail OAuth Desk" data-tip-pos="bottom">
+        <span class="ws-icon lmark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>
+          </svg>
+        </span>
+        <div class="ws-meta">
+          <span class="ws-name">ShipMail Desk</span>
+          <span class="ws-tag">OAuth Mode</span>
+        </div>
+        <svg class="ws-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="ws-dropdown" id="wsDropdown" hidden>
+        <div class="ws-dropdown-header">Workspaces &amp; Environments</div>
+        <a href="/ui/" class="ws-opt">
+          <div class="ws-opt-icon ent-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="ws-opt-text">
+            <div class="ws-opt-title">Enterprise IDP Hub <span class="ws-pill">EDI &amp; Influx</span></div>
+            <div class="ws-opt-desc">Multi-Mailbox Influx · Security Sandbox · 520 Dataset</div>
+          </div>
+        </a>
+        <a href="/shipmail/" class="ws-opt active">
+          <div class="ws-opt-icon mail-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+          </div>
+          <div class="ws-opt-text">
+            <div class="ws-opt-title">ShipMail Desk <span class="ws-pill live">OAuth 2.0</span></div>
+            <div class="ws-opt-desc">Personal Operator Inbox · Instant SI↔BL Classifier</div>
+          </div>
+          <svg class="ws-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </a>
+        <div class="ws-dropdown-footer">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Storage: <code>sdoc_oauth.db</code></span>
+          <span style="opacity:0.75">Physical Isolation</span>
+        </div>
+      </div>
     </div>
 
     <div class="top-search" id="topSearch" data-page-node-id="HHtQTKVodqtqZDQBoq48AX">
       <svg class="ts-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="LDJk0HCYzXUbm8cFtm11ec"><circle cx="11" cy="11" r="7" data-page-node-id="Af3e2iFkIgp8fy6ImxR6F6"/><path d="M21 21l-4.3-4.3" data-page-node-id="7zaahw2EXOYB80mVDRhLS9"/></svg>
       <input id="q" type="text" placeholder="Search mail" autocomplete="off" spellcheck="false" autocapitalize="off" aria-label="Search mail" data-page-node-id="tQwTsBCsMlm9zyXEn2v3fw">
-      <button class="ts-kbd" id="qPalette" type="button" data-tip="Commands &amp; search" data-tip-desc="Open the command palette — filters, mail actions and quick jumps" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Open the command palette" data-page-node-id="VDPL83RoSPMUk2apQTrRyx"><span class="ts-key" data-page-node-id="Ww4UqEBrmQYBzI8mzF0sN6">Ctrl K</span></button>
+      <button class="ts-kbd" id="qPalette" type="button" data-tip="Commands &amp; search" data-tip-desc="Open the command palette: filters, mail actions and quick jumps" data-tip-kbd="Ctrl|K" data-tip-pos="bottom" aria-label="Open the command palette" data-page-node-id="VDPL83RoSPMUk2apQTrRyx"><span class="ts-key" data-page-node-id="Ww4UqEBrmQYBzI8mzF0sN6">Ctrl K</span></button>
     </div>
 
     <div class="right" data-page-node-id="B3ZaKSteieWzZqmSofyQCS">
@@ -1113,15 +1307,10 @@ body.resizing .mail-body{user-select:none}
       <button class="icon-btn" id="themeBtn" type="button" data-tip="Toggle theme" data-tip-desc="Switch between dark and light mode" data-tip-kbd="T" data-tip-pos="bottom" aria-label="Toggle theme" data-page-node-id="BBJilOxBoJIMMaBD4IoUyC">
         <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="DNaU7UUJ7ebMX5ZI7oKimU"></svg>
       </button>
-      <a class="ss-launch" href="/ui/" target="_blank" rel="noopener" data-tip="Open ShipSync" data-tip-desc="The verification console — opens in a new tab, ShipMail stays right here" data-tip-pos="bottom" aria-label="Open ShipSync in a new tab" data-page-node-id="L03Tv9nXihPfQNdAzawHrs">
-        <span class="mark" data-page-node-id="DLQTAVECtkLCpT5auIo8js"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="Ts5PAPFXZDQ8OH5LJMwDux"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="12ZHWDY3thw8zP7DAlmBLl"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="SYqAu5kymBBTsjCPgAvUFd"/></svg></span>
-        <span data-page-node-id="XcN2Ike5RpX2lfvxDUPjcd">ShipSync</span>
-        <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="hFwFEYOajd69qAuqgFMAGq"><path d="M14 5h5v5M19 5l-8 8M18 14v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h5" data-page-node-id="moxBpDMHqGiqX1qnOASWJ9"/></svg>
-      </a>
       <button class="avatar" id="youBtn" type="button" aria-label="You" aria-haspopup="dialog" aria-expanded="false" data-page-node-id="Qp5tHo8vxmrsod7D1niBF6">O</button>
     </div>
 
-    <!-- the "You" card — who you are, plus the shipment in the open message -->
+    <!-- the "You" card: who you are, plus the shipment in the open message -->
     <div class="you-card" id="youCard" hidden role="dialog" aria-label="You" data-page-node-id="yEsfIPqw6GltfCBVEknUVE">
       <div class="you-head" data-page-node-id="oMfpkoLnUktkL58TX961H5">
         <span class="you-av" data-page-node-id="GAMYnBEUYydibMsdY66szX">O</span>
@@ -1136,7 +1325,22 @@ body.resizing .mail-body{user-select:none}
 
     <!-- RAIL -->
     <aside class="sidebar" data-page-node-id="cvps9qaMLezIx45Aa6Fu8k">
-      <button class="compose-btn" id="composeBtn" type="button" data-tip="Compose" data-tip-desc="Write a new message — Send files it in Sent, Save draft in Drafts" data-tip-kbd="C" data-tip-pos="right" data-page-node-id="5r6iNzDZNuwAs7QWB09SI4">
+      <!-- MODE SWITCH. The rail owns it, so Review is a view of this workspace
+           rather than a doorway into a second product. -->
+      <div class="rv-switch" id="rvSwitch" role="tablist" aria-label="Workspace mode">
+        <button class="rv-sw-btn active" id="rvModeMail" type="button" role="tab" aria-selected="true"
+                data-tip="Mail" data-tip-desc="Read the mailbox: conversation list, reading pane and the ShipSync verdict" data-tip-pos="right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>
+          <span>Mail</span>
+        </button>
+        <button class="rv-sw-btn" id="rvModeReview" type="button" role="tab" aria-selected="false"
+                data-tip="Review" data-tip-desc="Distribute the inbox, run ShipSync over a selection, and reply to the sender" data-tip-pos="right">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5H7.6a1.6 1.6 0 0 0-1.6 1.6v13.3a1.6 1.6 0 0 0 1.6 1.6h8.8a1.6 1.6 0 0 0 1.6-1.6V6.1a1.6 1.6 0 0 0-1.6-1.6H15"/><rect x="9" y="2.6" width="6" height="3.8" rx="1.2"/><path d="M8.9 13.6l2.1 2.1 4.1-4.4"/></svg>
+          <span>Review</span>
+        </button>
+      </div>
+
+      <button class="compose-btn" id="composeBtn" type="button" data-tip="Compose" data-tip-desc="Write a new message: Send files it in Sent, Save draft in Drafts" data-tip-kbd="C" data-tip-pos="right" data-page-node-id="5r6iNzDZNuwAs7QWB09SI4">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="QCZ2e9OU5HduGA4u5duwcM"><path d="M12 5v14M5 12h14" data-page-node-id="EwIcunlinf4DYHKwnkLibB"/></svg>
         <span data-page-node-id="cJPgUoG2gASGEkk8hveGdh">Compose</span>
       </button>
@@ -1199,16 +1403,88 @@ body.resizing .mail-body{user-select:none}
           <div class="nm" data-page-node-id="AfgHDvZaC2sW0R7YBYGRed">ShipSync</div>
           <div class="sb" id="sideSub" data-page-node-id="lJEjcXtxgMzURhOt3YkL95">Verdict · stored result</div>
         </div>
-        <span class="badge st" id="sideBadge" style="--c:var(--muted-2);margin-left:auto" data-page-node-id="BBihSOHSbnr7ZRuDpxl7hW">—</span>
+        <span class="badge st" id="sideBadge" style="--c:var(--muted-2);margin-left:auto" data-page-node-id="BBihSOHSbnr7ZRuDpxl7hW">-</span>
       </div>
       <div class="sp-body" id="side" data-page-node-id="1WLXnvN62xbwFqU42dujQ3"></div>
     </div>
+
+    <!-- REVIEW CONSOLE. Same workspace, same database, second surface. -->
+    <section class="review-body" id="reviewBody" hidden aria-label="Review console">
+      <div class="rv-head">
+        <span class="rv-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>
+        </span>
+        <div>
+          <b>Review Console</b>
+          <span class="rv-sub">Distribute, run and reply. Scoped to the mail this account synced.</span>
+        </div>
+        <span class="rv-scope">Storage <code>sdoc_oauth.db</code></span>
+        <button class="rv-mini rv-back" id="rvBack" type="button">Back to mail</button>
+      </div>
+
+      <div class="rv-kpis" id="rvKpis"></div>
+
+      <div class="rv-bar">
+        <select class="rv-sel" id="rvFStatus" aria-label="Filter by verdict"></select>
+        <select class="rv-sel" id="rvFCat" aria-label="Filter by category"></select>
+        <select class="rv-sel" id="rvFAssign" aria-label="Filter by assignment"></select>
+        <input class="rv-q" id="rvQ" type="text" placeholder="Search sender, subject or id" autocomplete="off" spellcheck="false">
+        <span class="rv-count" id="rvCount">0 messages</span>
+        <div class="rv-bulk">
+          <span class="rv-selinfo" id="rvSelInfo">Nothing selected</span>
+          <button class="rv-mini" id="rvSelAll" type="button">Select all</button>
+          <button class="rv-mini" id="rvSetAuto" type="button">Distribute: Auto</button>
+          <button class="rv-mini" id="rvSetHold" type="button">Hold</button>
+          <button class="rv-mini" id="rvSetIgnore" type="button">Ignore</button>
+          <button class="rv-mini" id="rvRun" type="button">Run ShipSync</button>
+          <button class="rv-mini" id="rvReply" type="button">Reply to sender</button>
+          <button class="rv-mini" id="rvRefresh" type="button">Refresh</button>
+        </div>
+      </div>
+
+      <div class="rv-scroll">
+        <table class="rv-table">
+          <thead>
+            <tr>
+              <th class="rv-chk"><input type="checkbox" id="rvChkAll" aria-label="Select every row"></th>
+              <th>Sender</th>
+              <th>Subject</th>
+              <th>Documents</th>
+              <th>Category</th>
+              <th>Verdict</th>
+              <th>Assignment</th>
+              <th class="rv-act">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rvRows"></tbody>
+        </table>
+        <div class="rv-loading" id="rvMsg"></div>
+      </div>
+    </section>
 
     <!-- the two live dividers: list | reading pane, reading pane | verdict -->
     <div class="col-grip grip-list" id="gripList" role="separator" aria-orientation="vertical"
          aria-label="Resize the conversation list" aria-controls="list" tabindex="0" data-page-node-id="Octye4DJQPHAVwxaL7qG30"><span class="col-badge" data-page-node-id="mA9q039tGJ4W85r0YWRCPx">Inbox</span></div>
     <div class="col-grip grip-ship" id="gripShip" role="separator" aria-orientation="vertical"
          aria-label="Resize the ShipSync verdict panel" aria-controls="side" tabindex="0" data-page-node-id="9c4XFxanMIDDq99MpnezG8"><span class="col-badge" data-page-node-id="TfDMUKAlvTF9WLV5wsAchT">Verdict</span></div>
+  </div>
+</div>
+
+<!-- ===================== RETURN TO SENDER ===================== -->
+<div class="rv-modal" id="rvModal" hidden role="dialog" aria-modal="true" aria-label="Return to sender">
+  <div class="rv-card" role="document">
+    <div class="rv-card-head">
+      <b>Return to sender</b>
+      <button class="icon-btn" id="rvModalX" type="button" aria-label="Close">&#10005;</button>
+    </div>
+    <div class="rv-meta" id="rvMeta"></div>
+    <label class="rv-lbl">Subject<input type="text" id="rvSubject" autocomplete="off"></label>
+    <label class="rv-lbl">Message<textarea id="rvBody" rows="12" spellcheck="false"></textarea></label>
+    <div class="rv-note" id="rvNote"></div>
+    <div class="rv-card-foot">
+      <button class="btn ghost" id="rvCancel" type="button">Cancel</button>
+      <button class="btn primary" id="rvSend" type="button">Dispatch reply</button>
+    </div>
   </div>
 </div>
 
@@ -1268,7 +1544,7 @@ body.resizing .mail-body{user-select:none}
       <button class="x" id="helpClose" type="button" aria-label="Close shortcuts" data-page-node-id="bT9azBrxRPftbBM6fa3CYc">&#10005;</button>
     </div>
     <div class="help-body" id="helpRows" data-page-node-id="QEVEUKMNNQPBcj5D7DEK3d"></div>
-    <div class="help-foot" data-page-node-id="HUScmg2R0Ub1GGduZgesli">Shortcuts work anywhere on this page, except while you are typing in a field. Processing is never automatic — the two ShipSync buttons in the verdict panel are the only things that ever run the pipeline.</div>
+    <div class="help-foot" data-page-node-id="HUScmg2R0Ub1GGduZgesli">Shortcuts work anywhere on this page, except while you are typing in a field. Processing is never automatic: the two ShipSync buttons in the verdict panel are the only things that ever run the pipeline.</div>
   </div>
 </div>
 
@@ -1279,21 +1555,23 @@ body.resizing .mail-body{user-select:none}
 
 <script>
 /* =========================================================================
-   ShipMail — the mail console of ShipSync.
+   ShipMail: the mail console of ShipSync.
 
-   Traffic rules (unchanged from the first version):
-     * Opening a mailbox reads LOCAL static JSON only.
-     * One extra read-only call, GET /api/emails, brings in the STORED verdicts
+   Traffic rules:
+     * Opening a mailbox reads the connected Gmail account only.
+     * One read-only call, GET /api/gmail/emails, brings in the STORED verdicts
        (status / category) so the rows, the KPIs and the filters can speak the
        same language as the Review Console. It never classifies, extracts or
-       verifies anything — and if the API is down the console degrades to a
-       plain mail client instead of breaking.
+       verifies anything, and if the API is down the page degrades to a plain
+       mail client instead of breaking.
      * Selecting a message renders from memory, or reads a STORED result
-       (GET /api/results/{id}). Reading never triggers processing.
+       (GET /api/gmail/results/{id}). Reading never triggers processing.
      * Processing happens ONLY on an explicit "Run ShipSync" / "Re-process"
        (button, or the documented R shortcut). No setInterval, no polling, no
        background refresh anywhere.
-   Attachment previews are fetched on click from GET /api/attachments/{path}.
+   Every call above is scoped to the OAuth database. The hub's 520-email corpus
+   is the Review Console's data and never appears in this workspace.
+   Attachment previews are fetched on click from GET /api/gmail/attachments/{path}.
    ========================================================================= */
 const API = "";                       /* same origin as the ShipSync backend */
 
@@ -1311,7 +1589,7 @@ const SHIFTK = IS_MAC ? "\u21e7" : "Shift";
 /* ---------------------------------------------------------------- icons */
 const I = {
   mail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>',
-  /* Inbox is a TRAY, not a second envelope — at 16px in the collapsed rail an
+  /* Inbox is a TRAY, not a second envelope: at 16px in the collapsed rail an
      envelope next to All Mail's envelope was indistinguishable. */
   inbox:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
   star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 16.5 7.1 18l.9-5.5-4-3.9 5.5-.8z"/></svg>',
@@ -1328,7 +1606,7 @@ const I = {
   rail:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M3 12h12M3 19h18"/></svg>',
   ship:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>',
   kbd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>',
-  /* "Clear filters" is not a delete — it was sharing the bin glyph with Trash. */
+  /* "Clear filters" is not a delete. It was sharing the bin glyph with Trash. */
   clear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.8 8.8l6.4 6.4M15.2 8.8l-6.4 6.4"/></svg>',
   refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M21 3.6V9h-5.4"/></svg>',
   clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
@@ -1375,7 +1653,7 @@ const state = {
   connected: false   /* true once a Gmail account is linked */
 };
 const attText = Object.create(null);
-const results = Object.create(null);      /* email_id → stored /api/process result */
+const results = Object.create(null);      /* email_id → stored /api/gmail/process result */
 
 /* ------------------------------------------------------------ helpers */
 const MAILBOXES = [
@@ -1488,11 +1766,11 @@ function allItems(){
 
 /* ------------------------------------------------------------ chrome bits */
 function stBadge(s){
-  if(!s) return '<span class="badge st" style="--c:var(--muted-2)" title="No stored ShipSync result yet">—</span>';
+  if(!s) return '<span class="badge st" style="--c:var(--muted-2)" title="No stored ShipSync result yet">-</span>';
   return '<span class="badge st '+s+'">'+esc(s.replace(/_/g," "))+'</span>';
 }
 function catBadge(c){
-  if(!c) return '<span class="badge cat" style="--c:var(--muted-2)">—</span>';
+  if(!c) return '<span class="badge cat" style="--c:var(--muted-2)">-</span>';
   return '<span class="badge cat" style="--c:var(--cat-'+esc(c)+')">'+esc(c.replace(/_/g," "))+'</span>';
 }
 function kindBadge(k){
@@ -1504,7 +1782,7 @@ function heatOf(st){
     OK:           ["", "var(--ok)",       "No mismatch in the scored fields"],
     MISMATCH:     ["bad", "var(--bad)",   "Fields differ between SI and BL"],
     NEEDS_REVIEW: ["warn","var(--warn)",  "Escalated to a human reviewer"],
-    SKIPPED:      ["", "var(--muted-2)",  "Not actionable — nothing to compare"]
+    SKIPPED:      ["", "var(--muted-2)",  "Not actionable: nothing to compare"]
   };
   const [k, tone, tip] = m[st] || ["", "var(--border-strong)", "Not processed by ShipSync yet"];
   return {k, tone, op: st ? (st === "SKIPPED" ? ".35" : ".85") : ".3", tip};
@@ -1526,7 +1804,7 @@ function toast(msg, act){
 }
 
 /* ------------------------------------------------------- the mail KPIs
-   ShipMail has NO KPI strip — that is the Review Console's dashboard, and this
+   ShipMail has NO KPI strip. That is the Review Console's dashboard, and this
    page is a mail client. The counts still matter, so they live where a mail
    client puts them: unread next to Inbox in the rail, the message count in the
    list header, and the verdict distribution in the command palette pins.
@@ -1569,6 +1847,8 @@ function renderList(){
         <span class="big">No mailbox connected</span>
         <span>ShipMail reads a real account. Connect Gmail to load your mail.</span>
         <button class="btn" data-tip="Connect Gmail" data-tip-desc="Start the Google sign-in flow" data-tip-pos="bottom" onclick="connectGmail()">Connect Gmail</button>
+        <div class="scope">This workspace stores <b>only your personal Gmail</b> (<code>sdoc_oauth.db</code>). The 520-document enterprise dataset, the carrier influx and the quarantine sandbox live in the Enterprise Hub; switch workspaces from the
+          top-left switcher.</div>
       </div>`;
       return;
     }
@@ -1639,7 +1919,7 @@ function renderEmptyDetail(){
   $("mail").innerHTML =
     '<div class="empty rich">' + I.inbox +
       '<span class="big">Select a message to inspect</span>' +
-      '<span class="hint-lead">Read the mail, then check the ShipSync verdict in the side panel — every SI ↔ BL pair is extracted, compared and signed off by a human.</span>' +
+      '<span class="hint-lead">Read the mail, then check the ShipSync verdict in the side panel: every SI ↔ BL pair is extracted, compared and signed off by a human.</span>' +
       '<div class="empty-hints">' +
         hintRow("Ctrl K","Search mail &amp; commands") +
         hintRow("C","Compose a message") +
@@ -1649,7 +1929,7 @@ function renderEmptyDetail(){
       '</div>' +
       '<div class="rec-wrap"><div class="rec-title">Recent</div>' + recHtml + '</div>' +
     '</div>';
-  /* The reading pane and the verdict panel are two halves of one view — when
+  /* The reading pane and the verdict panel are two halves of one view: when
      the left half empties (folder switch, archive, delete, filter that hides
      the open mail) the right half must not keep the previous verdict. */
   renderSideEmpty();
@@ -1667,7 +1947,7 @@ function renderMail(){
     const ext = (name.split(".").pop() || "").toLowerCase();
     const textish = ["txt","csv","md","json","log"].includes(ext);
     const path = a.path || "";
-    const url = path ? API + "/api/attachments/" + esc(path) : "";
+    const url = path ? API + "/api/gmail/attachments/" + esc(path) : "";
     return `<div class="att" data-path="${esc(path || name)}" data-text="${textish || !!attText[a.filename]}" data-name="${esc(name)}">
       <div class="ah" onclick="toggleAtt(this)"><span class="ic">${I.file}</span>
         <div style="flex:1;min-width:0"><div class="nm">${esc(name)}</div><div class="ty">${esc(a.kind || ext || "file")}${a.size_kb ? " · " + esc(a.size_kb) + " KB" : ""}</div></div>
@@ -1691,16 +1971,15 @@ function renderMail(){
   $("mail").innerHTML = `<div class="fade">
     <div class="mailbar">
       <button class="mic${it.starred ? " on" : ""}" id="actStar" type="button" data-tip="${it.starred ? "Remove star" : "Star this message"}" data-tip-desc="Pin it to the Starred mailbox" data-tip-kbd="S" data-tip-pos="bottom" aria-label="Star" onclick="toggleStar()">${it.starred ? I.starFill : I.star}</button>
-      <button class="mic" type="button" data-tip="Archive" data-tip-desc="Take it out of the inbox — it stays in All Mail" data-tip-kbd="E" data-tip-pos="bottom" aria-label="Archive" onclick="moveMail('archive')">${I.archive}</button>
+      <button class="mic" type="button" data-tip="Archive" data-tip-desc="Take it out of the inbox: it stays in All Mail" data-tip-kbd="E" data-tip-pos="bottom" aria-label="Archive" onclick="moveMail('archive')">${I.archive}</button>
       <button class="mic" type="button" data-tip="Report spam" data-tip-desc="Move it to Spam and out of the inbox" data-tip-kbd="!" data-tip-pos="bottom" aria-label="Report spam" onclick="moveMail('spam')">${I.spam}</button>
-      <button class="mic" type="button" data-tip="Delete" data-tip-desc="Move it to Trash — recoverable from there" data-tip-kbd="X" data-tip-pos="bottom" aria-label="Delete" onclick="moveMail('trash')">${I.trash}</button>
+      <button class="mic" type="button" data-tip="Delete" data-tip-desc="Move it to Trash: recoverable from there" data-tip-kbd="X" data-tip-pos="bottom" aria-label="Delete" onclick="moveMail('trash')">${I.trash}</button>
       <span class="msep"></span>
       ${isOut ? "" : `<button class="mic" type="button" data-tip="Reply" data-tip-desc="Open the composer prefilled with a reply to this sender" data-tip-pos="bottom" aria-label="Reply" onclick="openComposer('reply')">${I.reply}</button>`}
-      <button class="mic" type="button" data-tip="Open in the Review Console" data-tip-desc="Jump to ShipSync and work this email there" data-tip-kbd="G" data-tip-pos="bottom" aria-label="Open in the Review Console" onclick="openDashboard()">${I.ext}</button>
       <span class="grow"></span>
       <button class="mic" id="shipBtn" type="button" data-tip="ShipSync verdict panel" data-tip-desc="Show or hide the ShipSync side panel for this message" data-tip-kbd="V" data-tip-pos="bottom" aria-label="Toggle the ShipSync panel"><span class="ship-ico"></span></button>
       <button class="mic" id="focusBtn" type="button" data-tip="Focus mode" data-tip-desc="Hide the inbox and give the message the full width" data-tip-kbd="F" data-tip-pos="bottom" aria-label="Toggle focus mode"><span class="focus-ico"></span></button>
-      ${it.shipment ? `<span class="chip mono" data-tip="Shipment" data-tip-desc="The shipment this message belongs to — open it in ShipSync to compare its documents" data-tip-pos="bottom">${esc(it.shipment)}</span>` : ""}
+      ${it.shipment ? `<span class="chip mono" data-tip="Shipment" data-tip-desc="The shipment this message belongs to: open it in ShipSync to compare its documents" data-tip-pos="bottom">${esc(it.shipment)}</span>` : ""}
       <span class="chip st" style="--c:${chipTone}" data-tip="ShipSync verdict" data-tip-desc="${esc(verdictLine(it))}" data-tip-pos="bottom">${esc(chipTxt)}</span>
     </div>
     <div class="wrap">
@@ -1726,10 +2005,10 @@ function renderMail(){
 }
 function verdictLine(it){
   if(it.kind === "out") return it.draft ? "This draft has never been sent." : "Sent from this console and recorded locally.";
-  if(!it.status) return "This email has not been through ShipSync yet — open the verdict panel to run it.";
-  if(it.status === "MISMATCH") return "fields differ between the SI and the BL — do not release without review.";
-  if(it.status === "NEEDS_REVIEW") return "escalated to a human reviewer — the machine is not confident.";
-  if(it.status === "SKIPPED") return "not actionable — nothing comparable in this message.";
+  if(!it.status) return "This email has not been through ShipSync yet: open the verdict panel to run it.";
+  if(it.status === "MISMATCH") return "fields differ between the SI and the BL: do not release without review.";
+  if(it.status === "NEEDS_REVIEW") return "escalated to a human reviewer: the machine is not confident.";
+  if(it.status === "SKIPPED") return "not actionable: nothing comparable in this message.";
   return "no mismatch detected in the scored fields.";
 }
 async function flashSaved(el){
@@ -1746,13 +2025,13 @@ async function toggleAtt(head){
   if(!prev) return;
   if(card.dataset.open === "1"){ card.dataset.open = "0"; prev.innerHTML = ""; return; }
   card.dataset.open = "1";
-  if(card.dataset.text !== "true"){ prev.innerHTML = '<div class="loading">No inline preview — use Open or Download.</div>'; return; }
+  if(card.dataset.text !== "true"){ prev.innerHTML = '<div class="loading">No inline preview: use Open or Download.</div>'; return; }
   prev.innerHTML = '<div class="loading">Loading preview…</div>';
   const key = card.dataset.path;
   try{
     let txt = attText[key];
     if(txt === undefined){
-      const r = await fetch(API + "/api/attachments/" + key);
+      const r = await fetch(API + "/api/gmail/attachments/" + key);
       if(!r.ok) throw new Error("HTTP " + r.status);
       txt = await r.text();
       attText[key] = txt;
@@ -1791,7 +2070,7 @@ function toggleStar(){
   f.star = f.star ? 0 : 1; saveFlags();
   const e = state.emails.find(x => x.id === it.id);
   if(e) e.starred = !!f.star;
-  toast(f.star ? "Starred — find it under Starred." : "Star removed.");
+  toast(f.star ? "Starred: find it under Starred." : "Star removed.");
   state.lastAct = {type:"star", id:it.id, prev:!f.star};
   renderRail(); renderList(); renderMail();
 }
@@ -1801,7 +2080,7 @@ function moveMail(where){
   const prev = f.box || "";
   f.box = prev === where ? "" : where;
   saveFlags();
-  const label = where === "archive" ? "Archived — still in All Mail." : where === "spam" ? "Moved to Spam." : "Moved to Trash.";
+  const label = where === "archive" ? "Archived: still in All Mail." : where === "spam" ? "Moved to Spam." : "Moved to Trash.";
   state.lastAct = {type:"move", id:it.id, prev};
   toast(label, {label:"Undo", run:undoLast});
   const next = visibleItems().find(x => x.id !== it.id);
@@ -1843,7 +2122,7 @@ function setSideBadge(st){
   if(!b) return;
   b.className = "badge st " + (st || "");
   b.style.setProperty("--c", st ? `var(--${st === "OK" ? "ok" : st === "MISMATCH" ? "bad" : st === "NEEDS_REVIEW" ? "warn" : "muted-2"})` : "var(--muted-2)");
-  b.textContent = st ? st.replace(/_/g," ") : "—";
+  b.textContent = st ? st.replace(/_/g," ") : "-";
   b.style.marginLeft = "auto";
 }
 function sideSub(t){ const s = $("sideSub"); if(s) s.textContent = t; }
@@ -1867,8 +2146,8 @@ async function loadVerdict(id){
   if(results[id]){ if(state.activeId === id) renderVerdict(results[id]); return; }
   if(isShipOpen()) showLoading("Reading the stored ShipSync result…");
   try{
-    const r = await fetch(API + "/api/results/" + encodeURIComponent(id));
-    /* The user may have opened another mail — or cleared the selection — while
+    const r = await fetch(API + "/api/gmail/results/" + encodeURIComponent(id));
+    /* The user may have opened another mail (or cleared the selection) while
        this read was in flight. Never paint a verdict over a newer view. */
     if(state.activeId !== id) return;
     if(r.ok){ results[id] = await r.json(); if(state.activeId !== id) return; renderVerdict(results[id]); return; }
@@ -1884,7 +2163,7 @@ function renderSideEmpty(){
   $("side").innerHTML =
     '<div class="empty rich">' + I.ship +
       '<span class="big">Nothing to verify yet</span>' +
-      '<span class="hint-lead">Open a message in the inbox and the stored ShipSync verdict appears here — the seven compared fields, the documents on file, and the actions still owed to the customer.</span>' +
+      '<span class="hint-lead">Open a message in the inbox and the stored ShipSync verdict appears here: the seven compared fields, the documents on file, and the actions still owed to the customer.</span>' +
       '<div class="empty-hints">' +
         hintRow("V","Show / hide this panel") +
         hintRow("R","Run ShipSync on the open mail") +
@@ -1899,18 +2178,18 @@ function renderIdle(it){
   setSideBadge(null); sideSub("Not processed yet");
   $("side").innerHTML = `
     <section><h3>${I.ship}Shipment</h3>
-      <div class="sp-id"><span class="id">${esc(it.shipment || "—")}</span>
+      <div class="sp-id"><span class="id">${esc(it.shipment || "-")}</span>
         <span class="badge st" style="--c:var(--muted-2)">NOT PROCESSED</span></div>
       <div class="sp-table"><table class="sp-table">
         <tr><td>From</td><td class="val">${esc(it.fromName)}</td></tr>
         <tr><td>Attachments</td><td class="val">${(e.attachments||[]).length || "none"}</td></tr>
-        <tr><td>Documents</td><td class="val">${esc(it.kinds.join(" + ") || "—")}</td></tr>
+        <tr><td>Documents</td><td class="val">${esc(it.kinds.join(" + ") || "-")}</td></tr>
       </table></div>
     </section>
     <section><h3>Action</h3>
-      <div class="sp-note">This email has not been through ShipSync yet. Processing runs once and the result is stored for the Dashboard.</div>
+      <div class="sp-note">This email has not been through ShipSync yet. Processing runs once and the stored result is reused from then on.</div>
       <div class="sp-btns"><button class="btn primary" type="button" onclick="runShipSync(false)">Run ShipSync</button></div>
-      <div class="sp-src" style="margin-top:10px">Nothing is processed automatically — neither opening this message nor reading it ever runs the pipeline.</div>
+      <div class="sp-src" style="margin-top:10px">Nothing is processed automatically: neither opening this message nor reading it ever runs the pipeline.</div>
     </section>`;
   if(youCardOpen()) renderYou();
 }
@@ -1923,11 +2202,11 @@ function renderVerdict(r){
   sideSub(r.cached ? "Verdict · stored result" : "Verdict · fresh run");
   $("side").innerHTML = `
     <section><h3>${I.ship}Shipment</h3>
-      <div class="sp-id"><span class="id">${esc(r.shipment_id || (it && it.shipment) || "—")}</span>${stBadge(st)}</div>
+      <div class="sp-id"><span class="id">${esc(r.shipment_id || (it && it.shipment) || "-")}</span>${stBadge(st)}</div>
       <table class="sp-table">
         <tr><td>Doc type</td><td class="val">${esc(docTypes(r))}</td></tr>
-        <tr><td>Category</td><td class="val">${esc(r.category || "—")}</td></tr>
-        <tr><td>Action</td><td class="val">${esc(r.suggested_action || "—")}</td></tr>
+        <tr><td>Category</td><td class="val">${esc(r.category || "-")}</td></tr>
+        <tr><td>Action</td><td class="val">${esc(r.suggested_action || "-")}</td></tr>
       </table>
     </section>
     <section><h3>${I.file}Documents</h3>${docs(r)}</section>
@@ -1935,7 +2214,7 @@ function renderVerdict(r){
     <section><h3>Verification</h3>${verify(r, v, missing)}</section>
     <section><h3>Required actions</h3>${actions(r, missing)}</section>
     <section class="sp-src-wrap"><div class="sp-src">
-      ${esc(r.cached ? "Stored result — reused, the pipeline was NOT re-run." : "Freshly processed by the ShipSync core.")}
+      ${esc(r.cached ? "Stored result, reused, so the pipeline was NOT re-run." : "Freshly processed by the ShipSync core.")}
       <br>Processing time <b>${esc(r.cached ? "0 ms (cached)" : Math.round(r.processing_ms||0) + " ms")}</b>
       · run <b>#${esc(r.attempts || 1)}</b>
       ${r.processed_at ? '<br>Stored at <b>'+esc(String(r.processed_at).replace("T"," ").slice(0,19))+'</b>' : ""}
@@ -1962,7 +2241,7 @@ function fields(r){
   const entries = Object.entries(r.extracted_fields || {});
   if(!entries.length) return '<div style="font-size:12px;color:var(--muted-2)">No comparable fields yet.</div>';
   return '<table class="sp-table">' + entries.map(([k, val]) =>
-    `<tr><td>${esc(fieldLabel(k))}</td><td class="val">SI: ${esc(val.si ?? "—")}<br>BL: ${esc(val.bl ?? "—")}</td></tr>`).join("") + '</table>';
+    `<tr><td>${esc(fieldLabel(k))}</td><td class="val">SI: ${esc(val.si ?? "-")}<br>BL: ${esc(val.bl ?? "-")}</td></tr>`).join("") + '</table>';
 }
 const FIELD_LABELS = {
   port_of_loading:"Port of Loading", port_of_discharge:"Port of Discharge",
@@ -1978,8 +2257,8 @@ function verify(r, v, missing){
     return '<div style="font-size:12px;color:var(--muted-2)">No SI/BL pair to verify.</div>';
   }
   const bad = (r.defect_fields || []).length, poss = (r.possible_fields || []).length;
-  const head = bad ? '<div class="sp-note bad">'+bad+' field(s) mismatch — do not release the BL.</div>'
-    : poss ? '<div class="sp-note">⚠ '+poss+' field(s) possible match (OCR noise) — review required.</div>'
+  const head = bad ? '<div class="sp-note bad">'+bad+' field(s) mismatch: do not release the BL.</div>'
+    : poss ? '<div class="sp-note">⚠ '+poss+' field(s) possible match (OCR noise): review required.</div>'
     : (r.status === "OK" ? '<div class="sp-note ok">All scored fields match.</div>' : "");
   return head + '<table class="sp-table">' + rows.map(fr =>
     `<tr><td>${esc(fieldLabel(fr.field))}</td>
@@ -1995,8 +2274,6 @@ function actions(r, missing){
     out.push('<button class="btn primary" type="button" onclick="requestDoc(\''+esc(doc)+'\')">Request '+esc(doc)+'</button>');
     out.push('<button class="btn" type="button" onclick="openComposer(\'request-'+(doc === "BL" ? "bl" : "si")+'\')">Draft the request</button>');
   }
-  if(r.status === "MISMATCH") out.push('<button class="btn" type="button" onclick="openDashboard()">Open mismatch in Dashboard</button>');
-  if(r.status === "NEEDS_REVIEW") out.push('<button class="btn" type="button" onclick="openDashboard()">Open review in Dashboard</button>');
   out.push('<button class="btn" type="button" onclick="runShipSync(true)">Re-process (explicit)</button>');
   return '<div class="sp-btns">' + out.join("") + '</div>';
 }
@@ -2007,7 +2284,7 @@ async function attachmentsFor(e){
   for(const a of (e.attachments || [])){
     const key = a.path || a.filename;
     if(attText[key] === undefined && a.path){
-      attText[key] = await fetch(API + "/api/attachments/" + key).then(r => r.ok ? r.text() : "").catch(() => "");
+      attText[key] = await fetch(API + "/api/gmail/attachments/" + key).then(r => r.ok ? r.text() : "").catch(() => "");
     }
     out.push({filename:a.filename, content_text:attText[key] || ""});
   }
@@ -2020,7 +2297,7 @@ async function runShipSync(force){
   setShip(true, true);
   showLoading(force ? "Re-processing with ShipSync…" : "ShipSync is processing this email…");
   try{
-    const res = await fetch(API + "/api/process", {
+    const res = await fetch(API + "/api/gmail/process", {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         email_id:e.id, message_id:e.message_id, thread_id:e.thread_id,
@@ -2035,7 +2312,7 @@ async function runShipSync(force){
     renderVerdict(data);
     enrichStatus(e.id, data.status, data.category);
     renderKPIs(); renderRail(); renderList();
-    toast(data.cached ? "Reused the stored result — nothing re-processed." : "ShipSync processed this email.");
+    toast(data.cached ? "Reused the stored result: nothing re-processed." : "ShipSync processed this email.");
   }catch(err){
     setSideBadge(null); sideSub("Request failed");
     $("side").innerHTML = '<div class="empty">'+I.info+
@@ -2066,13 +2343,12 @@ async function requestDoc(doc){
     e.attachments.push({filename:data.attachment.filename, path:null, size_kb:2, kind:doc});
     attText[data.attachment.filename] = data.attachment.content_text;
     renderMail();
-    toast(doc + " received — re-processing.");
+    toast(doc + " received, re-processing.");
     await runShipSync(true);
   }catch(err){
     $("side").innerHTML = '<div class="empty">'+I.info+'<span class="big">Request failed</span><span>'+esc(err.message||"")+'</span></div>';
   }
 }
-function openDashboard(){ window.open("/ui/", "_blank", "noopener"); }
 
 /* ---------------------------------------------------------------- composer */
 let cmpPreset = "blank";
@@ -2086,13 +2362,13 @@ function openComposer(preset){
   const T = {
     blank: { title:"New message", to:"", subj:"", body:"" },
     reply: { title:"Reply", to, subj:(it && !/^re:/i.test(it.subject) ? "RE: " + it.subject : (it ? it.subject : "")),
-             body:"\n\n———\nOn " + (it ? it.received : "") + ", " + who + " wrote:\n" + String(e.body || "").split("\n").map(l => "> " + l).join("\n") },
-    "request-si": { title:"Request the SI", to, subj:(ship ? "[ShipSync] Missing SI — " + ship : "[ShipSync] Missing SI"),
+             body:"\n\nOn " + (it ? it.received : "") + ", " + who + " wrote:\n" + String(e.body || "").split("\n").map(l => "> " + l).join("\n") },
+    "request-si": { title:"Request the SI", to, subj:(ship ? "[ShipSync] Missing SI: " + ship : "[ShipSync] Missing SI"),
              body:"Hi " + (e.from_name || "there") + ",\n\nWe cannot verify the shipment" + (ship ? " " + ship : "") + " yet because the Shipping Instruction (SI) has not arrived.\nCould you send the SI as an attachment in this thread?\n\nThanks,\nShipSync operations" },
-    "request-bl": { title:"Request the BL", to, subj:(ship ? "[ShipSync] Missing BL — " + ship : "[ShipSync] Missing BL"),
-             body:"Hi " + (e.from_name || "there") + ",\n\nWe only hold the Shipping Instruction for" + (ship ? " " + ship : " this shipment") + " — the draft Bill of Lading is still missing.\nCould you attach the draft BL so we can compare the seven fields?\n\nThanks,\nShipSync operations" },
-    chase: { title:"Chase the customer", to, subj:(ship ? "[ShipSync] Awaiting your confirmation — " + ship : "[ShipSync] Awaiting your confirmation"),
-             body:"Hi " + (e.from_name || "there") + ",\n\nJust following up on the documents" + (ship ? " for " + ship : "") + " — we are still missing a reply.\nPlease confirm the details so we can clear the shipment.\n\nThanks,\nShipSync operations" }
+    "request-bl": { title:"Request the BL", to, subj:(ship ? "[ShipSync] Missing BL: " + ship : "[ShipSync] Missing BL"),
+             body:"Hi " + (e.from_name || "there") + ",\n\nWe only hold the Shipping Instruction for" + (ship ? " " + ship : " this shipment") + "; the draft Bill of Lading is still missing.\nCould you attach the draft BL so we can compare the seven fields?\n\nThanks,\nShipSync operations" },
+    chase: { title:"Chase the customer", to, subj:(ship ? "[ShipSync] Awaiting your confirmation: " + ship : "[ShipSync] Awaiting your confirmation"),
+             body:"Hi " + (e.from_name || "there") + ",\n\nJust following up on the documents" + (ship ? " for " + ship : "") + ": we are still missing a reply.\nPlease confirm the details so we can clear the shipment.\n\nThanks,\nShipSync operations" }
   }[cmpPreset] || { title:"New message", to:"", subj:"", body:"" };
   $("cmpTitle").textContent = T.title;
   $("cmpTo").value = T.to || "";
@@ -2109,7 +2385,7 @@ function closeComposer(){
 }
 function saveComposed(kind){
   const to = $("cmpTo").value.trim(), subj = $("cmpSubj").value.trim(), body = $("cmpBody").value;
-  if(!subj && !body.trim()){ toast("Nothing to save — the message is empty."); return; }
+  if(!subj && !body.trim()){ toast("Nothing to save: the message is empty."); return; }
   const it = activeItem();
   const rec = {
     id:"out_" + Date.now().toString(36), to, subject:subj || "(no subject)", body,
@@ -2152,7 +2428,7 @@ function reloadMail(){ boot(true); }
 
 /* ------------------------------------------------------------ mail source
    Real Gmail only. Nothing is shown until an account is connected: the console
-   reads the linked mailbox through GET /api/gmail/messages — a read-only list,
+   reads the linked mailbox through GET /api/gmail/messages, a read-only list,
    never a poll. Connecting Gmail triggers one initial sync; the Sync Mail
    button is the manual refresh. */
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -2187,7 +2463,7 @@ async function loadRealMailbox(){
       body: m.body || "",
       snippet: m.snippet || "",
       received: fmtWhen(m.processed_at),
-      attachments: (m.attachments || []).map(n => ({filename: n, name: n, kind: docKind(n)})),
+      attachments: (m.attachments || []).map((n, i) => ({filename: n, name: n, kind: docKind(n), path: (m.attachment_paths || [])[i] || ""})),
       shipment_id: m.shipment_id || "",
       starred: false, unread: false
     }));
@@ -2198,7 +2474,7 @@ async function loadRealMailbox(){
     state.ships = {};
     return true;
   }catch(e){
-    toast("Could not load the real Gmail mailbox — " + (e && e.message ? e.message : ""));
+    toast("Could not load the real Gmail mailbox: " + (e && e.message ? e.message : ""));
     state.emails = [];
     return false;
   }
@@ -2221,12 +2497,12 @@ async function refreshGmailStatus(){
     $("gmailSync").hidden = !gmailOn;
     $("gmailConnect").hidden = gmailOn;
     $("gmailNote").textContent = gmailOn
-      ? "Gmail is linked — Sync Mail pulls new mail."
+      ? "Gmail is linked: Sync Mail pulls new mail."
       : st.credentials_configured
-        ? "OAuth client configured — finish the connection."
+        ? "OAuth client configured: finish the connection."
         : "Add a Google OAuth client to enable Gmail.";
   }catch(_){
-    $("gmailNote").textContent = "Gmail status unavailable — the inbox stays empty until an account is connected.";
+    $("gmailNote").textContent = "Gmail status unavailable: the inbox stays empty until an account is connected.";
     state.account = null;
     state.connected = false;
     const chip = $("connChip"), txt = $("connTxt");
@@ -2242,7 +2518,7 @@ async function connectGmail(){
     if(!r.ok){ toast("Gmail is not configured on the server."); return; }
     const { authorization_url } = await r.json();
     window.open(authorization_url, "shipmail-gmail", "width=480,height=640");
-    toast("Complete Google sign-in — your inbox will sync automatically.");
+    toast("Complete Google sign-in: your inbox will sync automatically.");
   }catch(_){ toast("Could not start the Gmail connection."); }
 }
 let _syncing = false;
@@ -2279,10 +2555,10 @@ async function initialGmailSync(){
     const d = await r.json();
     await loadRealMailbox();
     renderKPIs(); renderRail(); renderList(); renderEmptyDetail();
-    toast(`Gmail connected — ${d.processed} processed, ${d.skipped} skipped.`);
+    toast(`Gmail connected: ${d.processed} processed, ${d.skipped} skipped.`);
   }catch(_){
     /* OAuth succeeded, so keep the connection; only the initial sync failed. */
-    toast("Gmail connected, but the initial sync failed — use Sync Mail to retry.");
+    toast("Gmail connected, but the initial sync failed: use Sync Mail to retry.");
   }finally{
     _syncing = false;
     await refreshGmailStatus();   /* chip -> "Gmail linked" */
@@ -2302,10 +2578,10 @@ async function boot(refresh){
   sourceRowHighlight();
 }
 /* One read-only call, purely so rows / KPIs / filters can show the STORED
-   verdict. Failure is not fatal — the console just shows mail without verdicts. */
+   verdict. Failure is not fatal: the console just shows mail without verdicts. */
 async function enrich(){
   try{
-    const r = await fetch(API + "/api/emails?limit=500");
+    const r = await fetch(API + "/api/gmail/emails?limit=500");
     if(!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
     state.by = {}; (d.items || []).forEach(x => { state.by[x.email_id] = x; });
@@ -2319,8 +2595,8 @@ async function enrich(){
 function curTheme(){ return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
 function applyTheme(t){
   document.documentElement.setAttribute("data-theme", t);
-  /* Write the shared key too, so /ui/ (Review Console, Shipments, Ops) — which
-     only knows `sdoc-theme` — lands in the same mode. A same-value setItem fires
+  /* Write the shared key too, so /ui/ (Review Console, Shipments, Ops), which
+     only knows `sdoc-theme`, lands in the same mode. A same-value setItem fires
      no storage event, so the two listeners can never ping-pong. */
   try{ localStorage.setItem("shipmail-theme", t); localStorage.setItem("sdoc-theme", t); }catch(_){}
   const lbl = $("themeLbl"); if(lbl) lbl.textContent = t === "dark" ? "Dark mode" : "Light mode";
@@ -2366,7 +2642,7 @@ $("collapseBtn").addEventListener("click", toggleRail);
    verdict grip grows leftwards) and how much room the other columns must keep.
 
    A width is never allowed to eat the reading pane below 320px, which is what
-   `bounds()` is for — it also re-runs on resize, so a width saved on a 1920px
+   `bounds()` is for. It also re-runs on resize, so a width saved on a 1920px
    screen cannot wreck the layout on a 1200px one. Double-click (or Enter on a
    focused grip) restores the default. */
 (function(){
@@ -2475,7 +2751,7 @@ $("collapseBtn").addEventListener("click", toggleRail);
   const NARROW_W = 320;     /* the ≤1300px viewport default is exactly 320 */
   function sync(){
     const w = panel.clientWidth;
-    if(!w) return;          /* 0 = hidden (focus mode, ≤820px) — leave it alone */
+    if(!w) return;          /* 0 = hidden (focus mode, ≤820px): leave it alone */
     appEl.classList.toggle("narrow-list", w < NARROW_W);
   }
   sync();
@@ -2495,13 +2771,13 @@ function renderYou(){
   if(!body) return;
   /* The card always has a subject. With a message open it is that message;
      with nothing open it falls back to the newest conversation in the current
-     list — the row at the top, the one the user would click first — so
+     list (the row at the top, the one the user would click first), so
      pointing at "You" is never a dead end that shows a sentence where the
      shipment and the action block belong. The hint below survives only for a
      genuinely empty view (a filter with no matches, an empty mailbox). */
   const it = activeItem() || visibleItems()[0] || null;
   if(!it){
-    body.innerHTML = '<div class="you-empty">No message is open. Pick one in the inbox and its shipment — status, sender and documents — turns up here.</div>';
+    body.innerHTML = '<div class="you-empty">No message is open. Pick one in the inbox and its shipment (status, sender and documents) turns up here.</div>';
     return;
   }
   const e = it.raw || {};
@@ -2510,18 +2786,17 @@ function renderYou(){
     : '<span class="badge st" style="--c:var(--muted-2)">NOT PROCESSED</span>';
   body.innerHTML =
     '<section><h3>' + I.ship + 'Shipment</h3>' +
-      '<div class="sp-id"><span class="id">' + esc(it.shipment || "—") + '</span>' + badge + '</div>' +
+      '<div class="sp-id"><span class="id">' + esc(it.shipment || "-") + '</span>' + badge + '</div>' +
       '<table class="sp-table">' +
         '<tr><td>From</td><td class="val">' + esc(it.fromName) + '</td></tr>' +
         '<tr><td>Attachments</td><td class="val">' + ((e.attachments || []).length || "none") + '</td></tr>' +
-        '<tr><td>Documents</td><td class="val">' + esc((it.kinds || []).join(" + ") || "—") + '</td></tr>' +
+        '<tr><td>Documents</td><td class="val">' + esc((it.kinds || []).join(" + ") || "-") + '</td></tr>' +
       '</table>' +
     '</section>' +
     '<section><h3>Action</h3>' +
       (processed
-        ? '<div class="sp-note ok">ShipSync already holds a verdict for this message.</div>' +
-          '<div class="sp-btns"><button class="btn" type="button" onclick="openDashboard()">Open in the Review Console</button></div>'
-        : '<div class="sp-note">This email has not been through ShipSync yet. Processing runs once and the result is stored for the Dashboard.</div>' +
+        ? '<div class="sp-note ok">ShipSync already holds a verdict for this message.</div>'
+        : '<div class="sp-note">This email has not been through ShipSync yet. Processing runs once and the stored result is reused from then on.</div>' +
           '<div class="sp-btns"><button class="btn primary" type="button" onclick="runShipSync(false)">Run ShipSync</button></div>') +
     '</section>';
 }
@@ -2541,7 +2816,7 @@ function closeYou(){
 function toggleYou(){ if(youCardOpen()) closeYou(); else { youPinned = true; openYou(); } }
 
 /* The card is a peek, not a click-only dialog: pointing at the avatar shows the
-   real card straight away — the old text bubble only *described* it — and moving
+   real card straight away (the old text bubble only *described* it), and moving
    the pointer onto the card keeps it open, so click-to-pin survives as a way to
    leave it up while you reach for the buttons. */
 let youPinned = false, youCloseT = null;
@@ -2591,7 +2866,7 @@ function setFocus(v){
 }
 function toggleFocus(){ setFocus(!appEl.classList.contains("focus")); }
 /* The message toolbar is rebuilt for every message, so its two toggles are
-   handled by delegation — binding them once at load would hit a null element
+   handled by delegation: binding them once at load would hit a null element
    (nothing is open yet) and would go stale on the next render. */
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#shipBtn, #focusBtn");
@@ -2608,19 +2883,18 @@ function isTyping(){
 /* ------------------------------------------------------- shortcut registry */
 const SHORTCUTS = [
   {section:"Navigation"},
-  {keys:[MODK,"K"], label:"Commands & search", desc:"Open the command palette — filters, actions and jumps"},
+  {keys:[MODK,"K"], label:"Commands & search", desc:"Open the command palette: filters, actions and jumps"},
   {keys:["/"], label:"Search the inbox", desc:"Jump to the search box in the topbar"},
   {keys:["T"], label:"Toggle theme", desc:"Switch between dark and light mode"},
   {keys:["["], label:"Collapse sidebar", desc:"Expand or collapse the sidebar into an icon rail"},
   {keys:["?"], label:"This panel", desc:"Show or hide this shortcut list"},
   {keys:["Esc"], label:"Close", desc:"Close the palette, the composer or this panel"},
   {section:"Read & act"},
-  {keys:["\u2191","\u2193"], label:"Next / previous message", desc:"Walk the list — the highlighted message opens straight away"},
+  {keys:["\u2191","\u2193"], label:"Next / previous message", desc:"Walk the list: the highlighted message opens straight away"},
   {keys:["Enter"], label:"Open", desc:"Open the highlighted message"},
   {keys:["V"], label:"ShipSync verdict panel", desc:"Show or hide the verdict, documents and required actions"},
   {keys:["F"], label:"Focus mode", desc:"Hide the inbox and give the message the full width"},
-  {keys:["R"], label:"Run ShipSync", desc:"Explicitly process (or re-process) the open email — never automatic"},
-  {keys:["G"], label:"Open in Dashboard", desc:"Work the open email in the Review Console"},
+  {keys:["R"], label:"Run ShipSync", desc:"Explicitly process (or re-process) the open email: never automatic"},
   {section:"Mailbox"},
   {keys:["C"], label:"Compose", desc:"Write a new message"},
   {keys:["S"], label:"Star / unstar", desc:"Pin the open message to the Starred mailbox"},
@@ -2691,7 +2965,7 @@ document.addEventListener("keydown", e => {
   if(mod) return;
 
   /* Shift+C clears the filters; a bare C still composes. This has to come
-     first — the lowercase test below matches "C" as well. */
+     first, because the lowercase test below matches "C" as well. */
   if(e.shiftKey && lk === "c"){ e.preventDefault(); clearFilters(); return; }
   if(lk === "c"){ e.preventDefault(); openComposer("blank"); return; }
   if(lk === "v"){ e.preventDefault(); toggleShip(); return; }
@@ -2702,9 +2976,8 @@ document.addEventListener("keydown", e => {
   if(k === "!"){ e.preventDefault(); moveMail("spam"); return; }
   if(lk === "z"){ e.preventDefault(); undoLast(); return; }
   if(lk === "r"){ e.preventDefault(); runShipSync(true); return; }
-  if(lk === "g"){ e.preventDefault(); openDashboard(); return; }
 });
-/* `/` parks the caret in the topbar search box — the one piece of ShipMail
+/* `/` parks the caret in the topbar search box, the one piece of ShipMail
    chrome the user reaches for most often. */
 function focusSearch(){
   const el = $("q");
@@ -2837,10 +3110,9 @@ function buildCmds(){
     {t:"Go to first unread", sub:unread ? unread.subject.slice(0,52) : "inbox is fully read", ico:ICON2.mail, run:() => unread && openMailById(unread.id)},
     {t:"Toggle ShipSync verdict panel", sub:"Show or hide the verdict for the open mail", ico:ICON2.panel, k:"V", run:toggleShip},
     {t:"Toggle focus mode", sub:"Hide the inbox and widen the message", ico:I.focusMax, k:"F", run:toggleFocus},
-    {t:"Switch theme", sub:"Currently " + curTheme() + " — switch to " + (curTheme() === "dark" ? "light" : "dark"), ico:themeIconSvg(curTheme()), k:"T", run:toggleTheme},
+    {t:"Switch theme", sub:"Currently " + curTheme() + ", switch to " + (curTheme() === "dark" ? "light" : "dark"), ico:themeIconSvg(curTheme()), k:"T", run:toggleTheme},
     {t:"Toggle sidebar", sub:"Expand / collapse the rail", ico:ICON2.rail, k:"[", run:toggleRail},
-    {t:"Run ShipSync on the open email", sub:"Explicit processing — never automatic", ico:ICON2.ship, k:"R", run:() => runShipSync(true)},
-    {t:"Open in Dashboard", sub:"Work the open email in the Review Console", ico:ICON2.ship, k:"G", run:openDashboard},
+    {t:"Run ShipSync on the open email", sub:"Explicit processing: never automatic", ico:ICON2.ship, k:"R", run:() => runShipSync(true)},
     {t:"Reload mail", sub:"Re-read the connected mailbox", ico:ICON2.refresh, run:reloadMail},
     {t:"Mark the inbox as read", sub:"Clear every unread flag in this session", ico:I.check, run:markAllRead},
     {t:"Undo last mail action", sub:"Star, archive, spam or delete", ico:ICON2.undo, k:"Z", run:undoLast},
@@ -2885,7 +3157,7 @@ function renderPalette(){
     html += '<div class="pal-group">Your frequent filters</div>';
     html += top.length
       ? '<div class="pal-pins">' + top.map(p => '<button type="button" class="pal-pin" data-i="' + palShown.indexOf(palShown.find(x => x.pinKey === p.key)) + '" onclick="runPin(\'' + esc(p.key) + '\')"><span class="dot" style="background:' + FREQ_DOT[p.key] + '"></span>' + esc(FREQ_LABEL[p.key]) + '<span class="pal-pin-c">' + p.count + '</span></button>').join("") + '</div>'
-      : '<div class="pal-hint">Filter the list by verdict or attachment — the filters you reach for most get pinned here.</div>';
+      : '<div class="pal-hint">Filter the list by verdict or attachment: the filters you reach for most get pinned here.</div>';
   }
   let last = null;
   palShown.forEach((c, i) => {
@@ -2990,6 +3262,24 @@ $("cmpPresets").addEventListener("click", e => {
 $("composer").addEventListener("click", e => { if(e.target.id === "composer") closeComposer(); });
 $("gmailConnect").addEventListener("click", connectGmail);
 $("gmailSync").addEventListener("click", syncGmail);
+
+/* workspace switcher dropdown */
+const wsTrigger = $("wsTrigger"), wsDropdown = $("wsDropdown");
+if(wsTrigger && wsDropdown){
+  wsTrigger.addEventListener("click", e => {
+    e.stopPropagation();
+    const open = !wsDropdown.hidden;
+    wsDropdown.hidden = open;
+    wsTrigger.setAttribute("aria-expanded", !open);
+  });
+  document.addEventListener("click", e => {
+    if(!wsDropdown.hidden && !e.target.closest("#wsSwitcher")){
+      wsDropdown.hidden = true;
+      wsTrigger.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
 window.addEventListener("hashchange", () => {
   const h = decodeURIComponent(location.hash.slice(1));
   if(h && h !== state.activeId && allItems().some(i => i.id === h)) openMailById(h);
@@ -2999,8 +3289,424 @@ window.addEventListener("hashchange", () => {
 Object.assign(window, {
   openMailById, toggleStar, moveMail, undoLast, clearFilters, reloadMail, runShipSync, requestDoc,
   connectGmail,
-  openComposer, closeComposer, openDashboard, toggleAtt, flashSaved, palHover, palRun, runPin
+  openComposer, closeComposer, toggleAtt, flashSaved, palHover, palRun, runPin
 });
+
+/* =========================================================================
+   REVIEW CONSOLE: the workspace's second surface.
+
+   Rules this module obeys, the same ones the mail view obeys:
+     * Every call goes to /api/gmail/*, which reads and writes sdoc_oauth.db.
+       The hub corpus is a different database and never shows up here.
+     * Nothing runs on a timer. Processing happens only when the operator
+       presses Run ShipSync, and only for the rows they selected.
+     * A reply is always previewed first. The draft is fetched with dry_run,
+       so the modal shows the exact text before anything is recorded.
+   ========================================================================= */
+
+const RV = {
+  mode: "mail",
+  kpis: null,
+  counts: null,
+  rows: [],
+  total: 0,
+  sel: new Set(),
+  fStatus: "", fCat: "", fAssign: "", q: "",
+  seq: 0,
+  qTimer: null,
+  busy: false,
+  draftId: null
+};
+
+const RV_ASSIGN = {
+  AUTO:   "Run it in the next bulk run",
+  HOLD:   "Keep it for a human decision",
+  IGNORE: "Not actionable, so bulk runs skip it"
+};
+const RV_ASSIGN_ORDER = ["AUTO", "HOLD", "IGNORE"];
+
+/* ---------------------------------------------------------------- helpers */
+function rvErr(msg){
+  const el = $("rvMsg");
+  if(el){ el.className = "rv-err"; el.textContent = msg; }
+}
+function rvCat(c){ return c ? esc(c.replace(/_/g, " ").toLowerCase()) : "-"; }
+function rvDot(s){ return STATUS_DOT[s] || "var(--muted-2)"; }
+function rvDocs(r){
+  const names = r.attachments || [];
+  const miss = r.missing_documents || [];
+  const files = names.length
+    ? esc(names.join(", "))
+    : '<span class="rv-miss">no file attached</span>';
+  const gap = miss.length
+    ? '<span class="rv-miss">missing ' + esc(miss.join(", ")) + '</span>'
+    : "";
+  return files + (gap ? " · " + gap : "");
+}
+
+/* ------------------------------------------------------------------- mode */
+function rvSetMode(mode, load){
+  RV.mode = mode === "review" ? "review" : "mail";
+  const app = document.querySelector(".mail-app");
+  if(app) app.classList.toggle("review-on", RV.mode === "review");
+  const body = $("reviewBody");
+  if(body) body.hidden = RV.mode !== "review";
+
+  const isReview = RV.mode === "review";
+  [["rvModeMail", !isReview], ["rvModeReview", isReview]].forEach(([id, on]) => {
+    const b = $(id);
+    if(!b) return;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  try{ localStorage.setItem("sdoc-shipmail-mode", RV.mode); }catch(_){}
+  if(isReview && load !== false) rvLoad();
+}
+function rvToggleMode(){ rvSetMode(RV.mode === "review" ? "mail" : "review"); }
+
+/* ------------------------------------------------------------------ load */
+function rvQuery(){
+  const p = new URLSearchParams();
+  if(RV.fStatus) p.set("status", RV.fStatus);
+  if(RV.fCat) p.set("category", RV.fCat);
+  if(RV.fAssign) p.set("assignment", RV.fAssign);
+  if(RV.q) p.set("q", RV.q);
+  p.set("limit", "500");
+  return p.toString();
+}
+async function rvLoad(){
+  /* No mutex here. Two filter changes in quick succession must both reach the
+     server and the last one must win, so requests are numbered and a reply
+     that is no longer the newest is dropped. */
+  const my = ++RV.seq;
+  const msg = $("rvMsg");
+  if(msg){ msg.className = "rv-loading"; msg.textContent = "Loading the review queue…"; }
+  try{
+    const r = await fetch(API + "/api/gmail/review?" + rvQuery());
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    if(my !== RV.seq) return;
+    RV.kpis = d.kpis; RV.counts = d.counts;
+    RV.rows = d.items || []; RV.total = d.total || 0;
+    const live = new Set(RV.rows.map(x => x.email_id));
+    RV.sel.forEach(id => { if(!live.has(id)) RV.sel.delete(id); });
+    rvBuildFilters();
+    rvRender();
+  }catch(e){
+    if(my !== RV.seq) return;
+    RV.rows = []; RV.kpis = null;
+    rvRender();
+    rvErr("Could not load the review queue. " + (e && e.message ? e.message : ""));
+  }
+}
+
+/* ----------------------------------------------------------------- render */
+function rvBuildFilters(){
+  const st = $("rvFStatus");
+  if(st && !st.dataset.built){
+    st.innerHTML = '<option value="">All verdicts</option>' +
+      STATUSES.map(s => '<option value="' + s + '">' + esc(STATUS_LABEL[s]) + '</option>').join("") +
+      '<option value="__none">Not processed</option>';
+    st.dataset.built = "1";
+    st.value = RV.fStatus;
+  }
+  const asg = $("rvFAssign");
+  if(asg && !asg.dataset.built){
+    asg.innerHTML = '<option value="">Any assignment</option>' +
+      RV_ASSIGN_ORDER.map(a => '<option value="' + a + '">' + a + '</option>').join("");
+    asg.dataset.built = "1";
+    asg.value = RV.fAssign;
+  }
+  const cat = $("rvFCat");
+  const cats = Object.keys((RV.counts && RV.counts.category) || {}).sort();
+  if(cat){
+    const want = '<option value="">All categories</option>' +
+      cats.map(c => '<option value="' + esc(c) + '">' + rvCat(c) + '</option>').join("");
+    if(cat.innerHTML !== want){ cat.innerHTML = want; cat.value = RV.fCat; }
+  }
+}
+
+const RV_KPIS = [
+  ["total",     "Messages",       ""],
+  ["processed", "Processed",      ""],
+  ["awaiting",  "Awaiting review","warn"],
+  ["mismatch",  "Mismatch",       "bad"],
+  ["missing_docs", "Missing docs","warn"],
+  ["ignored",   "Ignored",        "muted"]
+];
+function rvRenderKpis(){
+  const host = $("rvKpis");
+  if(!host) return;
+  const k = RV.kpis;
+  if(!k){ host.innerHTML = ""; return; }
+  host.innerHTML = RV_KPIS.map(([key, label, tone]) => {
+    const n = k[key] || 0;
+    const cls = (tone && n) ? " " + tone : "";
+    return '<div class="rv-kpi' + cls + '">' +
+      '<span class="rv-kpi-n">' + fmt(n) + '</span>' +
+      '<span class="rv-kpi-l">' + esc(label) + '</span></div>';
+  }).join("");
+}
+function rvRowHtml(r){
+  const on = RV.sel.has(r.email_id);
+  const st = r.status;
+  const badge = st
+    ? '<span class="badge st" style="--c:' + rvDot(st) + '">' + esc(st.replace(/_/g, " ")) + '</span>'
+    : '<span class="badge st" style="--c:var(--muted-2)" title="No stored ShipSync result yet">-</span>';
+  const cat = r.category
+    ? '<span class="badge cat" style="--c:var(--cat-' + esc(r.category) + ')">' + rvCat(r.category) + '</span>'
+    : '<span class="badge cat" style="--c:var(--muted-2)">-</span>';
+  const seg = RV_ASSIGN_ORDER.map(a =>
+    '<button class="rv-seg-btn' + (r.assignment === a ? ' on' : '') + '" type="button" ' +
+    'data-assignment="' + a + '" data-set="' + esc(r.email_id) + '" ' +
+    'data-tip="' + a + '" data-tip-desc="' + esc(RV_ASSIGN[a]) + '" data-tip-pos="top">' +
+    a + '</button>').join("");
+  const sent = r.dispatched
+    ? '<span class="rv-mini done" data-tip="Replied" data-tip-desc="A return for this message is in the dispatch history" data-tip-pos="top">Replied</span>'
+    : "";
+  return '<tr data-id="' + esc(r.email_id) + '"' + (on ? ' class="rv-picked"' : '') + '>' +
+    '<td class="rv-chk"><input type="checkbox" data-pick="' + esc(r.email_id) + '"' +
+      (on ? " checked" : "") + ' aria-label="Select this message"></td>' +
+    '<td class="rv-mono">' + esc(r.sender || "unknown") + '</td>' +
+    '<td><button class="rv-subj" type="button" data-open="' + esc(r.email_id) + '">' +
+      esc(r.subject || "(no subject)") + '</button>' +
+      '<span class="rv-snip">' + esc(r.snippet || "") + '</span></td>' +
+    '<td class="rv-docs">' + rvDocs(r) + '</td>' +
+    '<td>' + cat + '</td>' +
+    '<td>' + badge + (r.has_defect ? ' <span class="rv-miss">' + (r.defect_fields || []).length + ' field(s)</span>' : "") + '</td>' +
+    '<td><span class="rv-seg">' + seg + '</span></td>' +
+    '<td><span class="rv-act-cell">' +
+      '<button class="rv-mini" type="button" data-open="' + esc(r.email_id) + '">Open</button>' +
+      '<button class="rv-mini" type="button" data-run="' + esc(r.email_id) + '">Run</button>' +
+      '<button class="rv-mini" type="button" data-reply="' + esc(r.email_id) + '">Reply</button>' +
+      sent + '</span></td>' +
+    '</tr>';
+}
+function rvRenderRows(){
+  const tb = $("rvRows");
+  if(!tb) return;
+  if(!RV.rows.length){
+    tb.innerHTML = "";
+    const msg = $("rvMsg");
+    if(msg){
+      msg.className = "rv-loading";
+      msg.textContent = state.connected
+        ? "No message matches these filters."
+        : "No mailbox is connected, so there is nothing to review yet.";
+    }
+    return;
+  }
+  const msg = $("rvMsg");
+  if(msg) msg.textContent = "";
+  tb.innerHTML = RV.rows.map(rvRowHtml).join("");
+}
+function rvRenderSel(){
+  const n = RV.sel.size;
+  const info = $("rvSelInfo");
+  if(info) info.textContent = n ? n + " selected" : "Nothing selected";
+  const all = $("rvChkAll");
+  if(all){
+    all.checked = n > 0 && n === RV.rows.length;
+    all.indeterminate = n > 0 && n < RV.rows.length;
+  }
+  const cnt = $("rvCount");
+  if(cnt) cnt.textContent = fmt(RV.total) + (RV.total === 1 ? " message" : " messages");
+  const busy = RV.busy;
+  ["rvSetAuto", "rvSetHold", "rvSetIgnore", "rvRun", "rvReply"].forEach(id => {
+    const b = $(id);
+    if(b) b.disabled = busy || n === 0;
+  });
+}
+function rvRender(){ rvRenderKpis(); rvRenderRows(); rvRenderSel(); }
+
+/* --------------------------------------------------------------- actions */
+function rvSelected(){
+  if(RV.sel.size) return [...RV.sel];
+  return [];
+}
+function rvNeedSelection(){
+  if(RV.sel.size) return true;
+  toast("Select one or more messages first.");
+  return false;
+}
+async function rvPost(url, body){
+  const r = await fetch(API + url, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(body)
+  });
+  const d = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(d.detail || d.message || ("HTTP " + r.status));
+  return d;
+}
+async function rvAssignTo(assignment, ids){
+  const target = ids || rvSelected();
+  if(!target.length) return;
+  try{
+    const d = await rvPost("/api/gmail/assign", {email_ids: target, assignment});
+    const extra = (d.rejected || []).length;
+    toast(assignment + " set on " + d.updated + " message" + (d.updated === 1 ? "" : "s") +
+          (extra ? ", " + extra + " skipped" : "") + ".");
+    if(!ids) RV.sel.clear();
+    await rvLoad();
+  }catch(e){ toast("Could not set the assignment. " + (e.message || "")); }
+}
+async function rvRun(ids){
+  const target = ids || rvSelected();
+  if(!target.length) return;
+  const one = target.length === 1;
+  RV.busy = true; rvRenderSel();
+  const msg = $("rvMsg");
+  if(msg){ msg.className = "rv-loading"; msg.textContent = "Running ShipSync over " + target.length + " message(s)…"; }
+  try{
+    const d = await rvPost("/api/gmail/bulk-run", {email_ids: target});
+    const ok = (d.results || []).filter(x => !x.error);
+    const bad = (d.results || []).filter(x => x.error);
+    const skip = (d.skipped || []).length;
+    toast("ShipSync processed " + ok.length + " message" + (ok.length === 1 ? "" : "s") +
+          (bad.length ? ", " + bad.length + " failed" : "") +
+          (skip ? ", " + skip + " skipped" : "") + ".");
+    if(one && bad.length) toast("Could not process: " + bad[0].error);
+    if(!ids) RV.sel.clear();
+    await rvLoad();
+    if(state.connected){ await loadRealMailbox(); renderList(); }
+  }catch(e){
+    toast("The run failed. " + (e.message || ""));
+    rvErr("The run failed. " + (e.message || ""));
+  }finally{
+    RV.busy = false; rvRenderSel();
+  }
+}
+function rvOpenMail(id){
+  rvSetMode("mail", false);
+  const it = allItems().find(i => i.id === id);
+  if(it){ openMailById(id); return; }
+  /* The message is in the review queue but the mail view has not loaded it. */
+  toast("Not in the loaded mailbox, so re-syncing first.");
+  reloadMail().then(() => { if(allItems().some(i => i.id === id)) openMailById(id); });
+}
+
+/* --------------------------------------------------------------- replies */
+async function rvOpenReply(id){
+  try{
+    const r = await fetch(API + "/api/gmail/return?email_id=" + encodeURIComponent(id), {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({dry_run: true})
+    });
+    const d = await r.json().catch(() => ({}));
+    if(!r.ok) throw new Error(d.detail || ("HTTP " + r.status));
+    RV.draftId = id;
+    $("rvMeta").innerHTML =
+      'Outcome <code>' + esc(d.decision || "REJECTED") + '</code> · replies to <code>' +
+      esc(d.reply_to || "the original sender") + '</code>' +
+      (d.reply_via ? ' via <code>' + esc(d.reply_via) + '</code>' : "");
+    $("rvSubject").value = d.subject || "";
+    $("rvBody").value = d.body || "";
+    $("rvNote").textContent = (d.missing_documents || []).length
+      ? "This message is missing " + d.missing_documents.join(" and ") +
+        ", so the draft asks the sender for it."
+      : "Operator mail has no live SMTP behind it in this build, so the dispatch is recorded as SIMULATED in this workspace.";
+    $("rvModal").hidden = false;
+    $("rvSubject").focus();
+  }catch(e){
+    toast("Could not build the reply. " + (e.message || ""));
+  }
+}
+function rvCloseReply(){
+  $("rvModal").hidden = true;
+  RV.draftId = null;
+}
+async function rvDispatch(){
+  const id = RV.draftId;
+  if(!id) return;
+  const btn = $("rvSend");
+  btn.disabled = true;
+  try{
+    const d = await rvPost("/api/gmail/return?email_id=" + encodeURIComponent(id), {
+      subject: $("rvSubject").value,
+      body: $("rvBody").value,
+      dry_run: false
+    });
+    rvCloseReply();
+    toast("Return dispatched to " + (d.reply_to || "the sender") + " (" + (d.delivery || "") + ").");
+    await rvLoad();
+  }catch(e){
+    toast("Could not dispatch the reply. " + (e.message || ""));
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* ------------------------------------------------------------------ init */
+function rvInit(){
+  rvBuildFilters();
+
+  const sw = $("rvSwitch");
+  if(sw) sw.addEventListener("click", e => {
+    const b = e.target.closest(".rv-sw-btn");
+    if(b) rvSetMode(b.id === "rvModeReview" ? "review" : "mail");
+  });
+
+  const bind = (id, type, fn) => { const el = $(id); if(el) el.addEventListener(type, fn); };
+
+  bind("rvFStatus", "change", e => { RV.fStatus = e.target.value === "__none" ? "__none" : e.target.value; rvLoad(); });
+  bind("rvFCat", "change", e => { RV.fCat = e.target.value; rvLoad(); });
+  bind("rvFAssign", "change", e => { RV.fAssign = e.target.value; rvLoad(); });
+  bind("rvQ", "input", e => {
+    RV.q = e.target.value.trim();
+    clearTimeout(RV.qTimer);
+    RV.qTimer = setTimeout(rvLoad, 220);
+  });
+  bind("rvRefresh", "click", () => rvLoad());
+  bind("rvSetAuto", "click", () => rvAssignTo("AUTO"));
+  bind("rvSetHold", "click", () => rvAssignTo("HOLD"));
+  bind("rvSetIgnore", "click", () => rvAssignTo("IGNORE"));
+  bind("rvRun", "click", () => { if(rvNeedSelection()) rvRun(); });
+  bind("rvReply", "click", () => {
+    if(!rvNeedSelection()) return;
+    if(RV.sel.size > 1){ toast("Reply goes to one sender at a time. Open a row and reply."); return; }
+    rvOpenReply([...RV.sel][0]);
+  });
+
+  bind("rvChkAll", "change", e => {
+    RV.sel = e.target.checked ? new Set(RV.rows.map(r => r.email_id)) : new Set();
+    rvRenderRows(); rvRenderSel();
+  });
+  bind("rvSelAll", "click", () => {
+    const every = RV.sel.size > 0 && RV.sel.size === RV.rows.length;
+    RV.sel = every ? new Set() : new Set(RV.rows.map(r => r.email_id));
+    rvRenderRows(); rvRenderSel();
+  });
+  bind("rvRows", "click", e => {
+    const seg = e.target.closest("[data-set]");
+    if(seg){ rvAssignTo(seg.dataset.assignment, [seg.dataset.set]); return; }
+    const run = e.target.closest("[data-run]");
+    if(run){ rvRun([run.dataset.run]); return; }
+    const rep = e.target.closest("[data-reply]");
+    if(rep){ rvOpenReply(rep.dataset.reply); return; }
+    const open = e.target.closest("[data-open]");
+    if(open){ rvOpenMail(open.dataset.open); return; }
+  });
+  bind("rvRows", "change", e => {
+    const pick = e.target.closest("[data-pick]");
+    if(!pick) return;
+    if(pick.checked) RV.sel.add(pick.dataset.pick); else RV.sel.delete(pick.dataset.pick);
+    rvRenderSel();
+  });
+  bind("rvBack", "click", () => rvSetMode("mail"));
+  bind("rvModalX", "click", rvCloseReply);
+  bind("rvCancel", "click", rvCloseReply);
+  bind("rvSend", "click", rvDispatch);
+  bind("rvModal", "click", e => { if(e.target.id === "rvModal") rvCloseReply(); });
+  document.addEventListener("keydown", e => {
+    if(e.key === "Escape" && !$("rvModal").hidden){ e.preventDefault(); rvCloseReply(); }
+  });
+
+  rvSetMode(localStorage.getItem("sdoc-shipmail-mode") === "review" ? "review" : "mail", false);
+}
+
+Object.assign(window, { rvSetMode, rvToggleMode, rvLoad, rvRun, rvOpenReply, rvAssignTo });
 
 /* ------------------------------------------------------------------ go */
 (function(){
@@ -3008,7 +3714,8 @@ Object.assign(window, {
   setRail(localStorage.getItem("sdoc-rail") === "1");
   setFocus(localStorage.getItem("sdoc-focus") === "1");
   renderFocusIcons(); renderShipToggle();
-  boot();
+  rvInit();
+  boot().then(() => { if(RV.mode === "review") rvLoad(); });
 })();
 </script>
 </body>

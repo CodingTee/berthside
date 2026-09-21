@@ -1,7 +1,8 @@
 """Database engine + session factory.
 
-Works with SQLite (local dev) and PostgreSQL/Supabase (production) — the only
-difference is DATABASE_URL in .env.
+Dual-Track Physical Database Isolation:
+1. Enterprise Hub DB (default get_db): stores 520 dataset, carrier EDI, gateway quarantine, audits.
+2. OAuth DB (get_oauth_db): stores personal operator Gmail OAuth tokens & synced emails.
 """
 from __future__ import annotations
 
@@ -12,41 +13,49 @@ from app.config import get_settings
 
 settings = get_settings()
 
-connect_args = {}
-if settings.database_url.startswith("sqlite"):
-    # Allow the session to be used across request threads.
-    connect_args = {"check_same_thread": False}
 
-engine = create_engine(
-    settings.database_url,
-    connect_args=connect_args,
-    pool_pre_ping=True,
-)
+def _make_engine(url: str):
+    connect_args = {}
+    if url.startswith("sqlite"):
+        # Allow the session to be used across request threads.
+        connect_args = {"check_same_thread": False}
+    return create_engine(url, connect_args=connect_args, pool_pre_ping=True)
 
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+
+# Enterprise Engine & Session (Default for Central Hub)
+enterprise_url = settings.database_url_enterprise or settings.database_url
+enterprise_engine = _make_engine(enterprise_url)
+EnterpriseSessionLocal = sessionmaker(bind=enterprise_engine, autocommit=False, autoflush=False)
+
+# Backward-compatibility aliases
+engine = enterprise_engine
+SessionLocal = EnterpriseSessionLocal
+
+# OAuth Engine & Session (Isolated for Operator Mailbox)
+oauth_url = settings.database_url_oauth
+oauth_engine = _make_engine(oauth_url)
+OAuthSessionLocal = sessionmaker(bind=oauth_engine, autocommit=False, autoflush=False)
 
 Base = declarative_base()
 
 
 def init_db() -> None:
-    """Create tables if they do not exist yet (idempotent)."""
+    """Create tables in both databases if they do not exist yet (idempotent)."""
     import app.models  # noqa: F401  (register models on Base)
-    Base.metadata.create_all(bind=engine)
-    _migrate_columns()
+    Base.metadata.create_all(bind=enterprise_engine)
+    Base.metadata.create_all(bind=oauth_engine)
+    _migrate_columns(enterprise_engine, EnterpriseSessionLocal)
+    _migrate_columns(oauth_engine, OAuthSessionLocal)
 
 
-def _migrate_columns() -> None:
-    """Add columns introduced after the first schema release.
-
-    create_all does not alter existing tables, so columns added to live
-    databases must be migrated explicitly. Dev/SQLite only; Postgres uses
-    proper migrations in production.
-    """
-    if not settings.database_url.startswith("sqlite"):
+def _migrate_columns(eng, session_factory) -> None:
+    """Add columns introduced after the first schema release."""
+    url_str = str(eng.url)
+    if not url_str.startswith("sqlite"):
         return
     from sqlalchemy import text
 
-    with engine.begin() as conn:
+    with eng.begin() as conn:
         cols = {row[1] for row in conn.execute(text("PRAGMA table_info(emails)")).fetchall()}
         if "source_mailbox" not in cols:
             conn.execute(text("ALTER TABLE emails ADD COLUMN source_mailbox VARCHAR(128)"))
@@ -55,12 +64,11 @@ def _migrate_columns() -> None:
         if "source_policies" not in gp_cols:
             conn.execute(text("ALTER TABLE gateway_policy ADD COLUMN source_policies TEXT"))
 
-    # Backfill source_mailbox for rows written before the column existed,
-    # keyed on the same email_id prefixes the hub uses elsewhere.
+    # Backfill source_mailbox for rows written before the column existed
     from app.models import EmailRecord as _ER
     from app.models import infer_source_mailbox as _infer
 
-    with SessionLocal() as s:
+    with session_factory() as s:
         null_rows = s.query(_ER).filter(_ER.source_mailbox.is_(None)).all()
         for r in null_rows:
             r.source_mailbox = _infer(r.email_id, r.sender)
@@ -69,9 +77,28 @@ def _migrate_columns() -> None:
 
 
 def get_db():
-    """FastAPI dependency yielding a scoped session."""
-    db = SessionLocal()
+    """FastAPI dependency yielding an Enterprise Hub DB scoped session."""
+    db = EnterpriseSessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+def get_enterprise_db():
+    """Explicit FastAPI dependency for Enterprise Hub database."""
+    db = EnterpriseSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_oauth_db():
+    """FastAPI dependency yielding an isolated OAuth DB scoped session."""
+    db = OAuthSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+

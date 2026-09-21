@@ -82,7 +82,8 @@ curl -X POST http://localhost:8000/reviews/email_004 \
 | Variable | Meaning |
 |---|---|
 | `DATA_SOURCE` | Folder with `inbox/` + `attachments/` **or** `http://localhost:8080` |
-| `DATABASE_URL` | `sqlite:///./sdoc.db` (dev) or Supabase Postgres URL (prod) |
+| `DATABASE_URL_ENTERPRISE` | Hub database (520 corpus, gateway, audits): `sqlite:///./sdoc_enterprise.db`, or a Supabase Postgres URL in production |
+| `DATABASE_URL_OAUTH` | ShipMail's own database (operator Gmail + its verdicts): `sqlite:///./sdoc_oauth.db` |
 | `AI_PROVIDER` | `rule` (offline, default) · `remote` (P3 service) · `hybrid` |
 | `AI_SERVICE_URL` | P3's AI base URL, used when provider is `remote`/`hybrid` |
 
@@ -389,7 +390,7 @@ python scripts/check_secrets.py    # nothing sensitive about to be committed
 ```
 
 `tests/conftest.py` gives every test a throwaway in-memory database and a
-temporary ingest directory, so running the suite never writes to `sdoc.db` or
+temporary ingest directory, so running the suite never writes to the hub database or
 `data/ingested/`. `pytest.ini` pins collection to `tests/`, so a bare `pytest`
 is safe as well: `scripts/smoke_test.py` matches pytest's `*_test.py` pattern
 but is a live-server script, not a unit test. Keep new tests inside `tests/`,
@@ -488,7 +489,7 @@ backfills, so the hybrid path is never worse than the rule path.
 
 ## Deployment (Phase 5)
 
-1. Supabase Postgres → set `DATABASE_URL`, redeploy (tables auto-create).
+1. Supabase Postgres: set `DATABASE_URL_ENTERPRISE` and `DATABASE_URL_OAUTH`, redeploy (tables auto-create).
 2. Render: **New Web Service** → Docker → port `8000`; env vars from above.
 3. Vercel: frontend only; set `VITE_API_BASE` to the Render URL.
 4. `CORS_ORIGINS` on the backend must include the Vercel origin.
