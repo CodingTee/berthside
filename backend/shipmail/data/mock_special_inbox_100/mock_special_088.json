@@ -1,0 +1,10 @@
+{
+  "email_id": "mock_special_088",
+  "from": "willy_ss@aprilasia.com",
+  "subject": "[MOCK-SPECIAL 088] REQUEST BL DRAFT _ PO 26823_ PAPERBOARD__210MT",
+  "body": "Dear Team,\n\nPlease find attached the SI and the Packing List for MCLSINJEA2558631. Kindly confirm the BL is in order.\n\n(Note: the second attachment is a Packing List, not the draft BL.)\n\nThe customer supplied the documents in KEY format. Kindly advise if a PDF copy is required. The full document text is included in the presenter notes.",
+  "attachments": [
+    "attachments/mock_special100/mock_special_088_SI.key",
+    "attachments/mock_special100/mock_special_088_BL.key"
+  ]
+}

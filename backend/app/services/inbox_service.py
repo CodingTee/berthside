@@ -109,6 +109,11 @@ def read_attachment(att_path: str) -> bytes:
     candidate = backend_root / att_path
     if candidate.is_file():
         return candidate.read_bytes()
+    from app.config import get_settings
+    settings = get_settings()
+    ingest_cand = Path(settings.ingest_dir) / att_path
+    if ingest_cand.is_file():
+        return ingest_cand.read_bytes()
     return _inbox().read_bytes(att_path)
 
 
@@ -120,6 +125,11 @@ def read_attachment_text(att_path: str) -> str:
     candidate = backend_root / att_path
     if candidate.is_file():
         return candidate.read_text(encoding="utf-8", errors="replace")
+    from app.config import get_settings
+    settings = get_settings()
+    ingest_cand = Path(settings.ingest_dir) / att_path
+    if ingest_cand.is_file():
+        return ingest_cand.read_text(encoding="utf-8", errors="replace")
     return _inbox().read_text(att_path)
 
 

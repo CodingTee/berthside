@@ -1,0 +1,1933 @@
+{
+  "email_count": 100,
+  "attachment_count": 186,
+  "emails_by_format": {
+    "msg": 15,
+    "pages": 15,
+    "numbers": 14,
+    "key": 14,
+    "heic": 14,
+    "heif": 14,
+    "dwg": 14
+  },
+  "attachments_by_format": {
+    "msg": 30,
+    "pages": 30,
+    "numbers": 28,
+    "key": 28,
+    "heic": 28,
+    "heif": 28,
+    "dwg": 14
+  },
+  "files": [
+    {
+      "email_id": "mock_special_001",
+      "file": "attachments/mock_special100/mock_special_001_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "118f47fd968f3cd4cd5a4a28c58766d5ab764ac59f3e1cf97a0f1d7ecc9b1f49",
+      "source": "attachments/email_001_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "d16c8b1d56e11644e8905c4af65bcc6fc3a0265d447c248c2cd9eef0572c3c58"
+    },
+    {
+      "email_id": "mock_special_001",
+      "file": "attachments/mock_special100/mock_special_001_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "bfa93587b7ae931cbec2aed7d52e8b28a3848f08b082ae0981c3b75b76faca5b",
+      "source": "attachments/email_001_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "508d9a3d1f08fd10d3cf558b1bceb071f88482f1077c1af293154989f1379a08"
+    },
+    {
+      "email_id": "mock_special_002",
+      "file": "attachments/mock_special100/mock_special_002_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "239aaff6264e7f8670534bc7f95c944ebcbddcac76e77657397ce5356ba931cb",
+      "source": "attachments/email_004_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "9999bc211a85fbf68de6ded4c68b0b4a5bc7ea16cc27aaba23b736332c091c1a"
+    },
+    {
+      "email_id": "mock_special_002",
+      "file": "attachments/mock_special100/mock_special_002_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "7981e84f7fc70300fcc6c16102a1c8407fb6e940f0622dd2772edfe3691150e7",
+      "source": "attachments/email_004_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "083fec3ad529d756c3d309092330f8fea395174e1552efcaa7ad571755e7b05c"
+    },
+    {
+      "email_id": "mock_special_003",
+      "file": "attachments/mock_special100/mock_special_003_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "8eb717f7c322c182b3d43f3d4f0760dcb0c52bcb00b689f77291c9902e474ec1",
+      "source": "attachments/email_009_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "7613b147035f7cebb5af995d4f97e7d812cfbf2c387d295fae672687bf779afd"
+    },
+    {
+      "email_id": "mock_special_003",
+      "file": "attachments/mock_special100/mock_special_003_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "c62ebd79f56e91ccd1afd9ea6733e476d2e979546b0d2b0fe8a2fc04c3e67ee1",
+      "source": "attachments/email_009_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "dff1c1ff152dff23767ba4ce94ed3cb02e6770f5208c4b80971a0be7a62f128c"
+    },
+    {
+      "email_id": "mock_special_004",
+      "file": "attachments/mock_special100/mock_special_004_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "c0ba90651f24e2d717537824ba54ddc54c47344ec4224bfe85a0eb8200977a33",
+      "source": "attachments/email_013_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "ffc6c4d851504e559fffc075927aef7f89b983fb598939b99a1b50cbf4556856"
+    },
+    {
+      "email_id": "mock_special_004",
+      "file": "attachments/mock_special100/mock_special_004_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "15daac3a1925b33675a8b887cf7d2ca7fc5541491a9a06c1b4764f3acd6bbc73",
+      "source": "attachments/email_013_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "acdc97529a49c0e5d086f64399941b058c1d40ba21c71801afe6e34fa941b1b7"
+    },
+    {
+      "email_id": "mock_special_005",
+      "file": "attachments/mock_special100/mock_special_005_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "ff38a9654201fe6d4d67d5038cd272c3f471f67410b70999f8d5063a24ff1693",
+      "source": "attachments/email_025_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "1651a3eb13fd49c06e58b314b0692804515868dc0a4f53c1870ffe6021212c92"
+    },
+    {
+      "email_id": "mock_special_005",
+      "file": "attachments/mock_special100/mock_special_005_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "278f81d5a5a3a4dd91cbecc5b4a1a11909eea985bb5d61c49a2a92c57dd7deb1",
+      "source": "attachments/email_025_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "edac3753dc208b50c4e84d686921bd74a02c50acaf8f6b6f63105d967e215418"
+    },
+    {
+      "email_id": "mock_special_006",
+      "file": "attachments/mock_special100/mock_special_006_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "6a33cc7fb069e8b04aa063b0a79f012b7b1b050ed58a093cdd79d030ca3dd3ff",
+      "source": "attachments/email_031_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "f88ac6cae397d21082a991e907031f7e7334858cb87f228bd91d6148ddd6a007"
+    },
+    {
+      "email_id": "mock_special_006",
+      "file": "attachments/mock_special100/mock_special_006_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "7d79e17c5693cc5b59dadc279227cd835063bea8f6ff0955530e5eacde873ce6",
+      "source": "attachments/email_031_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "29709c67cf01706fb5c4314217ec53896af176a6dd0ac05cc8590b570c7ae5aa"
+    },
+    {
+      "email_id": "mock_special_007",
+      "file": "attachments/mock_special100/mock_special_007_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "02f62c8632b8e5a4af1c73d37226186d068a8733bdab74fc73bdfa23ba19e0a9",
+      "source": {
+        "filename": "Arc.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Arc.dwg",
+        "sha256": "02f62c8632b8e5a4af1c73d37226186d068a8733bdab74fc73bdfa23ba19e0a9"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_008",
+      "file": "attachments/mock_special100/mock_special_008_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "2d1b6c5ea362e139ee3a53ef5c1b7fbe39ca523201675eefe2d4a276e1acd0e1",
+      "source": "attachments/email_034_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "64ae2819134db60350428715f2d6bd2aad37c11ea792e9b40299dc8ed0f5f77b"
+    },
+    {
+      "email_id": "mock_special_008",
+      "file": "attachments/mock_special100/mock_special_008_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "ec51783fc20a934642fdefc9124f39ff229c83b38d1f768f6adbf98e90953494",
+      "source": "attachments/email_034_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "9e94d96090cfec82ec14f1f98037774fbeff2a6f5faa408985070fec8d0f7dc0"
+    },
+    {
+      "email_id": "mock_special_009",
+      "file": "attachments/mock_special100/mock_special_009_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "b5429edae6c8ea39e0a474db45c1c6237ec09854f2b42955aa780ce0e5bbbfe4",
+      "source": "attachments/email_040_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "32e0f21fdf2cb317c737527f9ac3c9edbcd06e5f10b7ffbaf8f87047331f0f23"
+    },
+    {
+      "email_id": "mock_special_009",
+      "file": "attachments/mock_special100/mock_special_009_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "ebd54c1d922493850f43a9bb336262d0bd6c17dbf8b3f69238045cd1b71fd583",
+      "source": "attachments/email_040_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "97fd70d3c6d12c6a0b53d3a4cc457c7c70126358719d9bf74fc5ceafdaa554ff"
+    },
+    {
+      "email_id": "mock_special_010",
+      "file": "attachments/mock_special100/mock_special_010_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "19b501032b316201d2b63029cc01f624ce200c52154121f525e787f7bb154e4a",
+      "source": "attachments/email_043_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "08418c1edb8ff82bc8cf5d650e8abc0fe1dcf906c122652a38bc325c09d38ecb"
+    },
+    {
+      "email_id": "mock_special_010",
+      "file": "attachments/mock_special100/mock_special_010_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "390fd7add28c403604d88214781eebc92ffd38ed03154f8d2b3331a7965b90f1",
+      "source": "attachments/email_043_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "40305ad6d7433428b5e8ff2fcbbff74b6c3629f7b626ef606d296800b51ecd39"
+    },
+    {
+      "email_id": "mock_special_011",
+      "file": "attachments/mock_special100/mock_special_011_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "3016345f4f1b9e438edb4355b3fdf27d78163759067e161d4fec424fbdd35215",
+      "source": "attachments/email_044_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "e1c86fdc4b432d088f2970327b8454f0028f7bd14d7b1f987f12ddbe74a32d82"
+    },
+    {
+      "email_id": "mock_special_011",
+      "file": "attachments/mock_special100/mock_special_011_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "fab95da635dafe8c4445525ab09f64f8444e794ca5089cda4f7698e5144ceccc",
+      "source": "attachments/email_044_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "b4e8a1f1d20c858ed28f0948f8b71a8b384b2e5701326fc4fbe5db1688c07337"
+    },
+    {
+      "email_id": "mock_special_012",
+      "file": "attachments/mock_special100/mock_special_012_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "14642e042d48f04fad73f5bd3bfe05e3c8497fa51dfbeacd6838489b7fba0788",
+      "source": "attachments/email_046_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "d1bf32f8b81a4eb12e8c7a84956f754770ead320c54d08c2dbe8a29a83be1417"
+    },
+    {
+      "email_id": "mock_special_012",
+      "file": "attachments/mock_special100/mock_special_012_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "1d9025c14fb0dd336bde6416636ca41c6dd73c7cefcd59c125abde6f60b29f59",
+      "source": "attachments/email_046_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "1f04a36fdcb74d4c70ad49082fdff8d5edfe8c3b2ecbb1394547d89b8e3d2180"
+    },
+    {
+      "email_id": "mock_special_013",
+      "file": "attachments/mock_special100/mock_special_013_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "963e3fc3ebd68eb619025f4272f517c550f3d3fd4f96f0f664ae9c4e1e6b9bd6",
+      "source": "attachments/email_051_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "22d5e5e68b3750188328ab60e5ccfb154f79a0341070944504c5710c55e82c73"
+    },
+    {
+      "email_id": "mock_special_013",
+      "file": "attachments/mock_special100/mock_special_013_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "0f95a58684f390bc5afb7d49c9d00807194256a3b5eb424fbdf598a83f2b5a8d",
+      "source": "attachments/email_051_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "31754b16b88232c9b2f9328db187b501157f3f64f531b0c12eb6441521410fd6"
+    },
+    {
+      "email_id": "mock_special_014",
+      "file": "attachments/mock_special100/mock_special_014_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "b11181b2449e9201c704b5597a98e65c9b2fb43c0d281f6949d87b91047a98a5",
+      "source": {
+        "filename": "ConstructionLine.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/ConstructionLine.dwg",
+        "sha256": "b11181b2449e9201c704b5597a98e65c9b2fb43c0d281f6949d87b91047a98a5"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_015",
+      "file": "attachments/mock_special100/mock_special_015_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "dd64653311161b5ddf8d8e212e20140378b61cddd555113ca2bcb910320df988",
+      "source": "attachments/email_056_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "2b5f0c3eeee90ecabe632cbe3e7dea12ec2d3545bea297d9c478efa93604440e"
+    },
+    {
+      "email_id": "mock_special_015",
+      "file": "attachments/mock_special100/mock_special_015_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "964135074fc0ce1bf97a6eaa1cf175f8499fab92c2da57a3ea7f03378c25ba85",
+      "source": "attachments/email_056_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "c6dc6cb68d9a2574af20f095d39a41fe432fc649decbb4e79246534ddf48a211"
+    },
+    {
+      "email_id": "mock_special_016",
+      "file": "attachments/mock_special100/mock_special_016_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "ef5be9a9f427200df6f4826e5d48db4c9683e0e9f6368957456584f6406b8786",
+      "source": "attachments/email_058_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "797f5df4f64b6d373b2c6da8608b4a6ed003db2fb857967a8a29a45cbb8c874f"
+    },
+    {
+      "email_id": "mock_special_016",
+      "file": "attachments/mock_special100/mock_special_016_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "89c650bac8056463e14eac0ba557a358a1fc0898c8c1d559b24aac3141592f92",
+      "source": "attachments/email_058_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "d2553e2ccc0261fe4f0fe768149bb1712b930a5de56815652a41de1f0a8e6f92"
+    },
+    {
+      "email_id": "mock_special_017",
+      "file": "attachments/mock_special100/mock_special_017_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "814979d2362f0e954e9ce2bcd45596fe74e1ddd59ad13d96d966bdde1c6afd14",
+      "source": "attachments/email_064_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "ac5940ff32ad441c3aac6833fb71567442505a763ae9e2c107e10513645785ca"
+    },
+    {
+      "email_id": "mock_special_017",
+      "file": "attachments/mock_special100/mock_special_017_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "363ee18908447aa3a2d2481f34aa42d09d2399933da90eb777ae76300a44721c",
+      "source": "attachments/email_064_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "ce60fc4e6c09620e88f140be0785e69e71253290c5ee5a92ef6f1d11799a3a19"
+    },
+    {
+      "email_id": "mock_special_018",
+      "file": "attachments/mock_special100/mock_special_018_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "b49d04f64d3263b6995db8f117daa27b2f2491d40c240539d5cbd4163e5da855",
+      "source": "attachments/email_065_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "0ab137a7d1a19203616a40aecb9be44d9179c5da32ff8c70481a605c7f8f0e7c"
+    },
+    {
+      "email_id": "mock_special_018",
+      "file": "attachments/mock_special100/mock_special_018_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "c254a4271565f6ac5d14171abf0ba4af471be3f06bde084005fb897609b7a68a",
+      "source": "attachments/email_065_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "75105843caefd9f7cc6ec9bc91540b9c3b790e362f219529633c3d69120cc8f5"
+    },
+    {
+      "email_id": "mock_special_019",
+      "file": "attachments/mock_special100/mock_special_019_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "032ccc6e7008dad47606aa80604471f041a17fd8df8f14fc447b3172bf2bb9fa",
+      "source": "attachments/email_068_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "004468bfffe447312fee7da32951723a06013b00a58c46a1a5facbe5e9583dd1"
+    },
+    {
+      "email_id": "mock_special_019",
+      "file": "attachments/mock_special100/mock_special_019_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "e2fc198a183d6b07836cb7d0196c2a9ce8534edf74ad21359edbeabbce0af164",
+      "source": "attachments/email_068_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "d334467e8b4ae08131b2ee7c0bc4cdd552d2b740ed42db5a1bc929eab8082d57"
+    },
+    {
+      "email_id": "mock_special_020",
+      "file": "attachments/mock_special100/mock_special_020_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "4a750b2ec11ccb968008e76593740da76dadbf1230976948d763f7051ce9ac30",
+      "source": "attachments/email_071_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "a086c30ce3cac7202641d8e6217bebeceebb242b8e83008fe08a7a2897332ff2"
+    },
+    {
+      "email_id": "mock_special_020",
+      "file": "attachments/mock_special100/mock_special_020_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "f68fc3c1a88a6e7823455bf5184aa32cea4226aa36b71ce1a2b72d0c616af40b",
+      "source": "attachments/email_071_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "ce6cf6a86e3708ef25a6d936293111e38f0773115b159fd8cdfe2541df027079"
+    },
+    {
+      "email_id": "mock_special_021",
+      "file": "attachments/mock_special100/mock_special_021_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "c73b1d1f38ab2542006ffe89fa7f06bedc0eeb6d7505e78b85614adf24df8daf",
+      "source": {
+        "filename": "Donut.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Donut.dwg",
+        "sha256": "c73b1d1f38ab2542006ffe89fa7f06bedc0eeb6d7505e78b85614adf24df8daf"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_022",
+      "file": "attachments/mock_special100/mock_special_022_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "516bc10d78d8f06618144e0140347f115005e0680a15dc5bd83af2d73d0a18df",
+      "source": "attachments/email_090_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "a62f22499d77e58a3955c300b24648b439389ea79b678e59626202a07e19a4bf"
+    },
+    {
+      "email_id": "mock_special_022",
+      "file": "attachments/mock_special100/mock_special_022_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "7a2def04a8df5b8e349de86e2267fb5a0a5f4d1280f7afaa67b009ff6ef3defc",
+      "source": "attachments/email_090_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "391f0528b415be257173a36a0ef595488ec9952849e23ba3bf4824008e757151"
+    },
+    {
+      "email_id": "mock_special_023",
+      "file": "attachments/mock_special100/mock_special_023_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "2b315d9efe64da3e93db877ab17fc16487f037544a3c9bd575e68bc2bb289163",
+      "source": "attachments/email_091_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "e9852a0379cf707343f8d625bc37049873be4809797328413d7d8569332e41d5"
+    },
+    {
+      "email_id": "mock_special_023",
+      "file": "attachments/mock_special100/mock_special_023_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "a050622a3c3acb2fcc8e2845d70b14e2b32a0a61a44a4796c56e414cc8d52de1",
+      "source": "attachments/email_091_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "0747aefdee0dd89f38622201284f0201de68faeaf5e52f3f9d2dcbdfd77d892d"
+    },
+    {
+      "email_id": "mock_special_024",
+      "file": "attachments/mock_special100/mock_special_024_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "947e49c335969f7052689cb81e721c36be4feb928a798196672a11b91f407588",
+      "source": "attachments/email_096_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "023afd9bbfe7082c1cb4dacdb65a64abe0d099e078bebbbaf5b8c386e5108b3e"
+    },
+    {
+      "email_id": "mock_special_024",
+      "file": "attachments/mock_special100/mock_special_024_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "51546277ddad1d9d2f19f638fd15e0f2886c256c16151d962e139457912eb2b8",
+      "source": "attachments/email_096_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "e71adfa29a8653017dc1043859f39c28f897e9883a57105a921a9f273f520a5c"
+    },
+    {
+      "email_id": "mock_special_025",
+      "file": "attachments/mock_special100/mock_special_025_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "de8806eefe5ecf1c1bbf536fb090fa6d8e48d5047b93f0115adc51131613cc0b",
+      "source": "attachments/email_111_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "cab08f0de74ccf2f9b2ecf6e4899cd4185a0a750305b3440d478335b3c06a1d1"
+    },
+    {
+      "email_id": "mock_special_025",
+      "file": "attachments/mock_special100/mock_special_025_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "eb75bff7392285d1374b4c2854dec1215274c51016912aefb80178e9d88b98e5",
+      "source": "attachments/email_111_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "8d33c12b6aa2dcd72ae7cee8a79a81130a25f34f6e92ffae085fb62dc21cc19a"
+    },
+    {
+      "email_id": "mock_special_026",
+      "file": "attachments/mock_special100/mock_special_026_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "5403a7eafffb735ede3b602735564d2a3b2efaf1fff69fac3b29a714075ca969",
+      "source": "attachments/email_113_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "8838049fa2107e62ba1e18dce23433191ebf7d4db56b8fc3339201a78c758e61"
+    },
+    {
+      "email_id": "mock_special_026",
+      "file": "attachments/mock_special100/mock_special_026_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "696dc5a535ff4b5c3861a09ffdd91bddaa2ca289e1098ebeb17e4664d47ce6d0",
+      "source": "attachments/email_113_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "eef8ef06dc351dc4adb8b0f6b5694ded53827c180b73f3584b054299a97b92e7"
+    },
+    {
+      "email_id": "mock_special_027",
+      "file": "attachments/mock_special100/mock_special_027_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "081af813f89d08192034bd555b2e8ce610bf91705cf91ecd5dffab143b8ed100",
+      "source": "attachments/email_118_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "16ee9fdb1aa9ed7c686a5e537c40d8d843c9f0b5cc6aad5a69111f3f090ecd7e"
+    },
+    {
+      "email_id": "mock_special_027",
+      "file": "attachments/mock_special100/mock_special_027_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "c02138a0afb92f8614410aaae9616b308142ff448d78534af6ae54f2582bbffc",
+      "source": "attachments/email_118_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "bffa008f953a71db48475f481c7337e830145c94085565e74178df1c79b348f0"
+    },
+    {
+      "email_id": "mock_special_028",
+      "file": "attachments/mock_special100/mock_special_028_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "fef994a4ace40c6c88fede633d4c671acb81fe272eba4a3d8cd6fb86b75d2062",
+      "source": {
+        "filename": "Ellipse.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Ellipse.dwg",
+        "sha256": "fef994a4ace40c6c88fede633d4c671acb81fe272eba4a3d8cd6fb86b75d2062"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_029",
+      "file": "attachments/mock_special100/mock_special_029_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "c0ddd1829e3a1a82f019f1ac61e2a32b299de393aa8043bb0450e8d4456f7b5d",
+      "source": "attachments/email_121_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "067cc51f92ddcc037d44f8aa373ee5aedac30f2e36365cbd6a2c8ee8351e4d16"
+    },
+    {
+      "email_id": "mock_special_029",
+      "file": "attachments/mock_special100/mock_special_029_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "1fa208fa59ddd40ba6dbd63bc6d1da416bdab63e4fd218f515d7552a8a2e1ecd",
+      "source": "attachments/email_121_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "8dabf8dfcaae613a4226d14b33b236d1a8eb64aa223ec8b1fd36c654b11df3e7"
+    },
+    {
+      "email_id": "mock_special_030",
+      "file": "attachments/mock_special100/mock_special_030_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "c469d296a967ec7ad5b0af9d377163546941bfa7726cb7f7abdd56a950bcd1fe",
+      "source": "attachments/email_128_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "07408701f26ad9f32902c31c71e59e450518cd04f14f8fa725ddcf51fe3e7835"
+    },
+    {
+      "email_id": "mock_special_030",
+      "file": "attachments/mock_special100/mock_special_030_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "55ec26cd06bce4dbc2450f86280b36d0edfdaacf780e074c8a91abd17972aea0",
+      "source": "attachments/email_128_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "b5e47e01349990a34d4413e4dfbc945871097c972a86834e982940915cc455cb"
+    },
+    {
+      "email_id": "mock_special_031",
+      "file": "attachments/mock_special100/mock_special_031_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "95d9e08ce5c242a8c053bbba2efe560117055e739031da1d93e3c38cd940cb29",
+      "source": "attachments/email_129_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "7eb80af746d047c06b8317b78fa012a7bb7fd93db6c3750037dfa80e2e24af2b"
+    },
+    {
+      "email_id": "mock_special_031",
+      "file": "attachments/mock_special100/mock_special_031_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "744316551dc7cb2d6589b2b15684cc59092b1deae10087ad9dec9f71a82bea61",
+      "source": "attachments/email_129_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "2af75b0bd42f0613d7b2b2eee567c0ef35b03e81f063a509a22ff26dea63b028"
+    },
+    {
+      "email_id": "mock_special_032",
+      "file": "attachments/mock_special100/mock_special_032_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "9018e18f066ebfd0fc89c9b26316e9f014b6990912fe82032e9a3a7d9692a337",
+      "source": "attachments/email_132_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "13d4f55ec386ae0086d7354cfbb5e8466912853e1681277ca0ebe37d3d85728e"
+    },
+    {
+      "email_id": "mock_special_032",
+      "file": "attachments/mock_special100/mock_special_032_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "decf8702f81b3b0a0cc795d938e00c05f7e210e8303c6db12d91bb8e2b1f4331",
+      "source": "attachments/email_132_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "0709298941d7b0e2db29dd6d137ac9a1a14db7a0fde920baa93595fc0109ae96"
+    },
+    {
+      "email_id": "mock_special_033",
+      "file": "attachments/mock_special100/mock_special_033_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "557baae0c5ca3f371b09edf75de6beace1428ec8475a564ada2412c74fc204ab",
+      "source": "attachments/email_133_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "2f3738db07af09642778e536ea1bb10d7ffd1e0a92b78ba01340f6f9b1877c24"
+    },
+    {
+      "email_id": "mock_special_033",
+      "file": "attachments/mock_special100/mock_special_033_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "b27b9fe37061414ca8a47d3ee759ed0e4e964477c7d7a3722775bb62d345baad",
+      "source": "attachments/email_133_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "a3e4e184d87e57caf38803937140e28fd4e4c1f5dc3d51c3f9c85338b4e1ea25"
+    },
+    {
+      "email_id": "mock_special_034",
+      "file": "attachments/mock_special100/mock_special_034_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "0026a4de8bdde15104df1f94b90753d4edf5d55199efcdac7367ae6712b25358",
+      "source": "attachments/email_143_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "7853451ca46d1a7dbabb24754a1d1e8302df5989bb474e06351d620ffefcf28b"
+    },
+    {
+      "email_id": "mock_special_034",
+      "file": "attachments/mock_special100/mock_special_034_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "2dcaf941129a1f67af9b65d9e7249f57b8577f2086f4800d67319076d629eb25",
+      "source": "attachments/email_143_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "e607bbed6c23b89fe826a12319ab404df01ee31c23047223f6dd07c6b1e0f58f"
+    },
+    {
+      "email_id": "mock_special_035",
+      "file": "attachments/mock_special100/mock_special_035_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "947e28fb312349efffe04dbfe8754892fceba872e41536d1fdcdf0a77a62c6e4",
+      "source": {
+        "filename": "Leader.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Leader.dwg",
+        "sha256": "947e28fb312349efffe04dbfe8754892fceba872e41536d1fdcdf0a77a62c6e4"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_036",
+      "file": "attachments/mock_special100/mock_special_036_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "686c9bddbce19fe189e01418063fc0e727501a97e2e7964b56fbd545dcbc10db",
+      "source": "attachments/email_145_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "e59e6906730c59a8685d020365124ca0d2d825e80574ac46161e88a621c9d72d"
+    },
+    {
+      "email_id": "mock_special_036",
+      "file": "attachments/mock_special100/mock_special_036_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "85152ce866475a628d1e39da9b57dc5aa1f51cd319d675bca37436aecb83cfe0",
+      "source": "attachments/email_145_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "180596fac0d2b6fbb41d5bab800cc565f68c4a572eca2578dd05496d4dd4bc27"
+    },
+    {
+      "email_id": "mock_special_037",
+      "file": "attachments/mock_special100/mock_special_037_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "c66bae492ded275a5f51d10297d9c7bbedd82ec7b42b4bc9435c747e68f96c70",
+      "source": "attachments/email_146_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "efa6e2496563f1b84edbdb991dd167ceb8b2ab8f936d41e4605ee0f5722ce471"
+    },
+    {
+      "email_id": "mock_special_037",
+      "file": "attachments/mock_special100/mock_special_037_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "8027741fe4db29dce30c3afa87980bcb81ab431cd1d233e154b8003830a59a84",
+      "source": "attachments/email_146_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "81ef89912de36b41c0839e369cef478d300f2d4dc3497de6b861783fa9371e9d"
+    },
+    {
+      "email_id": "mock_special_038",
+      "file": "attachments/mock_special100/mock_special_038_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "18eef07619c1e15bf1f3e768c0738d4376a5a3cc5ddb070ebe16de9f6755780a",
+      "source": "attachments/email_167_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "4f0fbfb8944452828f3f677e129591be72f78da5691fbe11ba7e368af561a40a"
+    },
+    {
+      "email_id": "mock_special_038",
+      "file": "attachments/mock_special100/mock_special_038_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "815ddf13aee6720bc57ba6af822b03fdcc182bc9fe942e9d72b3beff1743b19e",
+      "source": "attachments/email_167_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "24b467f5f64e4e0fe599266be92e946c6dbd698186fdad9d2d5af0a852263b0d"
+    },
+    {
+      "email_id": "mock_special_039",
+      "file": "attachments/mock_special100/mock_special_039_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "724f5a5631792dbd7494bd824381a15d8288b50d8858d19cff58c8d9cd6462d2",
+      "source": "attachments/email_174_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "1805998593aaeb90e757fa523fe78ccc0f74c55523a0a0ff72c5e74c82ed46d0"
+    },
+    {
+      "email_id": "mock_special_039",
+      "file": "attachments/mock_special100/mock_special_039_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "0f84fb6210f612cc3231fc480ac457a21759451b82c613a46375ccb01dcf5757",
+      "source": "attachments/email_174_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "51a2f6ca63230e03845bc79c89f9be80cf18a5622d8ac464bab0816c1983f384"
+    },
+    {
+      "email_id": "mock_special_040",
+      "file": "attachments/mock_special100/mock_special_040_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "e8373b441ec1d1d6077052fd028097b92d788e5dc3ef77b5e9ea037967957865",
+      "source": "attachments/email_175_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "241d66c3b53a96947434378b6053764eed8873b0b4da12779eb607317d559419"
+    },
+    {
+      "email_id": "mock_special_040",
+      "file": "attachments/mock_special100/mock_special_040_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "ee7f7ab8c7358c5f1c9cae62a4ed7a4f4e3d996addfded3a75eebd3437c7611b",
+      "source": "attachments/email_175_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "d2dfc90cad8b6f03b55851da26b0b4fb56e9a4fb3a1e4f2b197dc7c64cdda55d"
+    },
+    {
+      "email_id": "mock_special_041",
+      "file": "attachments/mock_special100/mock_special_041_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "dc25f2707e9078b8be371b48fa4df3ff5df2d4f985ad1cbb1e2c572a66eede50",
+      "source": "attachments/email_178_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "9ac0b9dc25f47631fde8afae01be3eb9fba776f04fc98ad55423cb57d0f87a98"
+    },
+    {
+      "email_id": "mock_special_041",
+      "file": "attachments/mock_special100/mock_special_041_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "9ac609275471937abe9e45c0a3377f1451f58703e4d1e03c74ec0a2169dc1bfe",
+      "source": "attachments/email_178_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "87cd768bfd4ed33f81c7bb60863ae215a352cf6a8f7683e3e01e1a412f9e0fa8"
+    },
+    {
+      "email_id": "mock_special_042",
+      "file": "attachments/mock_special100/mock_special_042_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "358fc09c7c27737ba3b500eac122caee4c83c270f5ccb8a9f7f8f3d4b763d937",
+      "source": {
+        "filename": "Line.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Line.dwg",
+        "sha256": "358fc09c7c27737ba3b500eac122caee4c83c270f5ccb8a9f7f8f3d4b763d937"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_043",
+      "file": "attachments/mock_special100/mock_special_043_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "3408c071c99c05258c37d30606b9f8fabe54fb37fe890d405c53e834ff825a07",
+      "source": "attachments/email_197_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "210006f6487a54304717461d4c913f1881f52fc153a0d91fe8aff9834bb29a8f"
+    },
+    {
+      "email_id": "mock_special_043",
+      "file": "attachments/mock_special100/mock_special_043_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "a0e14857b9be4646cd278c3d455f723049a2da13e8f1fb92a3a6cd188d0795f3",
+      "source": "attachments/email_197_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "9cd62909da582139b2b0223f892b2021d42191e2fa7fd8e72dbabc3f853a2c57"
+    },
+    {
+      "email_id": "mock_special_044",
+      "file": "attachments/mock_special100/mock_special_044_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "8a839a5807317201e47cc09bcb43bd73ddb5ab5f06a72b56e90e8d0c94533c63",
+      "source": "attachments/email_198_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "bf9d88848f1bd88adf4a87359638d23de3b60c4e0cf5bade2241e9c832697ac0"
+    },
+    {
+      "email_id": "mock_special_044",
+      "file": "attachments/mock_special100/mock_special_044_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "5fa8819b52c491e912b80b5d8f1e679b8b68a37b06e693bf91e0ed10e4d2a122",
+      "source": "attachments/email_198_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "3e2a9de39761484ffff0c671df5d75907b829ff9ad69fbd6e9b93ae6d0c699de"
+    },
+    {
+      "email_id": "mock_special_045",
+      "file": "attachments/mock_special100/mock_special_045_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "d03f95dcc157f0a0ca3e772e309ea10b02001a5725bdd6a825f990973279d78d",
+      "source": "attachments/email_225_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "038d5e208d43deaf4efb2fbc963eb73f401254340f1d6f294833534e8b9c813e"
+    },
+    {
+      "email_id": "mock_special_045",
+      "file": "attachments/mock_special100/mock_special_045_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "ba2e09a4ff853de06c60a67f163194fd532ff5b42ca2bd3987e8bf4d7605d234",
+      "source": "attachments/email_225_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "07572179116f089548ceaa76f5cf85df12d265fe0fc6dbff45acd7a23fc46e43"
+    },
+    {
+      "email_id": "mock_special_046",
+      "file": "attachments/mock_special100/mock_special_046_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "50565d42abc303befad257ed135ae312f62faf728be4bc8759621843264c6bdd",
+      "source": "attachments/email_227_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "0aabd6f916573cf7cb02ccc0405d0883bf38a4b8ef35ddea3879ae8d23711850"
+    },
+    {
+      "email_id": "mock_special_046",
+      "file": "attachments/mock_special100/mock_special_046_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "30340efaa17ef0f72cc8437a1ba4ca2f57e241233bf0415ce72b2592d570f187",
+      "source": "attachments/email_227_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "67c90df5981dffcde1dcc99554ee646ef6f89e7177dc49876c279c397d08ef2a"
+    },
+    {
+      "email_id": "mock_special_047",
+      "file": "attachments/mock_special100/mock_special_047_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "0e6f383145810ec4f541b697ba56960ec68a2028b73dc99e99f05d9453ea7d62",
+      "source": "attachments/email_235_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "5aabd671e15ec5e9d71160cb76f312ef696c962418c0a14b9e015dd759919df3"
+    },
+    {
+      "email_id": "mock_special_047",
+      "file": "attachments/mock_special100/mock_special_047_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "1582bf499b65f3e59f32ce709cbafa6a467a8bc8689e16fedebacd2e1fbf620a",
+      "source": "attachments/email_235_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "cbd68dad45105854f4998905b66554ac81dbd03bf6ee7fce7d9f77c4a10e6e86"
+    },
+    {
+      "email_id": "mock_special_048",
+      "file": "attachments/mock_special100/mock_special_048_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "3c95ae0f791c0349b262e0859751ff4ac96f0ed3808adc45a854f1bc027cfa62",
+      "source": "attachments/email_239_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "6b944c64c49ae1de57be4d9457c95446139d1da4cff853554302c01edb93b15f"
+    },
+    {
+      "email_id": "mock_special_048",
+      "file": "attachments/mock_special100/mock_special_048_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "797ff1f3fba05383118ed1aa5893b64791fcae887d053bf38a9320705cd70ff3",
+      "source": "attachments/email_239_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "8d9312db8239f934d378211cfa33cbc4eb83ca04f98ae245ee6c867d67a43f32"
+    },
+    {
+      "email_id": "mock_special_049",
+      "file": "attachments/mock_special100/mock_special_049_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "7b4a89a41f87cfaa4b939053893c9ea9d7ec7ec909e152f19bed011d2d03b3d1",
+      "source": {
+        "filename": "Multiline.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Multiline.dwg",
+        "sha256": "7b4a89a41f87cfaa4b939053893c9ea9d7ec7ec909e152f19bed011d2d03b3d1"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_050",
+      "file": "attachments/mock_special100/mock_special_050_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "5f1d9d8e11615a94a987936e5ccf1e365b21aca8ad50471db23ab0aa80fd49cf",
+      "source": "attachments/email_256_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "c1f282d85e2c8694725513cb88233bd581a1fcb53cfd63dc02e86b62489f16fe"
+    },
+    {
+      "email_id": "mock_special_050",
+      "file": "attachments/mock_special100/mock_special_050_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "888b7d1ead4a24996279be424fc0a2798cf111e2f5bb7202fbe4a14b4ce4fc72",
+      "source": "attachments/email_256_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "c2c95215eb1c7e50ca5e4fcc8bcfc9f5fa7e756bcf5529043677c596d997bdab"
+    },
+    {
+      "email_id": "mock_special_051",
+      "file": "attachments/mock_special100/mock_special_051_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "9164cd9dccce6d9573eb816909e51b320a1c1f054342b3d81a67b4a97e0b3349",
+      "source": "attachments/email_270_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "45fc92180cb73c618000433891c036bdfbccf3027200a61ca8ec016a104b13a4"
+    },
+    {
+      "email_id": "mock_special_051",
+      "file": "attachments/mock_special100/mock_special_051_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "61619abce9dd74eafc0a68a540e3fde62dbff88ace52f0e691b11777abecc6db",
+      "source": "attachments/email_270_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "437ffd8d40429075a16a6b7226ebc38cd17d3786ee8d4720665344d58bdf31a0"
+    },
+    {
+      "email_id": "mock_special_052",
+      "file": "attachments/mock_special100/mock_special_052_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "4b3a73db296819cd171424e6458a0dc8599769f51d4503776518f1df284a6a18",
+      "source": "attachments/email_275_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "0ad86fb681d2d4035dd097c94005293767696b342e03abcaa51863d8c7401c6a"
+    },
+    {
+      "email_id": "mock_special_052",
+      "file": "attachments/mock_special100/mock_special_052_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "9851d090220855df8d2227798410dbaf4f2d3bc5bbc55ed3c92db4aa79407729",
+      "source": "attachments/email_275_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "b142f4c696aafc4ac8ee9b2b076844f3353b9043b655571d3f41ae2059402a1b"
+    },
+    {
+      "email_id": "mock_special_053",
+      "file": "attachments/mock_special100/mock_special_053_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "160a772e9e58be78e05f7bf2b550fa7604866e66b64600cd339d5166532c4ffc",
+      "source": "attachments/email_296_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "b84c121d4ffb3451f6cb6d72ebdbb356b673f69bfa0d5ef0a0633c895f1000ae"
+    },
+    {
+      "email_id": "mock_special_053",
+      "file": "attachments/mock_special100/mock_special_053_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "a49be24cbb16358b12dce8712a30ba5562ea47d233aac6b758f9c5d043c02a5d",
+      "source": "attachments/email_296_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "d04edce903a8b4f200487b8d9962d3d4fd937c147662f443506e041482e92baf"
+    },
+    {
+      "email_id": "mock_special_054",
+      "file": "attachments/mock_special100/mock_special_054_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "16f976aec2e9f49021b611d87bb3bf547832c4cf005ac268acd55125714ab7e3",
+      "source": "attachments/email_307_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "72b8f561d05de123aa01ba4943e84b1cbdbd8bb6ac986b44207ce0affe129e3b"
+    },
+    {
+      "email_id": "mock_special_054",
+      "file": "attachments/mock_special100/mock_special_054_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "9ee3dd9db26f58566c518d46ebb65da880109a1961c4b582e9e57c247da243b5",
+      "source": "attachments/email_307_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "ba60e3f957cc55eb0b99e9c5d4e74f17eef76eb33eefb671f5e2d0dfe753b2de"
+    },
+    {
+      "email_id": "mock_special_055",
+      "file": "attachments/mock_special100/mock_special_055_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "c7725a2cc589f79627454113ba7d6009b76a7f5328a3adad052f34b86d6f7175",
+      "source": "attachments/email_312_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "aea731c0b7ec97c026c89bdfb7c6f10df37dbe624672c085d1152dfc6450b56f"
+    },
+    {
+      "email_id": "mock_special_055",
+      "file": "attachments/mock_special100/mock_special_055_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "976b62b09d2cae7bb7e0013b22a63270e8d235dbc808106ec828d440b52dd48d",
+      "source": "attachments/email_312_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "583a207a991d5cd4425b227315da84c4f19ff34b8ec9a088cbb07bfc14e9b16d"
+    },
+    {
+      "email_id": "mock_special_056",
+      "file": "attachments/mock_special100/mock_special_056_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "5e4fed9d8acdf4ec665bd14761dd9f3424769683a10bb7ad3388fba1a4a3b3fd",
+      "source": {
+        "filename": "Point.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Point.dwg",
+        "sha256": "5e4fed9d8acdf4ec665bd14761dd9f3424769683a10bb7ad3388fba1a4a3b3fd"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_057",
+      "file": "attachments/mock_special100/mock_special_057_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "9979e3d0ddd25c367c825344f24852607addfc4c8141452331adb7c7557e0dc4",
+      "source": "attachments/email_334_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "aa169e297cd1d22b785e2354a2c14d1fe3981592474b45485065d87c37be6310"
+    },
+    {
+      "email_id": "mock_special_057",
+      "file": "attachments/mock_special100/mock_special_057_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "5c0b6e2b61c8a33e5454a021a111e038b70d22a55b6507a15d311bbcd681ae59",
+      "source": "attachments/email_334_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "681c4e718df0b0be31a00145dad8e920af50c74825edbcba16152567663989a5"
+    },
+    {
+      "email_id": "mock_special_058",
+      "file": "attachments/mock_special100/mock_special_058_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "59f814cf6357951388e6a7e5721b43c299292de3f9f38473ff9301747769c90f",
+      "source": "attachments/email_335_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "e5b2a8eb304f43ec780fe8a3c1bf3764c78b34f19e4eca1201e0fc0a93be0e7b"
+    },
+    {
+      "email_id": "mock_special_058",
+      "file": "attachments/mock_special100/mock_special_058_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "02a00b95ae96bf198e303dfb8ccff83ddcd14bf1b341e1ac1b7751083e750982",
+      "source": "attachments/email_335_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "23bff8cee33daad4fc3b1cb9560c0b232ec9e16c4b0d70999355d6406524f55b"
+    },
+    {
+      "email_id": "mock_special_059",
+      "file": "attachments/mock_special100/mock_special_059_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "27508160bb1dc934b5b5f35059d5caa8c5a4106c283b0c430233d081597d0e1d",
+      "source": "attachments/email_342_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "ec04471a241cabfbd429cb284ebd3ab68fd70880ebf549e5536f15427b0d4884"
+    },
+    {
+      "email_id": "mock_special_059",
+      "file": "attachments/mock_special100/mock_special_059_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "e15adee34d7b3b60b4f1ba7b1ad56fdcbe63db9822c97de37650f3c02756ea4d",
+      "source": "attachments/email_342_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "f4f5f0170cb6844fe885db58cceb0fb24719fb6b48300cc607bfdf534f1da725"
+    },
+    {
+      "email_id": "mock_special_060",
+      "file": "attachments/mock_special100/mock_special_060_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "52165dd40bfe0811c9f265ee97f82f74f299704f2df8efcc6c8b479880cba25c",
+      "source": "attachments/email_348_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "b98eccdcefdb1e5015c84903b0fd5006cdc1e0b20a24443d7bffe09798164838"
+    },
+    {
+      "email_id": "mock_special_060",
+      "file": "attachments/mock_special100/mock_special_060_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "181a7d9f3e03e7db47c7285163d0eaf4b8d03d9bfa89708d57fc16fa209e5113",
+      "source": "attachments/email_348_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "918cbe13a28fce5981f2207f550403e14b239319f391475cb801f0998d591823"
+    },
+    {
+      "email_id": "mock_special_061",
+      "file": "attachments/mock_special100/mock_special_061_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "edd06fb3b892458cfb676107cd8bd9b6039a38a2e6e7ab0ba9555b053a6d2453",
+      "source": "attachments/email_349_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "7934ed7578a898205a0e980908fab486cff5df6fe1dcd4aa1610bd8794979ed8"
+    },
+    {
+      "email_id": "mock_special_061",
+      "file": "attachments/mock_special100/mock_special_061_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "cba71f45a03a91d899d3482bc3b89d582ad1421973edb53ed5f62588b31d47ae",
+      "source": "attachments/email_349_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "e72bc8a56248733403004e4b43cfff680966c1ac4110624478b772322cdbf374"
+    },
+    {
+      "email_id": "mock_special_062",
+      "file": "attachments/mock_special100/mock_special_062_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "6816a0b90f03917901fecd18b16155a65916002db245f5ca7edbe08f5ee434be",
+      "source": "attachments/email_361_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "cc35b9df74ccf0ff1befa7b28b3eaae68a5bc4623eb509e55d7b4a9671a713bb"
+    },
+    {
+      "email_id": "mock_special_062",
+      "file": "attachments/mock_special100/mock_special_062_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "ed9b9145a309f951690df2e953cc980020db597466d5de07adda2976aee7444a",
+      "source": "attachments/email_361_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "1fdcbbc24b6d31b2323192fc4ccd24a9cdfa02d7535e7417a6903a9e94d2c5d8"
+    },
+    {
+      "email_id": "mock_special_063",
+      "file": "attachments/mock_special100/mock_special_063_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "205fdde72c1d18259b072531a4f5aed45a664b9efb9b4638ad6162cd1825d15f",
+      "source": {
+        "filename": "PolyLine2D.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/PolyLine2D.dwg",
+        "sha256": "205fdde72c1d18259b072531a4f5aed45a664b9efb9b4638ad6162cd1825d15f"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_064",
+      "file": "attachments/mock_special100/mock_special_064_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "fa9956feed060ffae0195757bc3e61c85b8bc39cc9bec3b6c0e0ef500c637298",
+      "source": "attachments/email_367_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "3d2a909914b6825e3f890c189a95ccad145e124c547cf614aa0cd183ae3821be"
+    },
+    {
+      "email_id": "mock_special_064",
+      "file": "attachments/mock_special100/mock_special_064_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "386ca19275666ed5f731cbee27ecda4efc92467cc9209000199c609e10bdb468",
+      "source": "attachments/email_367_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "08cf6d30df404361506fe5b8dbeec33b3b510ca978fa1c38f785661a7298fac3"
+    },
+    {
+      "email_id": "mock_special_065",
+      "file": "attachments/mock_special100/mock_special_065_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "bca3be4187a47a45c837427e243d4bf69e9fc860c5e1e70b8e73618f54ec5a4a",
+      "source": "attachments/email_377_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "32e746f47bea08aeb2f4ac4f9368c3521ccc32f55861529dd81b44c7f585c231"
+    },
+    {
+      "email_id": "mock_special_065",
+      "file": "attachments/mock_special100/mock_special_065_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "c4623850c277356168b7f8dc567aee500f4d31e39f85255342d6a596e28792a4",
+      "source": "attachments/email_377_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "f222d2f03bec2e8e0fa41b2f2ea45ceb72afa544194df7ccd16665494370148f"
+    },
+    {
+      "email_id": "mock_special_066",
+      "file": "attachments/mock_special100/mock_special_066_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "d4254d949e082ae0a07f0a01416bdc65d9d517aa8d63034ed6a6a354342e06fa",
+      "source": "attachments/email_378_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "f7ed343db64330cd9d527c12b96d592ab91a5d989680172c3889eadc89fa3567"
+    },
+    {
+      "email_id": "mock_special_066",
+      "file": "attachments/mock_special100/mock_special_066_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "16f359293561d18542edff8f91796e9896cee63037b6a0d54448195cede80754",
+      "source": "attachments/email_378_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "7d1f45f5efc230edda4b485a92afbf5dc216cd462d978ca5c762df80ee14926c"
+    },
+    {
+      "email_id": "mock_special_067",
+      "file": "attachments/mock_special100/mock_special_067_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "1f021025b2a052fbc6d7773fe12637ef8d43852dbc48d6665b8344862113c114",
+      "source": "attachments/email_379_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "6134a9fd178524d4e3cce3a0a9a92127e64fb22c38dc2c849fc3ad6489e291a3"
+    },
+    {
+      "email_id": "mock_special_067",
+      "file": "attachments/mock_special100/mock_special_067_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "aefbfd88f7de4023b2502e7168c937555f064efb18dd3877853561e63a8267fb",
+      "source": "attachments/email_379_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "06c5df2e8b425bca25148e48a3b6fdddf1c3b1c586df6d4fa5bc2842a0de90d3"
+    },
+    {
+      "email_id": "mock_special_068",
+      "file": "attachments/mock_special100/mock_special_068_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "f4ac6626ec9595dec028478d90edac96561eae729873bf4ba764fa47b26cb057",
+      "source": "attachments/email_383_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "5446b81bc78edc04cacd7aaceb5f1a2b4bd1a054dcf969629cf75573d0baa626"
+    },
+    {
+      "email_id": "mock_special_068",
+      "file": "attachments/mock_special100/mock_special_068_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "b13b173da808b790f029db677bc1dfbed516206a718bf2e3b27e831f0103365b",
+      "source": "attachments/email_383_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "94fdf90ba9df307e0acd398352131108f7456c55dc4adf8a02c42880a487f140"
+    },
+    {
+      "email_id": "mock_special_069",
+      "file": "attachments/mock_special100/mock_special_069_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "9d31028615d4434b7b30886559f11b1c838c73df535369543c149de3152f838d",
+      "source": "attachments/email_391_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "0434f665ad44cbf561e2d3681f58093a4352da55f337c9aa403b6d71d1a0d359"
+    },
+    {
+      "email_id": "mock_special_069",
+      "file": "attachments/mock_special100/mock_special_069_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "289d398c26635cb909d43653124d99a3c8d94ada38effe9de3893fc161c3fc5e",
+      "source": "attachments/email_391_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "b7f2b75ff6cf77a02a05714edda39eb1653ddec9d2687220f1130371002e1dae"
+    },
+    {
+      "email_id": "mock_special_070",
+      "file": "attachments/mock_special100/mock_special_070_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "f51f4f65ba027bf1a001480d3c7b5bc5667960050081c67f9bb9c7bdbcfe815a",
+      "source": {
+        "filename": "PolyLine3D.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/PolyLine3D.dwg",
+        "sha256": "f51f4f65ba027bf1a001480d3c7b5bc5667960050081c67f9bb9c7bdbcfe815a"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_071",
+      "file": "attachments/mock_special100/mock_special_071_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "4658e40db773ebabb185ccf2ecd422b320c7882947bf5f5eb0095632d067308f",
+      "source": "attachments/email_408_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "8100697a21978ddf8e84d2143bb5a26ceffb431c53457be9c9f4f675f8899a48"
+    },
+    {
+      "email_id": "mock_special_071",
+      "file": "attachments/mock_special100/mock_special_071_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "c1661711727240df013a72617e134cfb5d4e3f4a26c6a483bfd820a99fa6500f",
+      "source": "attachments/email_408_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "b987c5075d4cdfa3518a0935eea21f89ef3ff4dff784882af7548e4aa75c9e5a"
+    },
+    {
+      "email_id": "mock_special_072",
+      "file": "attachments/mock_special100/mock_special_072_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "a8ff876f3c3f0e40614789139a41ce5a139455bbf6c8451f6d5498ec92bbb47b",
+      "source": "attachments/email_409_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "e503362c0b4fce0455f671055dcd19de6972b0a57201c35c45549d6f1589015c"
+    },
+    {
+      "email_id": "mock_special_072",
+      "file": "attachments/mock_special100/mock_special_072_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "24c0a65e0182bb4005ee032f9185693588d71d9cb0e1542bea8fb719b031eebb",
+      "source": "attachments/email_409_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "036a7edf77daf93e22229456265a6f74ee3b8c602e22d6a97e1830da9b01e675"
+    },
+    {
+      "email_id": "mock_special_073",
+      "file": "attachments/mock_special100/mock_special_073_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "293ae590c248c8d1c89575c22abc9c6491313c0c1e802d1e23f81f90b59ed037",
+      "source": "attachments/email_410_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "512a70a16a348922aef552b87afaf511ba982c70362f62bc25e758999ca25a76"
+    },
+    {
+      "email_id": "mock_special_073",
+      "file": "attachments/mock_special100/mock_special_073_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "c923115ee329aad3101cf66b096600a082f083045bb651f7f4230a1a43f38fcf",
+      "source": "attachments/email_410_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "402b1274cfb114247faa6ba67d777eeaba11c2bc80559571687f4a584c450f7d"
+    },
+    {
+      "email_id": "mock_special_074",
+      "file": "attachments/mock_special100/mock_special_074_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "308776011194b93f46f2588c67848829e56e15dad3de844506f4e93ab52d8ede",
+      "source": "attachments/email_416_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "a013587565dd373ac37a2d261638aa1d5bc62d192943c18a283b2f4f5f777ce7"
+    },
+    {
+      "email_id": "mock_special_074",
+      "file": "attachments/mock_special100/mock_special_074_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "8f381c097968659aa978c0f8f993662992ba5c8f90b899c404b58a85a51820ba",
+      "source": "attachments/email_416_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "416a6c75fa9059cce6373675762e50242bd9024f332b5405a6c45f981078a48d"
+    },
+    {
+      "email_id": "mock_special_075",
+      "file": "attachments/mock_special100/mock_special_075_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "6a16e13d05cd2eeeb74db4972ee71500abed45b5a34944258c84e9420bcd151d",
+      "source": "attachments/email_426_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "1b552156abaf168aec9a80f5740230c36cb3863b741d61cf14828c6cbae4cf97"
+    },
+    {
+      "email_id": "mock_special_075",
+      "file": "attachments/mock_special100/mock_special_075_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "d765e37edc544bbc748b744ceef6ffddcfec4ef78abc6b80b048b7dbfca39c13",
+      "source": "attachments/email_426_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "d4736b78f9c148f8647d689d67ccc6e722a3868e21ad91ecf2dedd9953f5bd77"
+    },
+    {
+      "email_id": "mock_special_076",
+      "file": "attachments/mock_special100/mock_special_076_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "a459e2e4296a33f204b37ab924250b99e65890c91c6115ca26f77f542e8c3c3f",
+      "source": "attachments/email_428_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "1c28320a581c5e6b940d5267d8a820dce738e69ca511df74b0b49ec6a187ab56"
+    },
+    {
+      "email_id": "mock_special_076",
+      "file": "attachments/mock_special100/mock_special_076_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "a76b648df9144a51cd1162634648213b1b9d3760629a98e09c89d4b6ad403f61",
+      "source": "attachments/email_428_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "ddb0da3d4f7645d77bd4ca00a1bc6f006fd8b6b55e87e93998b81c249d27c703"
+    },
+    {
+      "email_id": "mock_special_077",
+      "file": "attachments/mock_special100/mock_special_077_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "942cc72decb90cd775031ba7a7cc936c18273eaba7cb0075f715ce5debe3b098",
+      "source": {
+        "filename": "Polygon.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Polygon.dwg",
+        "sha256": "942cc72decb90cd775031ba7a7cc936c18273eaba7cb0075f715ce5debe3b098"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_078",
+      "file": "attachments/mock_special100/mock_special_078_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "770efe662be66cffa173e9d278d38456b12f934a6c600e1fc5956602e818c81a",
+      "source": "attachments/email_468_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "ba71f4694f5786f9362acdcaac92935a08ccc2065cccf26b05e6d57ad2dc97e2"
+    },
+    {
+      "email_id": "mock_special_078",
+      "file": "attachments/mock_special100/mock_special_078_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "b77abef2d3960938e0a7116f2c1d39c6f4fe4c28e7570bdc6d7bebbec37bb665",
+      "source": "attachments/email_468_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "3c43e2d8342b92d26db53f7cca7e9b7bb92a702d78006a9354f9a78c97efbf20"
+    },
+    {
+      "email_id": "mock_special_079",
+      "file": "attachments/mock_special100/mock_special_079_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "a2fe8655fd5c7ee5ecdbf274809eb772b88af752c807e4a0e2bb3b16a359e401",
+      "source": "attachments/email_474_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "6107022df2c1f5da981d04b8e7f5193b500ed977e3a76f80bbfe82d20055b4fc"
+    },
+    {
+      "email_id": "mock_special_079",
+      "file": "attachments/mock_special100/mock_special_079_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "6f1cd1aec72981c933b1ac4eac79a5274caa6ff88dd63dd387e9d42b67724607",
+      "source": "attachments/email_474_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "6aeb97b385ec56f860379d5086c4f94f48cbb44d8ee07fc7cb5b5b3cf0de3a5d"
+    },
+    {
+      "email_id": "mock_special_080",
+      "file": "attachments/mock_special100/mock_special_080_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "1ae6d5c380a7037efa9f20770137600dd0f2c52385aa59d4aeaf1c7594b1d216",
+      "source": "attachments/email_479_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "3a84d2a3c1e09c1c583c01e5b57f81ceff5b496f201592aad8e2964cd8fee534"
+    },
+    {
+      "email_id": "mock_special_080",
+      "file": "attachments/mock_special100/mock_special_080_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "7806928904ad142f61b126b0221fb9b8e86e25b62a36b69d1fd84ae1290d09b6",
+      "source": "attachments/email_479_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "0068430c16fa0d46af2f4b15ec2872f4dd7c56be641408f646dd05833963e6da"
+    },
+    {
+      "email_id": "mock_special_081",
+      "file": "attachments/mock_special100/mock_special_081_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "b5ef63aea09f804de9bc6dcd8bd2c6a16ca6ceb0f02fc9eda7b6de4838dadccb",
+      "source": "attachments/email_483_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "b4d992a21b5525e69ab3c3c1c7d018639646583ec78c77af918e62f4a32b3dbc"
+    },
+    {
+      "email_id": "mock_special_081",
+      "file": "attachments/mock_special100/mock_special_081_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "2c50483d7b81d82fe181780d19f6097e6bed398401b2dbdb7a0b15d40dcbf0f0",
+      "source": "attachments/email_483_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "44feb5b82f81af8eec11094d1362f32465b826573265ed925eafd009e16f61bf"
+    },
+    {
+      "email_id": "mock_special_082",
+      "file": "attachments/mock_special100/mock_special_082_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "0f25fbbb66f3b6b7a87fa4345a5632c88f1d707d228ddeccf384a306881cd39e",
+      "source": "attachments/email_491_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "abef59ba56a12eb1635c3fa028802dbc42dea9bda02bab1eea6e6017fce76ba9"
+    },
+    {
+      "email_id": "mock_special_082",
+      "file": "attachments/mock_special100/mock_special_082_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "b96c6e33447d23274089257e33c2137832e712f0fbd7f946cb041073ba3d4caf",
+      "source": "attachments/email_491_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "763e96c13286a19dd15998a4bcd3e50a515ccd66725e670c25c769cc41aa82ad"
+    },
+    {
+      "email_id": "mock_special_083",
+      "file": "attachments/mock_special100/mock_special_083_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "d123a4236fa2bef81568da837cca8333b939ad829a5d0a922a3b2d43893eea4a",
+      "source": "attachments/email_494_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "a5334263d2b2f15f2a02818908529c4d4046ef56708a43c0dfe4405ad23424c3"
+    },
+    {
+      "email_id": "mock_special_083",
+      "file": "attachments/mock_special100/mock_special_083_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "d4d9547ec3baea4e179a8cce78e3d8599ded4c86636e8208fb2ea558cd1b68ee",
+      "source": "attachments/email_494_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "fd6638b54203cbb69fccc80a4b5f25e459b30592923b9bcf51f0da4843c16daf"
+    },
+    {
+      "email_id": "mock_special_084",
+      "file": "attachments/mock_special100/mock_special_084_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "2462b1b1eed19408e0ca9533023f642685c8c152d4c1a18902ef38094c14a398",
+      "source": {
+        "filename": "Polyline.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Polyline.dwg",
+        "sha256": "2462b1b1eed19408e0ca9533023f642685c8c152d4c1a18902ef38094c14a398"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_085",
+      "file": "attachments/mock_special100/mock_special_085_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "4f2645fd4a0480da003bb32cee063652fbd5c1b7a9b037135ffcba9d96c3afb3",
+      "source": "attachments/email_501_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "6e5cfdaa47eacc42dc5d9afcdb61d6cbc7afae42ac87534bc27dd91a56766aea"
+    },
+    {
+      "email_id": "mock_special_085",
+      "file": "attachments/mock_special100/mock_special_085_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "a614ee5ec8d2244e8cf5edcf742c2d51ef845560afc01f5a362b22fac898514d",
+      "source": "attachments/email_501_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "2cac989c23164f362301a8159f8a6d4a6aefe1a5c5d53f83cc92589c059ea5d0"
+    },
+    {
+      "email_id": "mock_special_086",
+      "file": "attachments/mock_special100/mock_special_086_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "0f5da3825c9574782c90800d274f83f92459d3d65f96169271ccfa809fa94c47",
+      "source": "attachments/email_502_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "0ac019673c2da80292841d2893632429f256bcf82f25221a09e360c1db35c090"
+    },
+    {
+      "email_id": "mock_special_086",
+      "file": "attachments/mock_special100/mock_special_086_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "ac83c740de7f7f40de1d84ef9f48b41a7c6ede7feafd5f776e0f2bcdd7de8f18",
+      "source": "attachments/email_502_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "ec6c38051b7e2919688cc1add904179470ec7eeac6f5ebeda31100a48c679303"
+    },
+    {
+      "email_id": "mock_special_087",
+      "file": "attachments/mock_special100/mock_special_087_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "8c8466adcc3a85663a78c3670c15ea16318db606dbeaca6c2705be355870ba58",
+      "source": "attachments/email_503_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "576c0ddc3e893714078f26af2a251d2c563631ed3870b43e267ebee9c2229052"
+    },
+    {
+      "email_id": "mock_special_087",
+      "file": "attachments/mock_special100/mock_special_087_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "6c8167f012e4cea0a00b67301c40bfb6339068fd2269a48e274d2a4343f2ac21",
+      "source": "attachments/email_503_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "82294ab4878cae0b958a5399fa2aee1352e39d11048b7a883247ea58faa57c89"
+    },
+    {
+      "email_id": "mock_special_088",
+      "file": "attachments/mock_special100/mock_special_088_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "9fa00bd8edfc3cee586cbbb4ffb76a4acf45945b8f7a44bc1c0f784c5d299c65",
+      "source": "attachments/email_504_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "1f81e4523a3393025927cf6ddbb0dea2b6d5e5e22f7fac5b222fc1bb128e377b"
+    },
+    {
+      "email_id": "mock_special_088",
+      "file": "attachments/mock_special100/mock_special_088_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "cf76cc7a7dc96ea104d89087c6fff63914d86058957722fef4e25964feeac984",
+      "source": "attachments/email_504_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "355a46ac676e4a9b61d6059e59cacfdc32d0a886d9c6d5f12c1ede86f8881d55"
+    },
+    {
+      "email_id": "mock_special_089",
+      "file": "attachments/mock_special100/mock_special_089_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "36b7152ea5ef7e2483da0d4d5050c134f500133f3724aceeee9114b788f16030",
+      "source": "attachments/email_505_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "9450827a1ab6c33c60915d9e9365bbd8c2805e4b1dff91b304262d58317b26ec"
+    },
+    {
+      "email_id": "mock_special_089",
+      "file": "attachments/mock_special100/mock_special_089_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "f4a5b1cc70a8ba1c88e3dc3df6053ffa2bd596dba9ec77edabe1c5ee89d3ed1e",
+      "source": "attachments/email_505_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "8b26a2e456e0f886ce3f0d532f42e883706e85743b53a7237efd5560929c79b1"
+    },
+    {
+      "email_id": "mock_special_090",
+      "file": "attachments/mock_special100/mock_special_090_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "07a9ae9e3818a285257bf3e1385ae81599a200456554fcd911ff15e76ae94ae2",
+      "source": "attachments/email_516_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "4e8ea40c69f97bcb467d0737824d0026bc7feaa05c120654607707ed3d8a8e89"
+    },
+    {
+      "email_id": "mock_special_090",
+      "file": "attachments/mock_special100/mock_special_090_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "86eabd0edad93539b2e76e44b97c37816180fa8f86594c63bfe0c53d4c44246b",
+      "source": "attachments/email_516_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "2956a09f874459b1aff5feed9220345929b2958c2aff707cecba37d53d4c4439"
+    },
+    {
+      "email_id": "mock_special_091",
+      "file": "attachments/mock_special100/mock_special_091_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "2c6f9eff0367bf77a93c3c3d422d6784c83a85ab0d0745bc14f2b53d4e92c8de",
+      "source": {
+        "filename": "RAY.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/RAY.dwg",
+        "sha256": "2c6f9eff0367bf77a93c3c3d422d6784c83a85ab0d0745bc14f2b53d4e92c8de"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_092",
+      "file": "attachments/mock_special100/mock_special_092_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "731155e2a759af34a5c8a1152f24889474136e7d932534c2cde6f88ee4a7f6bb",
+      "source": "attachments/email_518_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "bfcc296bb60e0589dd649658d616e7318759596292f220e35d2b13ea8f6ed9a8"
+    },
+    {
+      "email_id": "mock_special_092",
+      "file": "attachments/mock_special100/mock_special_092_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "54da1777fe4880445f4826b6a209816ebc2604e0cb18ed5e9e4368dfd7ff88c8",
+      "source": "attachments/email_518_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "f6caf27f08298b02b25f85c824558fff50569dc836f56723aeb3537dd6186915"
+    },
+    {
+      "email_id": "mock_special_093",
+      "file": "attachments/mock_special100/mock_special_093_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "dddb9f2600e7278b6b80f5aa323ad4bd14558dfcbdbafca126afe911105fabdc",
+      "source": "attachments/email_519_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "b86a6a1c9cc53bdb9a32418f3263f39eb08313cbe42f697712ba962895a39ecd"
+    },
+    {
+      "email_id": "mock_special_093",
+      "file": "attachments/mock_special100/mock_special_093_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "4f87e032c3ab1dcb0a34970752c3394fe62bddd0dd3350f00e20201434847482",
+      "source": "attachments/email_519_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "320fdcc445f4f0ca4e701ac130fad36bb07e11c1b048e5061d8ffaeac50a9c84"
+    },
+    {
+      "email_id": "mock_special_094",
+      "file": "attachments/mock_special100/mock_special_094_SI.numbers",
+      "extension": "numbers",
+      "kind": "SI",
+      "sha256": "b2613642525c432df9a50d0e5f23995a24d71c1cd39e59282f05ecfbaeee8913",
+      "source": "attachments/email_520_SI.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "0ac639589a114adec2b8a9afd804c56fd38738e6bf9ee88bdf7c9a912e8c8354"
+    },
+    {
+      "email_id": "mock_special_094",
+      "file": "attachments/mock_special100/mock_special_094_BL.numbers",
+      "extension": "numbers",
+      "kind": "BL",
+      "sha256": "b1e8e2ca4d0970e3b488be1f8cf3d0019c2d0ecea256112972b55dfa564ea752",
+      "source": "attachments/email_520_BL.txt",
+      "verification": "Numbers reopened: all cells match",
+      "source_text_sha256": "ebfbb966ca4be0a0ce4241779b06f123d5244d9453b76370859b68ad421b37de"
+    },
+    {
+      "email_id": "mock_special_095",
+      "file": "attachments/mock_special100/mock_special_095_SI.key",
+      "extension": "key",
+      "kind": "SI",
+      "sha256": "87410ac7f8e5425f2f4551457b3ae51e840c798b67db877ab095ffad29a1ed57",
+      "source": "attachments/email_001_SI.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "d16c8b1d56e11644e8905c4af65bcc6fc3a0265d447c248c2cd9eef0572c3c58"
+    },
+    {
+      "email_id": "mock_special_095",
+      "file": "attachments/mock_special100/mock_special_095_BL.key",
+      "extension": "key",
+      "kind": "BL",
+      "sha256": "557cbffc7ca179322fd183dc349076b8055399709e52501992f474cc75724b71",
+      "source": "attachments/email_001_BL.txt",
+      "verification": "IWA decoded: full text matches presenter notes; all IWA members parse",
+      "source_text_sha256": "508d9a3d1f08fd10d3cf558b1bceb071f88482f1077c1af293154989f1379a08"
+    },
+    {
+      "email_id": "mock_special_096",
+      "file": "attachments/mock_special100/mock_special_096_SI.heic",
+      "extension": "heic",
+      "kind": "SI",
+      "sha256": "4274513de3fd8329678d1c4a2fe17664c7ddb093e408425cd96def5f6bfb644d",
+      "source": "attachments/email_004_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "9999bc211a85fbf68de6ded4c68b0b4a5bc7ea16cc27aaba23b736332c091c1a"
+    },
+    {
+      "email_id": "mock_special_096",
+      "file": "attachments/mock_special100/mock_special_096_BL.heic",
+      "extension": "heic",
+      "kind": "BL",
+      "sha256": "91da1bdb8b5f56ad85bb47ae74cd483692d6cc8ec7a142a4c27600717938d154",
+      "source": "attachments/email_004_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "083fec3ad529d756c3d309092330f8fea395174e1552efcaa7ad571755e7b05c"
+    },
+    {
+      "email_id": "mock_special_097",
+      "file": "attachments/mock_special100/mock_special_097_SI.heif",
+      "extension": "heif",
+      "kind": "SI",
+      "sha256": "fcf9c56a07de2818b634867fa684903100ce7180660b6aa672dac6c0d8e8840c",
+      "source": "attachments/email_009_SI.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "7613b147035f7cebb5af995d4f97e7d812cfbf2c387d295fae672687bf779afd"
+    },
+    {
+      "email_id": "mock_special_097",
+      "file": "attachments/mock_special100/mock_special_097_BL.heif",
+      "extension": "heif",
+      "kind": "BL",
+      "sha256": "3fac0c59b9144adc07b2bc31f1edf5fc881a6c0df9041cfdef1b147af871904a",
+      "source": "attachments/email_009_BL.txt",
+      "verification": "HEVC HEIF decoded: image dimensions verified",
+      "source_text_sha256": "dff1c1ff152dff23767ba4ce94ed3cb02e6770f5208c4b80971a0be7a62f128c"
+    },
+    {
+      "email_id": "mock_special_098",
+      "file": "attachments/mock_special100/mock_special_098_DOC.dwg",
+      "extension": "dwg",
+      "kind": "DOC",
+      "sha256": "05761169263f26320c265d6834e3f2f9d0fadd0aaf5f498688128fbce251f369",
+      "source": {
+        "filename": "Spline.dwg",
+        "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Spline.dwg",
+        "sha256": "05761169263f26320c265d6834e3f2f9d0fadd0aaf5f498688128fbce251f369"
+      },
+      "verification": "Original public fixture: LibreDWG decoded JSON without errors; source hash preserved"
+    },
+    {
+      "email_id": "mock_special_099",
+      "file": "attachments/mock_special100/mock_special_099_SI.msg",
+      "extension": "msg",
+      "kind": "SI",
+      "sha256": "e29b871eb382a95e73c05e562cb7e1aef46a1349d37fe368167053d647498b96",
+      "source": "attachments/email_025_SI.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "1651a3eb13fd49c06e58b314b0692804515868dc0a4f53c1870ffe6021212c92"
+    },
+    {
+      "email_id": "mock_special_099",
+      "file": "attachments/mock_special100/mock_special_099_BL.msg",
+      "extension": "msg",
+      "kind": "BL",
+      "sha256": "a348af87ff00c90a2cea77399e57512a66232eda5a58067de400a2be6668d7d6",
+      "source": "attachments/email_025_BL.txt",
+      "verification": "OLE/MAPI decoded: subject and body match",
+      "source_text_sha256": "edac3753dc208b50c4e84d686921bd74a02c50acaf8f6b6f63105d967e215418"
+    },
+    {
+      "email_id": "mock_special_100",
+      "file": "attachments/mock_special100/mock_special_100_SI.pages",
+      "extension": "pages",
+      "kind": "SI",
+      "sha256": "56653cd26e6a3a1422789d4c4d383f491e4c2fa576915ff18fd5badb023c90e1",
+      "source": "attachments/email_031_SI.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "f88ac6cae397d21082a991e907031f7e7334858cb87f228bd91d6148ddd6a007"
+    },
+    {
+      "email_id": "mock_special_100",
+      "file": "attachments/mock_special100/mock_special_100_BL.pages",
+      "extension": "pages",
+      "kind": "BL",
+      "sha256": "62bf60c100c604e23a96cb5dd0c12aea81d1938384c26eb39243ced324e8eeb3",
+      "source": "attachments/email_031_BL.txt",
+      "verification": "IWA decoded: full text matches; all IWA members parse",
+      "source_text_sha256": "29709c67cf01706fb5c4314217ec53896af176a6dd0ac05cc8590b570c7ae5aa"
+    }
+  ],
+  "limitations": [
+    "Validated with format parsers, not in native Apple/Outlook/AutoCAD applications.",
+    "Keynote stores full SI/BL text in presenter notes; slide contains a short label.",
+    "DWG attachments are unmodified public CAD fixtures, intentionally wrong document types, not generated shipping drawings.",
+    "HEIC and HEIF are both real HEVC-encoded HEIF containers.",
+    "No application import, pipeline execution, or emails sent."
+  ]
+}

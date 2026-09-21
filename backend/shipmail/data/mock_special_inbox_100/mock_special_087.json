@@ -1,0 +1,10 @@
+{
+  "email_id": "mock_special_087",
+  "from": "logistics@algurg.ae",
+  "subject": "[MOCK-SPECIAL 087] AFEMY - HOCHIMINH CITY_VIETNAM - HAPAG(HLCUSIN016481880) - 5ALT-36381 - 5250076432 - INTERNATIONAL FOREST PRODUCTS LLC - OA_CFR",
+  "body": "Dear Team,\n\nPlease find attached the SI and the Certificate of Origin for 44287738. Kindly confirm the BL is in order.\n\n(Note: the second attachment is a Certificate of Origin, not the draft BL.)\n\nThe customer supplied the documents in NUMBERS format. Kindly advise if a PDF copy is required.",
+  "attachments": [
+    "attachments/mock_special100/mock_special_087_SI.numbers",
+    "attachments/mock_special100/mock_special_087_BL.numbers"
+  ]
+}

@@ -1343,8 +1343,20 @@ table.list tbody tr.sel .key{color:var(--accent)}
           </div>
         </div>
 
-        <div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn" type="button" onclick="Gateway.pollImap()" title="Check live IMAP inbox for new emails sent from your Gmail">📥 Poll IMAP Inbox</button>
           <button class="btn btn-primary" type="button" onclick="Gateway.openSimModal()">⚡ Simulate Incoming Email</button>
+        </div>
+      </div>
+
+      <!-- Live Channel Status Bar -->
+      <div id="channelBar" style="display:flex;justify-content:space-between;align-items:center;padding:7px 16px;background:var(--surface);border-radius:8px;border:1px solid var(--border);margin-bottom:12px;font-size:12px;color:var(--muted);flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div><span style="font-weight:600;color:var(--text);">📥 Inbound (IMAP):</span> <span id="imapChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></div>
+          <div><span style="font-weight:600;color:var(--text);">📤 Outbound (SMTP):</span> <span id="smtpChannelBadge" class="badge-live"><span class="badge-dot"></span> Checking...</span></div>
+        </div>
+        <div style="font-size:11.5px;color:var(--muted-2);">
+          💡 Configure <code style="background:var(--surface-3);padding:2px 5px;border-radius:4px;border:1px solid var(--border-strong);">.env</code> (IMAP_HOST / SMTP_HOST) to activate real email ingestion from your private Gmail.
         </div>
       </div>
 
@@ -1521,6 +1533,11 @@ table.list tbody tr.sel .key{color:var(--accent)}
       </div>
     </div>
 
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:600;color:var(--text);">✉️ Sender Email (Type your own email to test replying to yourself!):</div>
+      <input id="simSender" placeholder="e.g. your_email@example.com" value="customer@fastlogistics.com" style="background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:6px;padding:6px 10px;font-size:12px;outline:none;">
+    </div>
+
     <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
       <button class="btn" type="button" onclick="Gateway.closeSimModal()">Cancel</button>
       <button class="btn btn-primary" type="button" onclick="Gateway.executeDrop()">⚡ Transmit Email</button>
@@ -1548,9 +1565,14 @@ table.list tbody tr.sel .key{color:var(--accent)}
       <input id="retSub" style="background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:8px;font-family:var(--sans);font-size:12.5px;outline:none;">
     </div>
     <textarea id="retBody" style="width:100%;height:150px;background:var(--surface-3);color:var(--text);border:1px solid var(--border-strong);border-radius:8px;padding:10px;font-family:var(--sans);font-size:12.5px;outline:none;resize:vertical;"></textarea>
-    <div style="display:flex;justify-content:flex-end;gap:10px;">
-      <button class="btn" type="button" onclick="Gateway.closeReturnModal()">Cancel</button>
-      <button class="btn btn-primary" type="button" onclick="Gateway.confirmReturn()">📨 Dispatch Return</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+      <a id="retMailtoBtn" href="#" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;background:rgba(59,130,246,0.15);color:#3b82f6;border:1px solid rgba(59,130,246,0.4);" target="_blank">
+        🚀 Open Local Email (Plan 1: mailto)
+      </a>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" type="button" onclick="Gateway.closeReturnModal()">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="Gateway.confirmReturn()">📨 Dispatch Return</button>
+      </div>
     </div>
   </div>
 </div>

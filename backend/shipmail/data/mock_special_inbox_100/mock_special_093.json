@@ -1,0 +1,10 @@
+{
+  "email_id": "mock_special_093",
+  "from": "deswita_elvyani@aprilasia.com",
+  "subject": "[MOCK-SPECIAL 093] AFPTME - BUSAN_SOUTH KOREA - OOCL(OOLU8177602991) - 5APH-33373 - 5250071255 - UAB NOVAKOPA - LC",
+  "body": "Dear Team,\n\nPlease compare the SI and draft BL for PSGSE4068841. Some SI fields were left blank by the customer; kindly confirm what we have.\n\nThe customer supplied the documents in PAGES format. Kindly advise if a PDF copy is required.",
+  "attachments": [
+    "attachments/mock_special100/mock_special_093_SI.pages",
+    "attachments/mock_special100/mock_special_093_BL.pages"
+  ]
+}

@@ -1,0 +1,3 @@
+Keynote test fixture source: https://github.com/psobot/keynote-parser/blob/master/tests/data/simple-oneslide.key
+Author: Peter Sobot
+The keynote-parser package metadata declares MIT License. No separate license file was present in the upstream repository at retrieval.

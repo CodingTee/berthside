@@ -1,0 +1,10 @@
+{
+  "email_id": "mock_special_090",
+  "from": "elisa_tukiman@april.com.my",
+  "subject": "[MOCK-SPECIAL 090] RE_ AFEMY - CONAKRY_GUINEA - MONTER(MCLSIN6123859) - 5RCY-68239 - 5250074840 - KPP-ANTALIS (SINGAPORE) PTE. LTD. - OA_CFR",
+  "body": "Dear Team,\n\nPlease compare the SI and draft BL for MCLSINJEA2551434. Some SI fields were left blank by the customer; kindly confirm what we have.\n\nThe customer supplied the documents in HEIF format. Kindly advise if a PDF copy is required.",
+  "attachments": [
+    "attachments/mock_special100/mock_special_090_SI.heif",
+    "attachments/mock_special100/mock_special_090_BL.heif"
+  ]
+}

@@ -114,3 +114,18 @@ def test_dispatch_history_lists_returns(client, db_session):
 def test_return_unknown_stage_404(client, db_session):
     res = client.post("/api/v1/gateway/emails/NOPE/return", json={"dry_run": True})
     assert res.status_code == 404
+
+
+def test_mailto_url_generation(client, db_session):
+    _seed(db_session, status="REJECTED")
+    res = client.post(
+        "/api/v1/gateway/emails/STG-TEST1/return",
+        json={"dry_run": True},
+    )
+    assert res.status_code == 200
+    d = res.json()
+    assert "mailto_url" in d
+    assert d["mailto_url"].startswith("mailto:shipper@fastocean.com?")
+    assert "subject=" in d["mailto_url"]
+    assert "body=" in d["mailto_url"]
+

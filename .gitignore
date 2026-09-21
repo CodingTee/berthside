@@ -68,6 +68,9 @@ pnpm-debug.log*
 *.sqlite
 *.sqlite3
 
+# --- local inbox snapshots taken before each mock merge ---
+backend/shipmail/data/emails.before-*.json
+
 # --- environments & secrets ---
 .env
 .env.*
@@ -75,6 +78,8 @@ pnpm-debug.log*
 !**/.env.example
 *.key
 *.pem
+# Keynote decks are also .key, so the mock corpus is exempted.
+!backend/shipmail/data/attachments/mock_special100/*.key
 backend/secrets/
 
 # --- editors / OS ---

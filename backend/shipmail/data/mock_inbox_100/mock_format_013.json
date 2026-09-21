@@ -1,0 +1,10 @@
+{
+  "email_id": "mock_format_013",
+  "from": "chella.perumal@psabdp.com",
+  "subject": "[MOCK 013] TO CONFIRM DOCS _ 5RSG-51522 _ SAVANNAH_US _ KPP-ANTALIS (SINGAPORE) PTE. LTD. _ HLCUSIN613750606",
+  "body": "Hi Elisa,\n\nAttached are the SI and draft BL for OC 5RSG-51522 (UNCOATED WOODFREE PAPER IN REA). Please check the details and confirm.\n\nBest Regards,\nHari Mardianto\nShipping Documentation\nDID : +971 04 4938270\nAPRIL Fine Paper Trading (Middle East) Fze\n#813, 4 EA, Dubai Airport Free Zone\nP.O. Box : 293775, Dubai, United Arab Emirates\nWebsite : www.aprilasia.com | www.paperone.com\n\nPlease find the supporting documents attached in JSON format. Kindly advise if an alternative copy is required.",
+  "attachments": [
+    "attachments/mock100/mock_format_013_SI.json",
+    "attachments/mock100/mock_format_013_BL.json"
+  ]
+}

@@ -6,6 +6,13 @@ happened: a stray `EXT-TEST-0099` ended up in the dev database, and because
 `inbox_service.all_emails()` merges ingested rows into the inbox, a local
 evaluation started reporting 521 emails instead of the official 520.
 
+The same reasoning applies to the mail channel. A developer's `.env` points at a
+live mailbox, so a test that returns a document to its sender opened a real SMTP
+session and mailed whichever address the fixture had seeded, and an IMAP poll
+would have marked real unread mail as seen. Both hosts are blanked below, so a
+test can only ever simulate; a test that wants the live branch sets the
+attributes on `get_settings()` itself.
+
 Isolation is applied at runtime rather than by rewriting DATABASE_URL, for two
 reasons:
 
@@ -15,6 +22,10 @@ reasons:
 * `app.dependency_overrides` works regardless of import order, and patching
   `SessionLocal` covers the code paths that reach for the module global (for
   example `inbox_service.get_email`).
+
+`get_settings()` is cached, so every env change here is followed by
+`cache_clear()`; that also means the cache is rebuilt per test and the direct
+attribute edits in the mail tests cannot leak into the next one.
 """
 from __future__ import annotations
 
@@ -55,6 +66,11 @@ def isolated_state(tmp_path, monkeypatch):
 
     from app.config import get_settings
     monkeypatch.setenv("INGEST_DIR", str(tmp_path / "ingested"))
+    for var in (
+        "SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD",
+        "IMAP_HOST", "IMAP_USER", "IMAP_PASSWORD",
+    ):
+        monkeypatch.setenv(var, "")
     get_settings.cache_clear()
 
     from app.main import app as fastapi_app

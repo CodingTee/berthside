@@ -1,0 +1,9 @@
+{
+  "email_id": "mock_format_100",
+  "from": "operations@aprilasia.com",
+  "subject": "[MOCK 100] _RPA_ India HSS SD Billing Process Completed - LE HAVRE V.QI540A",
+  "body": "Dear Team,\n\nPlease find attached the list of outstanding BL (BDP SG). Kindly action the pending items.\n\nRegards,\nDocumentation\n\nPlease find the supporting documents attached in RAR format. Kindly advise if an alternative copy is required.",
+  "attachments": [
+    "attachments/mock100/mock_format_100_DOC.rar"
+  ]
+}

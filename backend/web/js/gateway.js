@@ -251,9 +251,23 @@
           delivery.textContent = "(reply: verification result)";
         }
       }
+      updateMailtoLink();
       document.getElementById("returnModal").classList.remove("hidden");
     }catch(e){
       toast("Failed to prepare return", "bad");
+    }
+  }
+
+  function updateMailtoLink(){
+    const btn = document.getElementById("retMailtoBtn");
+    if(!btn) return;
+    const to = (document.getElementById("retTo").textContent || "").trim();
+    const sub = document.getElementById("retSub").value || "";
+    const body = document.getElementById("retBody").value || "";
+    if(to && to !== "-"){
+      btn.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
+    } else {
+      btn.href = "#";
     }
   }
 
@@ -303,10 +317,12 @@
     try{
       const selMb = document.getElementById("selMailbox");
       const mailbox = (selMb && selMb.value !== "ALL") ? selMb.value : "docs.export@averis.com";
+      const senderInput = document.getElementById("simSender");
+      const sender = (senderInput && senderInput.value.trim()) ? senderInput.value.trim() : "customer@fastlogistics.com";
       const res = await fetch("/api/v1/gateway/simulate-drop", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({scenario: currentScenario, source_mailbox: mailbox})
+        body: JSON.stringify({scenario: currentScenario, source_mailbox: mailbox, sender: sender})
       });
       const d = await res.json();
       if(d.security_status === "BLOCKED"){
@@ -494,7 +510,11 @@
 
   function startPolling(){
     if(!statusPollTimer){
-      statusPollTimer = setInterval(loadStatus, 8000);
+      statusPollTimer = setInterval(() => {
+        loadStatus();
+        loadStagedEmails();
+        loadChannelStatus();
+      }, 5000);
     }
   }
 
@@ -502,6 +522,53 @@
     if(statusPollTimer){
       clearInterval(statusPollTimer);
       statusPollTimer = null;
+    }
+  }
+
+  async function loadChannelStatus(){
+    try{
+      const res = await fetch("/api/v1/gateway/email-channel/status");
+      if(!res.ok) return;
+      const d = await res.json();
+      const imapBadge = document.getElementById("imapChannelBadge");
+      if(imapBadge){
+        if(d.imap.configured){
+          imapBadge.innerHTML = `<span class="badge-dot" style="background:#10b981;"></span> <b style="color:#10b981;">LIVE</b> (${d.imap.host})`;
+        } else {
+          imapBadge.innerHTML = `<span class="badge-dot" style="background:var(--muted-2);"></span> Simulated Sandbox`;
+        }
+      }
+      const smtpBadge = document.getElementById("smtpChannelBadge");
+      if(smtpBadge){
+        if(d.smtp.configured){
+          smtpBadge.innerHTML = `<span class="badge-dot" style="background:#10b981;"></span> <b style="color:#10b981;">LIVE</b> (${d.smtp.host})`;
+        } else {
+          smtpBadge.innerHTML = `<span class="badge-dot" style="background:var(--muted-2);"></span> Simulated Fallback`;
+        }
+      }
+    }catch(e){}
+  }
+
+  async function pollImap(){
+    toast("Connecting to IMAP inbox and checking for new unread mail...", "ok");
+    try{
+      const res = await fetch("/api/v1/gateway/imap/poll", {method: "POST"});
+      const d = await res.json();
+      if(d.status === "SUCCESS"){
+        if(d.polled_count > 0){
+          toast(`✓ Ingested ${d.polled_count} email(s) via IMAP!`, "ok");
+        } else {
+          toast("Connected to IMAP: No new unread emails.", "ok");
+        }
+        loadStatus();
+        loadStagedEmails();
+      } else if(d.status === "SKIPPED"){
+        toast("IMAP not configured in .env. Using Simulated Sandbox.", "warn");
+      } else {
+        toast(`IMAP Error: ${d.error || d.message}`, "bad");
+      }
+    }catch(e){
+      toast("Failed to poll IMAP", "bad");
     }
   }
 
@@ -526,9 +593,16 @@
     bulkReturnMailbox,
     startPolling,
     stopPolling,
+    loadChannelStatus,
+    pollImap,
     init: function(){
+      const s = document.getElementById("retSub");
+      const b = document.getElementById("retBody");
+      if(s) s.addEventListener("input", updateMailtoLink);
+      if(b) b.addEventListener("input", updateMailtoLink);
       loadStatus();
       loadStagedEmails();
+      loadChannelStatus();
       startPolling();
     }
   };

@@ -403,20 +403,52 @@ def on_startup() -> None:
         "Heavy inbox processing skipped during startup."
     )
 
-    global gmail_poll_task
+    global gmail_poll_task, imap_poll_task
     if settings.gmail_polling_enabled:
         gmail_poll_task = asyncio.create_task(_gmail_poll_loop())
+    if settings.imap_host and settings.imap_host.strip():
+        imap_poll_task = asyncio.create_task(_imap_poll_loop())
 
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
-    global gmail_poll_task
+    global gmail_poll_task, imap_poll_task
     if gmail_poll_task:
         gmail_poll_task.cancel()
         try:
             await gmail_poll_task
         except asyncio.CancelledError:
             pass
+    if imap_poll_task:
+        imap_poll_task.cancel()
+        try:
+            await imap_poll_task
+        except asyncio.CancelledError:
+            pass
+
+
+async def _imap_poll_loop() -> None:
+    """Continuous background poller for inbound IMAP mailbox."""
+    from app.database import SessionLocal
+    from app.services.imap_poller import poll_imap_inbox
+
+    interval = max(settings.imap_poll_interval_seconds, 8)
+    logging.info("Started IMAP background listener (interval: %ds)", interval)
+
+    while True:
+        try:
+            if settings.imap_host and settings.imap_host.strip():
+                db = SessionLocal()
+                try:
+                    loop = asyncio.get_running_loop()
+                    await loop.run_in_executor(None, poll_imap_inbox, db)
+                finally:
+                    db.close()
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            logging.warning("Background IMAP polling error: %s", exc)
+        await asyncio.sleep(interval)
 
 
 async def _gmail_poll_loop() -> None:

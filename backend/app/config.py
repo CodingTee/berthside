@@ -121,6 +121,24 @@ class Settings(BaseSettings):
     # static bundle is plain text, so this never affects the local score).
     ocr_enabled: bool = True
 
+    # -- email channel (real IMAP inbound & SMTP outbound) -----------------
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+    smtp_use_ssl: bool = False
+
+    imap_host: str = ""
+    imap_port: int = 993
+    imap_user: str = ""
+    imap_password: str = ""
+    imap_folder: str = "INBOX"
+    imap_poll_interval_seconds: int = 10
+    imap_enabled: bool = False
+    auto_reply_on_verification: bool = True
+
     model_config = SettingsConfigDict(
         env_file=str(BACKEND_ROOT / ".env"),
         env_file_encoding="utf-8",

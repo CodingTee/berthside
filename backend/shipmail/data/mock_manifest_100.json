@@ -1,0 +1,1301 @@
+{
+  "email_count": 100,
+  "attachment_count": 160,
+  "skipped_formats": [
+    "msg",
+    "pages",
+    "numbers",
+    "key",
+    "heic",
+    "heif",
+    "dwg"
+  ],
+  "files": [
+    {
+      "email_id": "mock_format_001",
+      "source_email_id": "email_001",
+      "file": "attachments/mock100/mock_format_001_SI.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "f49bc960238b2cc93129ab430d9191172f9700645920d55c6058f882c953748d"
+    },
+    {
+      "email_id": "mock_format_001",
+      "source_email_id": "email_001",
+      "file": "attachments/mock100/mock_format_001_BL.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "429f7ccff072b298d51df0277208887799698aa43ad64890e3110087fc3f8572"
+    },
+    {
+      "email_id": "mock_format_002",
+      "source_email_id": "email_004",
+      "file": "attachments/mock100/mock_format_002_SI.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "c449114e33c39b5c2a37b3a3c4e001b7db7be6e33e756f8eec12d5bc15ec44cf"
+    },
+    {
+      "email_id": "mock_format_002",
+      "source_email_id": "email_004",
+      "file": "attachments/mock100/mock_format_002_BL.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "e0a005faec0f4fdafe736fd594f7455b90c875418d424d6c309e40cf89b5c0d3"
+    },
+    {
+      "email_id": "mock_format_003",
+      "source_email_id": "email_009",
+      "file": "attachments/mock100/mock_format_003_SI.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "17ea1ed873bb9d0378ad0eda02a3bae685b7d2cad9e29e35d94783b3dda263ea"
+    },
+    {
+      "email_id": "mock_format_003",
+      "source_email_id": "email_009",
+      "file": "attachments/mock100/mock_format_003_BL.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "ff131e760b78450325432273754a9cd46206b2e191cc913924e63b714b3d6fc7"
+    },
+    {
+      "email_id": "mock_format_004",
+      "source_email_id": "email_013",
+      "file": "attachments/mock100/mock_format_004_SI.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "664e1df9a66278cb7c0d3e25106ceb94dbbbe70f49f12cb62dc9aa083c1dcfe7"
+    },
+    {
+      "email_id": "mock_format_004",
+      "source_email_id": "email_013",
+      "file": "attachments/mock100/mock_format_004_BL.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "d2d71f52a346088fa64caa4d3645fc66c71112e2733cfed22c50c6752b9b9232"
+    },
+    {
+      "email_id": "mock_format_005",
+      "source_email_id": "email_025",
+      "file": "attachments/mock100/mock_format_005_SI.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "11cc552fd1a726611285e6a008da10849d72657957a98715a2b7ef0e6a9b7d17"
+    },
+    {
+      "email_id": "mock_format_005",
+      "source_email_id": "email_025",
+      "file": "attachments/mock100/mock_format_005_BL.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "ed77306db932798bb8b780f269629ae5bd8abaea0e86c27857596f0760ce6cfd"
+    },
+    {
+      "email_id": "mock_format_006",
+      "source_email_id": "email_031",
+      "file": "attachments/mock100/mock_format_006_SI.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "cc85aba39de7beaff8b8623735003c174e1b16ed92b029be52b3985291ef0bb8"
+    },
+    {
+      "email_id": "mock_format_006",
+      "source_email_id": "email_031",
+      "file": "attachments/mock100/mock_format_006_BL.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "93dadb1f44b9abbd19a0573400f5ad84bc32fc56a060849249ca23230c2d2885"
+    },
+    {
+      "email_id": "mock_format_007",
+      "source_email_id": "email_032",
+      "file": "attachments/mock100/mock_format_007_SI.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "afd156bc52e34829eccd45d8dc32ddaa6b7bf6035daf65ce6c4a7da5464ad085"
+    },
+    {
+      "email_id": "mock_format_007",
+      "source_email_id": "email_032",
+      "file": "attachments/mock100/mock_format_007_BL.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "ae237dbb3f41565428088200df586aeddb1a400dcfd8062b6142581a79cb7811"
+    },
+    {
+      "email_id": "mock_format_008",
+      "source_email_id": "email_034",
+      "file": "attachments/mock100/mock_format_008_SI.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "8fc9052f81166499400a2aff83ca215b1177a35cc190fd082c742cb5564f30a0"
+    },
+    {
+      "email_id": "mock_format_008",
+      "source_email_id": "email_034",
+      "file": "attachments/mock100/mock_format_008_BL.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "05c7fa1c7b1bbf7203a8c78ccd96b1bb61bb7aa21bcdfbf6c83194b3c21903ee"
+    },
+    {
+      "email_id": "mock_format_009",
+      "source_email_id": "email_040",
+      "file": "attachments/mock100/mock_format_009_SI.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "05d704a10ea6ee2b22fc39efcf105fedcdda655799577dcc0800fc916cb253d6"
+    },
+    {
+      "email_id": "mock_format_009",
+      "source_email_id": "email_040",
+      "file": "attachments/mock100/mock_format_009_BL.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "09fe0584d750ebb33bb00f1467358b08413516d817f60479b80d4658334b5a39"
+    },
+    {
+      "email_id": "mock_format_010",
+      "source_email_id": "email_043",
+      "file": "attachments/mock100/mock_format_010_SI.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "899b943ee052e78222b40ed86d45cecbf06bea4206caff86ab5ba457ba3c6575"
+    },
+    {
+      "email_id": "mock_format_010",
+      "source_email_id": "email_043",
+      "file": "attachments/mock100/mock_format_010_BL.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "e9a1f4960710cd7992d23018580f8c97ad354e8eba040f65e91f49072f4eeb7a"
+    },
+    {
+      "email_id": "mock_format_011",
+      "source_email_id": "email_044",
+      "file": "attachments/mock100/mock_format_011_SI.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "414e20eae288fed09056d1d4f5bb60a01f7f7f2ae88630d23114fa15fbe68c96"
+    },
+    {
+      "email_id": "mock_format_011",
+      "source_email_id": "email_044",
+      "file": "attachments/mock100/mock_format_011_BL.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "c11ced78ede5a42c5a1dac4cd4be18fc3f0dfa303027179291d5d87587b1d273"
+    },
+    {
+      "email_id": "mock_format_012",
+      "source_email_id": "email_046",
+      "file": "attachments/mock100/mock_format_012_SI.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "551f93b68a6c546d0f43a630a39ba1479291d63d7c8b6eebf786b03728ceba0e"
+    },
+    {
+      "email_id": "mock_format_012",
+      "source_email_id": "email_046",
+      "file": "attachments/mock100/mock_format_012_BL.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "cc205ea0775767167c4edc2410f072f2eeb7ef35db6a428040c2ec50331ffd86"
+    },
+    {
+      "email_id": "mock_format_013",
+      "source_email_id": "email_051",
+      "file": "attachments/mock100/mock_format_013_SI.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "0f26c2f6ef878d5b74d00dfe7ebb8b7b77bf4c7ddc24e566fbba0cc4fa201dbd"
+    },
+    {
+      "email_id": "mock_format_013",
+      "source_email_id": "email_051",
+      "file": "attachments/mock100/mock_format_013_BL.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "f87169754fb3a2b3824fbc2493f010d8fbf8b0b83f6db44e9ad9b1456286a106"
+    },
+    {
+      "email_id": "mock_format_014",
+      "source_email_id": "email_052",
+      "file": "attachments/mock100/mock_format_014_SI.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "d6e5282aee8f35101f8ccf2deb70737f740a986fc0b058b3df080aaafcd6a66e"
+    },
+    {
+      "email_id": "mock_format_014",
+      "source_email_id": "email_052",
+      "file": "attachments/mock100/mock_format_014_BL.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "d0cf45785744bcff43343d67030f13bf1d2b36ee784de41a6628551a0bddcb44"
+    },
+    {
+      "email_id": "mock_format_015",
+      "source_email_id": "email_056",
+      "file": "attachments/mock100/mock_format_015_SI.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "a617e846094a045bc7e29831d9046576e8194ac85946070e6b2ef3bf6b78f2d4"
+    },
+    {
+      "email_id": "mock_format_015",
+      "source_email_id": "email_056",
+      "file": "attachments/mock100/mock_format_015_BL.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "e7831b0f83f30052e051346bfad4300228bed3564677433fa99df6970b11dfb0"
+    },
+    {
+      "email_id": "mock_format_016",
+      "source_email_id": "email_058",
+      "file": "attachments/mock100/mock_format_016_SI.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "b5cbc38e9fc9b74681428619cbe5c89925ea2042f224dcdc6a8c8e318ff6e486"
+    },
+    {
+      "email_id": "mock_format_016",
+      "source_email_id": "email_058",
+      "file": "attachments/mock100/mock_format_016_BL.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "6d42f8e218517278fe97a4f6018f96550c29760a6656611f1c3a83b9ea2444f6"
+    },
+    {
+      "email_id": "mock_format_017",
+      "source_email_id": "email_064",
+      "file": "attachments/mock100/mock_format_017_SI.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "e2a3c3af1fc017f187e3fe442b3170e107ff8c7e291f271587147aa57dd05381"
+    },
+    {
+      "email_id": "mock_format_017",
+      "source_email_id": "email_064",
+      "file": "attachments/mock100/mock_format_017_BL.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "31b6173fea9c66a3028ca2519ec44c1f6a1960844c48b952c8b3630f64c37477"
+    },
+    {
+      "email_id": "mock_format_018",
+      "source_email_id": "email_065",
+      "file": "attachments/mock100/mock_format_018_SI.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "a1f7b358323b8cc489f1a1823e6d753c2efbeda2e6064d3a90c8851a814ee822"
+    },
+    {
+      "email_id": "mock_format_018",
+      "source_email_id": "email_065",
+      "file": "attachments/mock100/mock_format_018_BL.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "11efd50a58e09d0023a8ef7a678708a12d2755c7b6d061ea835e7dee3d05926b"
+    },
+    {
+      "email_id": "mock_format_019",
+      "source_email_id": "email_068",
+      "file": "attachments/mock100/mock_format_019_SI.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "22bd7cc0e1e9656140e0358f2996331331d11b9e16285a2396598bac657556af"
+    },
+    {
+      "email_id": "mock_format_019",
+      "source_email_id": "email_068",
+      "file": "attachments/mock100/mock_format_019_BL.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "9bbd8de7c6f4fdaca257fcfe713deb7ba16a84def54567c493a40cc2a364379d"
+    },
+    {
+      "email_id": "mock_format_020",
+      "source_email_id": "email_071",
+      "file": "attachments/mock100/mock_format_020_SI.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "b07185196e2d12bcdee267e787b0add8d1218bdbd244eb99d17399d9feac5abc"
+    },
+    {
+      "email_id": "mock_format_020",
+      "source_email_id": "email_071",
+      "file": "attachments/mock100/mock_format_020_BL.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "c722e46d431b42d93b00940a416176cb275e2891ee7477d4ee7302f586257220"
+    },
+    {
+      "email_id": "mock_format_021",
+      "source_email_id": "email_082",
+      "file": "attachments/mock100/mock_format_021_SI.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "28de175d2c48ce42650abc0f7a76908adce552c37c1ac94e426cf9b8820e5ac2"
+    },
+    {
+      "email_id": "mock_format_021",
+      "source_email_id": "email_082",
+      "file": "attachments/mock100/mock_format_021_BL.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "f4d94ed7b82b1517b2bbd9f7d4e68f0c580d7f236d1b7391e2e69f3c3e1f6339"
+    },
+    {
+      "email_id": "mock_format_022",
+      "source_email_id": "email_090",
+      "file": "attachments/mock100/mock_format_022_SI.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "ca70081298d6e7c35ed82b785e03d527c14932624d759961fde938b0320a9d92"
+    },
+    {
+      "email_id": "mock_format_022",
+      "source_email_id": "email_090",
+      "file": "attachments/mock100/mock_format_022_BL.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "957c5e926a9ca26f540d4f53c662354355a62828b935535383fb1fff2aaccfd6"
+    },
+    {
+      "email_id": "mock_format_023",
+      "source_email_id": "email_091",
+      "file": "attachments/mock100/mock_format_023_SI.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "56a37139adf1298520eaf374ae9c28a9fbf1eef6c00b40726f830c04f6c767ff"
+    },
+    {
+      "email_id": "mock_format_023",
+      "source_email_id": "email_091",
+      "file": "attachments/mock100/mock_format_023_BL.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "55e08c14b69013f8595d0e146cd5f939547a08c0c7c6e4af7401d98652872ba7"
+    },
+    {
+      "email_id": "mock_format_024",
+      "source_email_id": "email_096",
+      "file": "attachments/mock100/mock_format_024_SI.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "8b39354d875d1ee6318d3c59831f50c3f157faf14a62ec326c01617e717182c7"
+    },
+    {
+      "email_id": "mock_format_024",
+      "source_email_id": "email_096",
+      "file": "attachments/mock100/mock_format_024_BL.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "a03b930d8fc67ef41f85e5d9bbbf3a74c0a2612672c7309ffb71bc35894560f4"
+    },
+    {
+      "email_id": "mock_format_025",
+      "source_email_id": "email_111",
+      "file": "attachments/mock100/mock_format_025_SI.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "33de5beb0742d025d35a72ebc489aced5d2883a1994aa3e67cb4b71077643702"
+    },
+    {
+      "email_id": "mock_format_025",
+      "source_email_id": "email_111",
+      "file": "attachments/mock100/mock_format_025_BL.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "91325aec854fcdf9c523af09e9ade3b7e2041f38db047f19a9fc0891ef42935a"
+    },
+    {
+      "email_id": "mock_format_026",
+      "source_email_id": "email_113",
+      "file": "attachments/mock100/mock_format_026_SI.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "6d7f1fe82ab9b34183222114187bb31a6df6db7491294ec6a58b6552b4b16e9c"
+    },
+    {
+      "email_id": "mock_format_026",
+      "source_email_id": "email_113",
+      "file": "attachments/mock100/mock_format_026_BL.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "b196f331ae5aab851b96786025b1ba52840e40b63b2ac75735914d367e482a0d"
+    },
+    {
+      "email_id": "mock_format_027",
+      "source_email_id": "email_118",
+      "file": "attachments/mock100/mock_format_027_SI.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "2f2b15b517bcbd5ae79da9e11f32f5587d2d488aa3e1071e452316d5dc25b6b2"
+    },
+    {
+      "email_id": "mock_format_027",
+      "source_email_id": "email_118",
+      "file": "attachments/mock100/mock_format_027_BL.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "469041fb3574f61a73a738cf294af2ea6942e04f81161be9a10fdef8476cc7dc"
+    },
+    {
+      "email_id": "mock_format_028",
+      "source_email_id": "email_119",
+      "file": "attachments/mock100/mock_format_028_SI.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "4d3fd625acbe54a55d93218b35e39e395c1ba3e8be3374ade494d6420aa48e42"
+    },
+    {
+      "email_id": "mock_format_028",
+      "source_email_id": "email_119",
+      "file": "attachments/mock100/mock_format_028_BL.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "e5aed5c840a6e380665d8415d5c55625d76b31d25002393743ca49856d8eed55"
+    },
+    {
+      "email_id": "mock_format_029",
+      "source_email_id": "email_121",
+      "file": "attachments/mock100/mock_format_029_SI.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "99477b12507283424ed8bfd4be8b328ff1f10040dde3c76a8e20c31c91dc3a1a"
+    },
+    {
+      "email_id": "mock_format_029",
+      "source_email_id": "email_121",
+      "file": "attachments/mock100/mock_format_029_BL.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "1b6d0cb4b77aa1e6efef46943313a81d3fd9c2b98972fb203008e322057d8f0a"
+    },
+    {
+      "email_id": "mock_format_030",
+      "source_email_id": "email_128",
+      "file": "attachments/mock100/mock_format_030_SI.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "da795e11f9861fea4e4b2fc626ba72c715d7eae42c1a5cb7c1886378f1c4d482"
+    },
+    {
+      "email_id": "mock_format_030",
+      "source_email_id": "email_128",
+      "file": "attachments/mock100/mock_format_030_BL.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "0614b887f049cb103176e4e64a21d75965c1ba086b083ec4c8616e4ab72d0da0"
+    },
+    {
+      "email_id": "mock_format_031",
+      "source_email_id": "email_129",
+      "file": "attachments/mock100/mock_format_031_SI.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "d53e562d21e9378ad778a35f155ad6d13f8518c5db1dad29bb5d807df6476a04"
+    },
+    {
+      "email_id": "mock_format_031",
+      "source_email_id": "email_129",
+      "file": "attachments/mock100/mock_format_031_BL.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "60e14c8bf64ec63abae6d175cc47278b760b0df9ecdbbfd4bb60aacd01e39356"
+    },
+    {
+      "email_id": "mock_format_032",
+      "source_email_id": "email_132",
+      "file": "attachments/mock100/mock_format_032_SI.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "8311294997e4ede1788ec0110819c7d1936f4c9defd9b727a8a1c77721a75ffb"
+    },
+    {
+      "email_id": "mock_format_032",
+      "source_email_id": "email_132",
+      "file": "attachments/mock100/mock_format_032_BL.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "fa96eb3133b258f96fb7f52bb6e8c68124e8b893c497549e11474e8b1e5262d1"
+    },
+    {
+      "email_id": "mock_format_033",
+      "source_email_id": "email_133",
+      "file": "attachments/mock100/mock_format_033_SI.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "135a622f93bccc31604af7ce990732e7c787dc7ce6d0880a21d7bf3dcb0969ed"
+    },
+    {
+      "email_id": "mock_format_033",
+      "source_email_id": "email_133",
+      "file": "attachments/mock100/mock_format_033_BL.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "e51356b1f24c54840cbdeed6ff974fcd7de6d3f676518e62ac9035e11b3e1dcd"
+    },
+    {
+      "email_id": "mock_format_034",
+      "source_email_id": "email_143",
+      "file": "attachments/mock100/mock_format_034_SI.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "43a6c84abd2e78db3454f431104087335ca89c9a7b77e579d1e4add71fca42c4"
+    },
+    {
+      "email_id": "mock_format_034",
+      "source_email_id": "email_143",
+      "file": "attachments/mock100/mock_format_034_BL.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "cea351b5fe7b229e7d3550029378bc462001ea8a57689fd8f0567fead853dd49"
+    },
+    {
+      "email_id": "mock_format_035",
+      "source_email_id": "email_144",
+      "file": "attachments/mock100/mock_format_035_SI.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "a8c9649709b916a680476e6d59a218590d2c74bb69b82702a9f36a13baa54916"
+    },
+    {
+      "email_id": "mock_format_035",
+      "source_email_id": "email_144",
+      "file": "attachments/mock100/mock_format_035_BL.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "dc81cfc1970443580ebb9d32bda91fcb9e1cc447b59d5cbdd3dfebb674f91cc0"
+    },
+    {
+      "email_id": "mock_format_036",
+      "source_email_id": "email_145",
+      "file": "attachments/mock100/mock_format_036_SI.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "6115f6b7bba7b943c5c49250b069dd8eb91eaff5746c9fbb9eb08df67fe8aa29"
+    },
+    {
+      "email_id": "mock_format_036",
+      "source_email_id": "email_145",
+      "file": "attachments/mock100/mock_format_036_BL.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "a3acd7cc79b6fd70e1b3106484437ddcb37007ca4525f50ad5ed5043fd882501"
+    },
+    {
+      "email_id": "mock_format_037",
+      "source_email_id": "email_146",
+      "file": "attachments/mock100/mock_format_037_SI.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "a09f2fddee27fe28648d4f8d18e1c685586ecb154a0978beae41c751d1d6d520"
+    },
+    {
+      "email_id": "mock_format_037",
+      "source_email_id": "email_146",
+      "file": "attachments/mock100/mock_format_037_BL.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "6a7b02d72b958e4b540555886301ba7432c8403c10d6d09b0129f86b572ec9f1"
+    },
+    {
+      "email_id": "mock_format_038",
+      "source_email_id": "email_167",
+      "file": "attachments/mock100/mock_format_038_SI.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "5cda712dd58f4c5b2eec0bf3cc0c0aebb62a3c5a3d87fa42327d4107ad89d801"
+    },
+    {
+      "email_id": "mock_format_038",
+      "source_email_id": "email_167",
+      "file": "attachments/mock100/mock_format_038_BL.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "2fd5eece86a426b004b31324bdc8e1485c86bf11fca3c5459e391f54d062442e"
+    },
+    {
+      "email_id": "mock_format_039",
+      "source_email_id": "email_174",
+      "file": "attachments/mock100/mock_format_039_SI.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "a4b81d168d29739d40c46c330ec5e59b29a3c92d4dcdca893700dfd430dfafd0"
+    },
+    {
+      "email_id": "mock_format_039",
+      "source_email_id": "email_174",
+      "file": "attachments/mock100/mock_format_039_BL.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "111bb66545e2618823b3878ad0b7229305940ed73556d5e54aaf210ae89263be"
+    },
+    {
+      "email_id": "mock_format_040",
+      "source_email_id": "email_175",
+      "file": "attachments/mock100/mock_format_040_SI.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "26ac9549a03692bfa2f390ffb89e30a5a6ca4422968747e9c6251e3b9762edfd"
+    },
+    {
+      "email_id": "mock_format_040",
+      "source_email_id": "email_175",
+      "file": "attachments/mock100/mock_format_040_BL.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "6a473540ebc2724058899ee9fd1a94d80f529bd10b9a6cea41703ae689a06534"
+    },
+    {
+      "email_id": "mock_format_041",
+      "source_email_id": "email_178",
+      "file": "attachments/mock100/mock_format_041_SI.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "e486b50686f025a1353d67606b4338746a0aa16510f2fc9e474e4412c728ad09"
+    },
+    {
+      "email_id": "mock_format_041",
+      "source_email_id": "email_178",
+      "file": "attachments/mock100/mock_format_041_BL.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "7f058986e93e6629b71b62b9b9ee61181bf988d895657345607d31002feb2bb9"
+    },
+    {
+      "email_id": "mock_format_042",
+      "source_email_id": "email_182",
+      "file": "attachments/mock100/mock_format_042_SI.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "0d252444f12074b46d63ab94f9d80f2be285e056829a3ca60692b75cabce33bf"
+    },
+    {
+      "email_id": "mock_format_042",
+      "source_email_id": "email_182",
+      "file": "attachments/mock100/mock_format_042_BL.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "56020c7e1a219a368ca4d29445afb36540905326e412f82489895a95da82551b"
+    },
+    {
+      "email_id": "mock_format_043",
+      "source_email_id": "email_197",
+      "file": "attachments/mock100/mock_format_043_SI.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "dd9183971ac758344aa0756e3869fb5411e847123740b920ce1d93d38461f2f8"
+    },
+    {
+      "email_id": "mock_format_043",
+      "source_email_id": "email_197",
+      "file": "attachments/mock100/mock_format_043_BL.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "43353a229a2717056aa8f941bd84a79f413c27092393c54b4ed878b0fbe2365c"
+    },
+    {
+      "email_id": "mock_format_044",
+      "source_email_id": "email_198",
+      "file": "attachments/mock100/mock_format_044_SI.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "6ceb1db55f85effe470d1e2eea1aaacdb132ab182f8f4eb26c3dac49f3cdd946"
+    },
+    {
+      "email_id": "mock_format_044",
+      "source_email_id": "email_198",
+      "file": "attachments/mock100/mock_format_044_BL.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "ef7fc0628ba8dbd3b4d4af66c7c74074c211520f252058aa9932947f62b32a20"
+    },
+    {
+      "email_id": "mock_format_045",
+      "source_email_id": "email_225",
+      "file": "attachments/mock100/mock_format_045_SI.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "b73ce1d8050ecf8fb93679ea78161968bc4df2d24e046e1ac184adaa8f2df32b"
+    },
+    {
+      "email_id": "mock_format_045",
+      "source_email_id": "email_225",
+      "file": "attachments/mock100/mock_format_045_BL.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "04be4d8ff2a8aad5c5112b754cf7a50b966932735221e0cb6db11b0797ab998b"
+    },
+    {
+      "email_id": "mock_format_046",
+      "source_email_id": "email_227",
+      "file": "attachments/mock100/mock_format_046_SI.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "222798d71e55fea1bb73e6cab8f2efcd4706a48a7f62be2c85f2273fd47df9b0"
+    },
+    {
+      "email_id": "mock_format_046",
+      "source_email_id": "email_227",
+      "file": "attachments/mock100/mock_format_046_BL.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "cc81449c5fe6f4a73a5ee8b68a60049723b9de9d870b885c05adbfa66c09d146"
+    },
+    {
+      "email_id": "mock_format_047",
+      "source_email_id": "email_235",
+      "file": "attachments/mock100/mock_format_047_SI.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "2435793ce0330d2bc1d022e48f3aa25f7d91291005e09b669609b90ed3f11f70"
+    },
+    {
+      "email_id": "mock_format_047",
+      "source_email_id": "email_235",
+      "file": "attachments/mock100/mock_format_047_BL.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "7b20d80c51139f214fd0c7d977dee5c4654f19334fd7f1246ed4cdda23474a14"
+    },
+    {
+      "email_id": "mock_format_048",
+      "source_email_id": "email_239",
+      "file": "attachments/mock100/mock_format_048_SI.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "ed1ea3f472804c10f88fe9e97533b9152cf6930ca976ac97a59b50cdc1f3fc50"
+    },
+    {
+      "email_id": "mock_format_048",
+      "source_email_id": "email_239",
+      "file": "attachments/mock100/mock_format_048_BL.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "dd50d8ac3a1a41f8770ad0b29b6227cde66590a4feeb027c9426dd0f468f6797"
+    },
+    {
+      "email_id": "mock_format_049",
+      "source_email_id": "email_249",
+      "file": "attachments/mock100/mock_format_049_SI.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "a0020ce714d7ebb24cea3eee0739502bab203b9b4d32410c331d7a5b196b53c0"
+    },
+    {
+      "email_id": "mock_format_049",
+      "source_email_id": "email_249",
+      "file": "attachments/mock100/mock_format_049_BL.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "b5cf2527c6984698fdc558257d6f9fe47bd1684a66a8ab1e36d234f168b2d5fe"
+    },
+    {
+      "email_id": "mock_format_050",
+      "source_email_id": "email_256",
+      "file": "attachments/mock100/mock_format_050_SI.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "7d6afcf0c7a4c1eb197ae41310e03ce801bcf80d0188efd9e1f02ed47b390604"
+    },
+    {
+      "email_id": "mock_format_050",
+      "source_email_id": "email_256",
+      "file": "attachments/mock100/mock_format_050_BL.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "2dbd8d54366f75fd970a190604ad8cf031f5ec1c1d8a68feefedd1f32774a9cf"
+    },
+    {
+      "email_id": "mock_format_051",
+      "source_email_id": "email_270",
+      "file": "attachments/mock100/mock_format_051_SI.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "cfc03cacc0e209d0879df47f7ba9142501cda79c44cb2a383d1996a3dda143f3"
+    },
+    {
+      "email_id": "mock_format_051",
+      "source_email_id": "email_270",
+      "file": "attachments/mock100/mock_format_051_BL.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "bf2434bf36a52ed964d47961d5ca01ff6b07ed740a98b6e40ba92f25d6d6e48a"
+    },
+    {
+      "email_id": "mock_format_052",
+      "source_email_id": "email_275",
+      "file": "attachments/mock100/mock_format_052_SI.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "35be9a1444cb4600c2c00cada815f29d23f4c8358f5d4ade26bee2ac2ca317cf"
+    },
+    {
+      "email_id": "mock_format_052",
+      "source_email_id": "email_275",
+      "file": "attachments/mock100/mock_format_052_BL.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "ea9af56023c5eb345c3cee074126b76d9cd633cad4be4845716823534d74084f"
+    },
+    {
+      "email_id": "mock_format_053",
+      "source_email_id": "email_296",
+      "file": "attachments/mock100/mock_format_053_SI.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "5119d58e4b8bbdf2847d9edbb77a5deb81b22937ec00df0aa1e5a481a08ecbae"
+    },
+    {
+      "email_id": "mock_format_053",
+      "source_email_id": "email_296",
+      "file": "attachments/mock100/mock_format_053_BL.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "807bceee5241784661dbf74b2ba9e1a71b55d14ed6d5ce3d73071d7a85c3c509"
+    },
+    {
+      "email_id": "mock_format_054",
+      "source_email_id": "email_307",
+      "file": "attachments/mock100/mock_format_054_SI.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "d3ab4c353f49ab5ba0b317b06c17efeb4a7b55cb80ca0835ce8cc87adeaa0256"
+    },
+    {
+      "email_id": "mock_format_054",
+      "source_email_id": "email_307",
+      "file": "attachments/mock100/mock_format_054_BL.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "ebd4dc58e0fe4eec32a412d178d206238d405c0b4ed2cdf92e6d4b0fbc256192"
+    },
+    {
+      "email_id": "mock_format_055",
+      "source_email_id": "email_312",
+      "file": "attachments/mock100/mock_format_055_SI.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "b5f1193e5192e769725946b04aba351a63ccf320418758710dfdbd833367452a"
+    },
+    {
+      "email_id": "mock_format_055",
+      "source_email_id": "email_312",
+      "file": "attachments/mock100/mock_format_055_BL.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "7c38a89c168acf534d417fd9483bf333dfabc4a6efb88bc13e844965bee84523"
+    },
+    {
+      "email_id": "mock_format_056",
+      "source_email_id": "email_324",
+      "file": "attachments/mock100/mock_format_056_SI.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "f6af50c660ba5cbc5cd001245e498d5183b569a6071905ca2cf100930957a524"
+    },
+    {
+      "email_id": "mock_format_056",
+      "source_email_id": "email_324",
+      "file": "attachments/mock100/mock_format_056_BL.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "b600b9ad51e357146e8d357ba467e259c939d010e660737fa681a0dc19b07ac9"
+    },
+    {
+      "email_id": "mock_format_057",
+      "source_email_id": "email_334",
+      "file": "attachments/mock100/mock_format_057_SI.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "898c28d097b24e6d9c8782f32c91295d73ea7e30e05bbc7b8ac05abe5d824a44"
+    },
+    {
+      "email_id": "mock_format_057",
+      "source_email_id": "email_334",
+      "file": "attachments/mock100/mock_format_057_BL.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "285022ba78a13377e5437ccec25cfe903ddc4c87d0f5abc26234de439818c404"
+    },
+    {
+      "email_id": "mock_format_058",
+      "source_email_id": "email_335",
+      "file": "attachments/mock100/mock_format_058_SI.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "fdac5351a4ba8e4760ff589358fa8c6d1533e1af4a21e49f2c7eb25e6c76fba2"
+    },
+    {
+      "email_id": "mock_format_058",
+      "source_email_id": "email_335",
+      "file": "attachments/mock100/mock_format_058_BL.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "ed1a6462bfc610b6fcd45a9bec5b5300e9b91ab1f47c63ee66da67b2c46a5600"
+    },
+    {
+      "email_id": "mock_format_059",
+      "source_email_id": "email_342",
+      "file": "attachments/mock100/mock_format_059_SI.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "0312de73a54750ed52346b55e1773819b6dcb4f9738b7bc6c89bdafa706b0a25"
+    },
+    {
+      "email_id": "mock_format_059",
+      "source_email_id": "email_342",
+      "file": "attachments/mock100/mock_format_059_BL.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "243ec6fbe69e2bc59eb600dfa70603de9ebcfaa49f4b1b9e9eaddd145a5c967d"
+    },
+    {
+      "email_id": "mock_format_060",
+      "source_email_id": "email_348",
+      "file": "attachments/mock100/mock_format_060_SI.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "636ecb665270768bad253332559ba7e87c86478d2377eef816537a52f03c2748"
+    },
+    {
+      "email_id": "mock_format_060",
+      "source_email_id": "email_348",
+      "file": "attachments/mock100/mock_format_060_BL.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "c45bb637ca3ca97a2c82c9103116ce39dc8f94718a62a8422fb30ff1e8558251"
+    },
+    {
+      "email_id": "mock_format_061",
+      "source_email_id": "email_141",
+      "file": "attachments/mock100/mock_format_061_SI.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "05b2b58f0d6340451428557bbae111363f58ed6e1dad7cf8d7314428ba48e21f"
+    },
+    {
+      "email_id": "mock_format_062",
+      "source_email_id": "email_148",
+      "file": "attachments/mock100/mock_format_062_SI.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "720eadb5ecd2a226c067cbef771846b1c37e6556763c0f0f0b006532b10911fc"
+    },
+    {
+      "email_id": "mock_format_063",
+      "source_email_id": "email_149",
+      "file": "attachments/mock100/mock_format_063_SI.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "56ae44e81a2e918bd3d4aa0ee11bf06307b3319fbe9b5583293bb6b099cff150"
+    },
+    {
+      "email_id": "mock_format_064",
+      "source_email_id": "email_151",
+      "file": "attachments/mock100/mock_format_064_SI.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "7bb7dd71a27dbdea63c79f2292a7ec068562075f967f4fb0e43114bdcf66de70"
+    },
+    {
+      "email_id": "mock_format_065",
+      "source_email_id": "email_152",
+      "file": "attachments/mock100/mock_format_065_SI.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "6a249cad5a2711222279a55ff28145da3f7b1adcd8c2ddbe8e8696bb3066f811"
+    },
+    {
+      "email_id": "mock_format_066",
+      "source_email_id": "email_154",
+      "file": "attachments/mock100/mock_format_066_SI.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "1d4218c01e2cf8b8bf82bbecf7ab74f9602c4c0bab8fd46820908b7f08633f39"
+    },
+    {
+      "email_id": "mock_format_067",
+      "source_email_id": "email_157",
+      "file": "attachments/mock100/mock_format_067_SI.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "7f7174f9b742c2933b0a38f0ac9d2dfc588ab34337b7413b89acdaeef7994ce7"
+    },
+    {
+      "email_id": "mock_format_068",
+      "source_email_id": "email_158",
+      "file": "attachments/mock100/mock_format_068_SI.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "ea2be066b729eb054216fb3d4fc5074a7e3ade1300a0138bc96ec6d07751ad9c"
+    },
+    {
+      "email_id": "mock_format_069",
+      "source_email_id": "email_161",
+      "file": "attachments/mock100/mock_format_069_SI.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "0a5a4c509d1d7f38328125d1f348c34783461dee00936218e4b00252b3fdf7f6"
+    },
+    {
+      "email_id": "mock_format_070",
+      "source_email_id": "email_162",
+      "file": "attachments/mock100/mock_format_070_SI.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "5fe17922ae97b7bca04b59c4207a2c92a8582d1af5b9a5d117fe354779176ebe"
+    },
+    {
+      "email_id": "mock_format_071",
+      "source_email_id": "email_163",
+      "file": "attachments/mock100/mock_format_071_SI.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "57dc69c5cdbc14a8c0e1052b989cc94ed72ca279596e4133e43497d24bfae394"
+    },
+    {
+      "email_id": "mock_format_072",
+      "source_email_id": "email_164",
+      "file": "attachments/mock100/mock_format_072_SI.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "34bceb8a959db0f52a5dde10c5ea0b545ff514995d07e436285f1d382c1b2906"
+    },
+    {
+      "email_id": "mock_format_073",
+      "source_email_id": "email_166",
+      "file": "attachments/mock100/mock_format_073_SI.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "14dba06bab4499a20138ca079d936ab5c898ca6402284c4597a16d4ad31958b0"
+    },
+    {
+      "email_id": "mock_format_074",
+      "source_email_id": "email_168",
+      "file": "attachments/mock100/mock_format_074_SI.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "a4486102af7b101058e8da3bc62863f1f905981fab56cdb56c91aa31c00bb608"
+    },
+    {
+      "email_id": "mock_format_075",
+      "source_email_id": "email_172",
+      "file": "attachments/mock100/mock_format_075_SI.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "41ba6e2eb275a8d35703f27b4f0f7ad33094eb09bf3f73c7fd75176564aa23c6"
+    },
+    {
+      "email_id": "mock_format_076",
+      "source_email_id": "email_176",
+      "file": "attachments/mock100/mock_format_076_SI.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "ce3eecdcbef25fb31f5a94a440f5b7fa62faad38090b3fe5c547d11943a6d45e"
+    },
+    {
+      "email_id": "mock_format_077",
+      "source_email_id": "email_177",
+      "file": "attachments/mock100/mock_format_077_SI.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "bb194b889e94a897f5f1b794eb7da1bb62746efae95138c14a80b42e53a0991c"
+    },
+    {
+      "email_id": "mock_format_078",
+      "source_email_id": "email_181",
+      "file": "attachments/mock100/mock_format_078_SI.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "29a7561bbbe4e9adb72fc441019791d4565145e51a160db234c1bf18d18d3f53"
+    },
+    {
+      "email_id": "mock_format_079",
+      "source_email_id": "email_183",
+      "file": "attachments/mock100/mock_format_079_SI.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "a3f0d4ac146c605c83daf811e4cd63dc38574f677c098e7385032f12d1e9e363"
+    },
+    {
+      "email_id": "mock_format_080",
+      "source_email_id": "email_186",
+      "file": "attachments/mock100/mock_format_080_SI.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "325f35362c9be46882d3353d3e2d7e394ac46bd724dcaf875fe9c0d8a384a299"
+    },
+    {
+      "email_id": "mock_format_081",
+      "source_email_id": "email_287",
+      "file": "attachments/mock100/mock_format_081_INVOICE.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "89f6b579066a14d117e7049b405a909b49f5fa1f54a342c697ae649cfeff1a56"
+    },
+    {
+      "email_id": "mock_format_082",
+      "source_email_id": "email_316",
+      "file": "attachments/mock100/mock_format_082_INVOICE.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "e80d83f8c13cef2572e5b6fc93e4a573b94c88536c2e319a78fe97b5cce97645"
+    },
+    {
+      "email_id": "mock_format_083",
+      "source_email_id": "email_375",
+      "file": "attachments/mock100/mock_format_083_INVOICE.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "a163492f3d9f94516c8eeb5700e15a06e6e0fc25085bc9e473d11448cf0b6633"
+    },
+    {
+      "email_id": "mock_format_084",
+      "source_email_id": "email_402",
+      "file": "attachments/mock100/mock_format_084_INVOICE.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "6d9821f0a05057cfd7346044e23a3d321efdd7201e6090f7264e11e5fd05d5a2"
+    },
+    {
+      "email_id": "mock_format_085",
+      "source_email_id": "email_420",
+      "file": "attachments/mock100/mock_format_085_INVOICE.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "a9c17eec96cbbccfce064f92065a50d14afd96f8a16b5ade62498f02544747ee"
+    },
+    {
+      "email_id": "mock_format_086",
+      "source_email_id": "email_461",
+      "file": "attachments/mock100/mock_format_086_INVOICE.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "425ae61fddf3777cf104a1a013b980c1424d09cbaa8b9f2295823fc7d74964fb"
+    },
+    {
+      "email_id": "mock_format_087",
+      "source_email_id": "email_492",
+      "file": "attachments/mock100/mock_format_087_INVOICE.7z",
+      "extension": "7z",
+      "validity": "generated_container_or_document",
+      "sha256": "c27949f49b9e861d174fcf9858eaa4d0f7a281ffcddd14c5645d74b2ba131e62"
+    },
+    {
+      "email_id": "mock_format_088",
+      "source_email_id": "email_497",
+      "file": "attachments/mock100/mock_format_088_INVOICE.tar",
+      "extension": "tar",
+      "validity": "generated_container_or_document",
+      "sha256": "434b54a50d0d442a699e6075b83f12dab3745f3513492b6fe021f93778165c3f"
+    },
+    {
+      "email_id": "mock_format_089",
+      "source_email_id": "email_002",
+      "file": "attachments/mock100/mock_format_089_INVOICE.gz",
+      "extension": "gz",
+      "validity": "generated_container_or_document",
+      "sha256": "4ecf4eafa71e62442b22873394900e89475498a33944f9ad2cc64e13edc3433f"
+    },
+    {
+      "email_id": "mock_format_090",
+      "source_email_id": "email_010",
+      "file": "attachments/mock100/mock_format_090_INVOICE.eml",
+      "extension": "eml",
+      "validity": "generated_container_or_document",
+      "sha256": "e2a8ceca183bc80975c41516496e72823ad0a407c2ea1c80469bac51ec6f3f4e"
+    },
+    {
+      "email_id": "mock_format_091",
+      "source_email_id": "email_366",
+      "file": "attachments/mock100/mock_format_091_DOC.rtf",
+      "extension": "rtf",
+      "validity": "generated_container_or_document",
+      "sha256": "e73a0793ff96ef839a33b8d6817b794d3fcc9dcef85178a724b23e22632eeda6"
+    },
+    {
+      "email_id": "mock_format_092",
+      "source_email_id": "email_414",
+      "file": "attachments/mock100/mock_format_092_DOC.odt",
+      "extension": "odt",
+      "validity": "generated_container_or_document",
+      "sha256": "831e0263ce4cafafe588d170c9f8beac2c03e5fbd58c84d02e00e85d51ac6637"
+    },
+    {
+      "email_id": "mock_format_093",
+      "source_email_id": "email_418",
+      "file": "attachments/mock100/mock_format_093_DOC.ods",
+      "extension": "ods",
+      "validity": "generated_container_or_document",
+      "sha256": "ffe15b22198143ebc59a288b3ed68ffeae645ed7e3ce3b6810786644a036ef86"
+    },
+    {
+      "email_id": "mock_format_094",
+      "source_email_id": "email_445",
+      "file": "attachments/mock100/mock_format_094_DOC.edi",
+      "extension": "edi",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "e90dcb713d49681c3406d76f2062284bb71b1b29bded614921056d0999a77160"
+    },
+    {
+      "email_id": "mock_format_095",
+      "source_email_id": "email_464",
+      "file": "attachments/mock100/mock_format_095_DOC.edifact",
+      "extension": "edifact",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "7eed34db8c8f20c221b2d3090e3fee697e41af9ea3dde26c56494058171bfc74"
+    },
+    {
+      "email_id": "mock_format_096",
+      "source_email_id": "email_488",
+      "file": "attachments/mock100/mock_format_096_DOC.x12",
+      "extension": "x12",
+      "validity": "synthetic_edi_message_not_industry_certified",
+      "sha256": "1a7df7772506b70c5a1634e523c68765c84e1a235b7bab10cbff6be316fb978e"
+    },
+    {
+      "email_id": "mock_format_097",
+      "source_email_id": "email_011",
+      "file": "attachments/mock100/mock_format_097_DOC.json",
+      "extension": "json",
+      "validity": "generated_container_or_document",
+      "sha256": "43cca53a22f0524692bc1b79f8a5ec44f1bf13e28e466159ae7ca5e52a8b8930"
+    },
+    {
+      "email_id": "mock_format_098",
+      "source_email_id": "email_012",
+      "file": "attachments/mock100/mock_format_098_DOC.dxf",
+      "extension": "dxf",
+      "validity": "generated_container_or_document",
+      "sha256": "66c046fef7f49ca8f5ea500a645d4a1715d7bf79b82752595baa1223ba83c415"
+    },
+    {
+      "email_id": "mock_format_099",
+      "source_email_id": "email_070",
+      "file": "attachments/mock100/mock_format_099_DOC.zip",
+      "extension": "zip",
+      "validity": "generated_container_or_document",
+      "sha256": "429f14e8872bad42d6f4c04b171b8b61c01421ba9d3e41aaf3d5cfc714f59bb3"
+    },
+    {
+      "email_id": "mock_format_100",
+      "source_email_id": "email_076",
+      "file": "attachments/mock100/mock_format_100_DOC.rar",
+      "extension": "rar",
+      "validity": "generated_container_or_document",
+      "sha256": "ac3b0f157b68ae3cfdd9677ab22a46899226519df83ad3cc5d0562605a843554"
+    }
+  ],
+  "notes": [
+    "Category intent is synthetic, not official ground truth.",
+    "EDI samples are minimal synthetic messages, not certified trading-partner documents.",
+    "INVOICE/SI/GENERAL documents contain corresponding source email context, not official invoices.",
+    "ShipMail currently reads OAuth Gmail APIs; this file alone does not import messages to OAuth database."
+  ]
+}

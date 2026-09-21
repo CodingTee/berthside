@@ -121,7 +121,7 @@ class ReturnIn(BaseModel):
 def _get_policy(db: Session) -> GatewayPolicyRecord:
     pol = db.query(GatewayPolicyRecord).first()
     if not pol:
-        pol = GatewayPolicyRecord(engine="cascade", ingest_mode="auto")
+        pol = GatewayPolicyRecord(engine="rule", ingest_mode="auto")
         db.add(pol)
         db.commit()
         db.refresh(pol)
@@ -371,6 +371,14 @@ def _return_staged(staged: StagedEmailRecord, db: Session, subject=None, body=No
     subject = subject or default_subject
     body = body or default_body
 
+    from app.services.smtp_dispatcher import dispatch_smtp_email
+    smtp_res = dispatch_smtp_email(
+        to_email=staged.sender,
+        subject=subject,
+        body=body,
+        sender=staged.source_mailbox,
+    )
+
     rec = DispatchRecord(
         stage_id=staged.stage_id,
         source_mailbox=staged.source_mailbox,
@@ -379,7 +387,7 @@ def _return_staged(staged: StagedEmailRecord, db: Session, subject=None, body=No
         subject=subject,
         body=body,
         channel=staged.source_mailbox,
-        delivery="SIMULATED",
+        delivery=smtp_res.get("delivery", "SIMULATED"),
     )
     db.add(rec)
     db.commit()
@@ -420,6 +428,8 @@ def reject_staged_email(stage_id: str, db: Session = Depends(get_db)):
     staged.status = "REJECTED"
     db.commit()
 
+    import urllib.parse
+
     reply_subject = f"Re: {staged.subject} - Document Ingestion Rejected"
     reason = staged.ai_reason or "Document does not conform to enterprise shipping verification requirements."
     reply_body = (
@@ -429,6 +439,8 @@ def reject_staged_email(stage_id: str, db: Session = Depends(get_db)):
         f"Please inspect the attachment format and resubmit.\n\n"
         f"Best regards,\nEnterprise Documentation Hub Team"
     )
+    mailto_params = urllib.parse.urlencode({"subject": reply_subject, "body": reply_body})
+    mailto_url = f"mailto:{staged.sender}?{mailto_params}"
     return {
         "message": "Email rejected",
         "stage_id": stage_id,
@@ -436,55 +448,53 @@ def reject_staged_email(stage_id: str, db: Session = Depends(get_db)):
         "reply_via": staged.source_mailbox,
         "draft_subject": reply_subject,
         "draft_body": reply_body,
+        "mailto_url": mailto_url,
     }
 
 
 def _build_return_receipt(staged: StagedEmailRecord):
-    """Compose the origin-aware return message for a staged email.
-
-    REJECTED or malware-blocked records get a clarification notice; everything
-    else (verified / approved) gets a verification-result receipt. The reply is
-    addressed back to the original sender and sent *via the same mailbox the
-    transmission arrived on* so the round trip stays on one channel.
-    """
+    """Compose customer-ready return and amendment message."""
     is_rejection = staged.status == "REJECTED" or staged.security_status == "BLOCKED"
     if is_rejection:
         decision = "REJECTED"
-        subject = f"Re: {staged.subject} - Document Ingestion Rejected"
+        subject = f"URGENT: B/L Document Amendment Required (Rejected) - Ref #{staged.stage_id}"
         reason = staged.ai_reason or (
-            "Document does not conform to enterprise shipping verification requirements."
+            "Discrepancies identified between Shipping Instruction (SI) and Carrier Bill of Lading (B/L)."
         )
         body = (
-            f"Dear Sender,\n\n"
-            f"Your transmission to {staged.source_mailbox} could not be processed by our automated hub.\n"
-            f"Reason: {reason}\n\n"
-            f"Please inspect the attachment format and resubmit.\n\n"
-            f"Best regards,\nEnterprise Documentation Hub Team"
+            f"Dear Documentation Operations / Shipping Team,\n\n"
+            f"Regarding the submission for '{staged.subject}' received via {staged.source_mailbox}:\n\n"
+            f"Automated comparison between the Shipping Instruction (SI) and Bill of Lading (B/L) detected discrepancies:\n"
+            f"• Issue Identified: {reason}\n"
+            f"• Tracking Reference: {staged.stage_id}\n\n"
+            f"Please verify and confirm which action to take:\n"
+            f"  [Option A] Accept B/L figures and update export declaration\n"
+            f"  [Option B] Request carrier to re-issue revised B/L in accordance with SI\n\n"
+            f"Best regards,\n"
+            f"Documentation Operations Desk\n"
+            f"{staged.source_mailbox}"
         )
     else:
         decision = "VERIFIED"
-        subject = f"Re: {staged.subject} - Document Verification Complete"
+        subject = f"CONFIRMATION: Document Verification Complete - Ref #{staged.stage_id}"
         body = (
-            f"Dear Sender,\n\n"
-            f"Thank you for your submission to {staged.source_mailbox}.\n"
-            f"Our automated verification has completed for reference {staged.stage_id}.\n"
-            f"Document type: {staged.category}\n"
-            f"Outcome: document verified and accepted into the shipment lifecycle.\n\n"
-            f"Best regards,\nEnterprise Documentation Hub Team"
+            f"Dear Shipping Documentation Team / Customer,\n\n"
+            f"Thank you for your submission for '{staged.subject}' to {staged.source_mailbox}.\n\n"
+            f"Automated verification has PASSED with 0 discrepancies for reference {staged.stage_id}.\n"
+            f"• Document Type: {staged.category}\n"
+            f"• Verification Status: 100% Match (SI ↔ B/L aligned)\n\n"
+            f"Best regards,\n"
+            f"Documentation Operations Desk\n"
+            f"{staged.source_mailbox}"
         )
     return decision, subject, body
 
 
 @router.post("/emails/{stage_id}/return", summary="Return a processed email to its origin mailbox")
 def return_email(stage_id: str, payload: ReturnIn, db: Session = Depends(get_db)):
-    """Return an audited outcome to the sender through the origin mailbox.
+    """Return an audited outcome to the sender through the origin mailbox."""
+    import urllib.parse
 
-    ``dry_run`` only renders the draft (used by the UI preview); the real call
-    persists a :class:`DispatchRecord`, flips the staged row to ``RETURNED`` and
-    reports the delivery channel. Demo mailboxes have no live SMTP server, so
-    delivery is ``SIMULATED``; a real Gmail-linked mailbox would flip it to
-    ``SENT`` via the Gmail API.
-    """
     staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
     if not staged:
         raise HTTPException(404, "Staged email not found")
@@ -492,6 +502,9 @@ def return_email(stage_id: str, payload: ReturnIn, db: Session = Depends(get_db)
     decision, subj, body = _build_return_receipt(staged)
     subject = payload.subject or subj
     body = payload.body or body
+
+    mailto_params = urllib.parse.urlencode({"subject": subject, "body": body})
+    mailto_url = f"mailto:{staged.sender}?{mailto_params}"
 
     if payload.dry_run:
         return {
@@ -501,6 +514,7 @@ def return_email(stage_id: str, payload: ReturnIn, db: Session = Depends(get_db)
             "decision": decision,
             "subject": subject,
             "body": body,
+            "mailto_url": mailto_url,
             "dry_run": True,
         }
 
@@ -514,6 +528,7 @@ def return_email(stage_id: str, payload: ReturnIn, db: Session = Depends(get_db)
         "decision": decision,
         "subject": subject,
         "body": body,
+        "mailto_url": mailto_url,
         "dispatch_id": rec.id,
         "delivery": rec.delivery,
     }
@@ -538,6 +553,40 @@ def dispatch_history(stage_id: str, db: Session = Depends(get_db)):
         }
         for r in rows
     ]
+
+
+@router.get("/email-channel/status", summary="Get status of live IMAP and SMTP email channels")
+def email_channel_status():
+    """Report whether live IMAP inbound and SMTP outbound are configured."""
+    from app.config import get_settings
+    cfg = get_settings()
+    return {
+        "smtp": {
+            "configured": bool(cfg.smtp_host and cfg.smtp_host.strip()),
+            "host": cfg.smtp_host or "(not configured)",
+            "port": cfg.smtp_port,
+            "user": cfg.smtp_user or "(none)",
+            "from_email": cfg.smtp_from or cfg.smtp_user or "sdoc-hub@averis.com",
+            "mode": "LIVE_SMTP" if cfg.smtp_host else "SIMULATED",
+        },
+        "imap": {
+            "configured": bool(cfg.imap_host and cfg.imap_host.strip()),
+            "host": cfg.imap_host or "(not configured)",
+            "port": cfg.imap_port,
+            "user": cfg.imap_user or "(none)",
+            "folder": cfg.imap_folder,
+            "auto_reply": cfg.auto_reply_on_verification,
+            "mode": "LIVE_IMAP" if cfg.imap_host else "SIMULATED_SANDBOX",
+        },
+    }
+
+
+@router.post("/imap/poll", summary="Manually trigger IMAP inbox check for external emails")
+def trigger_imap_poll(db: Session = Depends(get_db)):
+    """Fetch unread emails via IMAP, stage them, and optionally trigger SMTP reply."""
+    from app.services.imap_poller import poll_imap_inbox
+    res = poll_imap_inbox(db)
+    return res
 
 
 # ---------------------------------------------------------------------------

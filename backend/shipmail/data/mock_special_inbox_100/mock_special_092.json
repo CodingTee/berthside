@@ -1,0 +1,10 @@
+{
+  "email_id": "mock_special_092",
+  "from": "logistics@algurg.ae",
+  "subject": "[MOCK-SPECIAL 092] RE_ Draft BL NAP 914 V.BS007 NANTONG - amend BL 045",
+  "body": "Dear Team,\n\nPlease compare the SI and draft BL for MCLSINJEA2505344. Some SI fields were left blank by the customer; kindly confirm what we have.\n\nThe customer supplied the documents in MSG format. Kindly advise if a PDF copy is required.",
+  "attachments": [
+    "attachments/mock_special100/mock_special_092_SI.msg",
+    "attachments/mock_special100/mock_special_092_BL.msg"
+  ]
+}

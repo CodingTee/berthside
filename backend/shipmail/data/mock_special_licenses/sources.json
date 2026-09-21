@@ -1,0 +1,76 @@
+{
+  "pages": "https://github.com/alfredchiesa/nim-iwork/blob/main/tests/fixtures/simple.pages",
+  "keynote": "https://github.com/psobot/keynote-parser/blob/master/tests/data/simple-oneslide.key",
+  "dwg": [
+    {
+      "filename": "Arc.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Arc.dwg",
+      "sha256": "02f62c8632b8e5a4af1c73d37226186d068a8733bdab74fc73bdfa23ba19e0a9"
+    },
+    {
+      "filename": "ConstructionLine.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/ConstructionLine.dwg",
+      "sha256": "b11181b2449e9201c704b5597a98e65c9b2fb43c0d281f6949d87b91047a98a5"
+    },
+    {
+      "filename": "Donut.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Donut.dwg",
+      "sha256": "c73b1d1f38ab2542006ffe89fa7f06bedc0eeb6d7505e78b85614adf24df8daf"
+    },
+    {
+      "filename": "Ellipse.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Ellipse.dwg",
+      "sha256": "fef994a4ace40c6c88fede633d4c671acb81fe272eba4a3d8cd6fb86b75d2062"
+    },
+    {
+      "filename": "Leader.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Leader.dwg",
+      "sha256": "947e28fb312349efffe04dbfe8754892fceba872e41536d1fdcdf0a77a62c6e4"
+    },
+    {
+      "filename": "Line.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Line.dwg",
+      "sha256": "358fc09c7c27737ba3b500eac122caee4c83c270f5ccb8a9f7f8f3d4b763d937"
+    },
+    {
+      "filename": "Multiline.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Multiline.dwg",
+      "sha256": "7b4a89a41f87cfaa4b939053893c9ea9d7ec7ec909e152f19bed011d2d03b3d1"
+    },
+    {
+      "filename": "Point.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Point.dwg",
+      "sha256": "5e4fed9d8acdf4ec665bd14761dd9f3424769683a10bb7ad3388fba1a4a3b3fd"
+    },
+    {
+      "filename": "PolyLine2D.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/PolyLine2D.dwg",
+      "sha256": "205fdde72c1d18259b072531a4f5aed45a664b9efb9b4638ad6162cd1825d15f"
+    },
+    {
+      "filename": "PolyLine3D.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/PolyLine3D.dwg",
+      "sha256": "f51f4f65ba027bf1a001480d3c7b5bc5667960050081c67f9bb9c7bdbcfe815a"
+    },
+    {
+      "filename": "Polygon.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Polygon.dwg",
+      "sha256": "942cc72decb90cd775031ba7a7cc936c18273eaba7cb0075f715ce5debe3b098"
+    },
+    {
+      "filename": "Polyline.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Polyline.dwg",
+      "sha256": "2462b1b1eed19408e0ca9533023f642685c8c152d4c1a18902ef38094c14a398"
+    },
+    {
+      "filename": "RAY.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/RAY.dwg",
+      "sha256": "2c6f9eff0367bf77a93c3c3d422d6784c83a85ab0d0745bc14f2b53d4e92c8de"
+    },
+    {
+      "filename": "Spline.dwg",
+      "url": "https://raw.githubusercontent.com/LibreDWG/libredwg/master/test/test-data/2000/Spline.dwg",
+      "sha256": "05761169263f26320c265d6834e3f2f9d0fadd0aaf5f498688128fbce251f369"
+    }
+  ]
+}

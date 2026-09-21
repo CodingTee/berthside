@@ -1,0 +1,10 @@
+{
+  "email_id": "mock_special_086",
+  "from": "hari_mardianto@aprilasia.com",
+  "subject": "[MOCK-SPECIAL 086] TO CONFIRM DOCS _ 5RSG-63369 _ ASHDOD_ISRAEL _ ROXCEL TRADING GMBH _ MCLSIN5054296",
+  "body": "Dear Team,\n\nPlease find attached the SI and the Packing List for MCLSINJEA2508070. Kindly confirm the BL is in order.\n\n(Note: the second attachment is a Packing List, not the draft BL.)\n\nThe customer supplied the documents in PAGES format. Kindly advise if a PDF copy is required.",
+  "attachments": [
+    "attachments/mock_special100/mock_special_086_SI.pages",
+    "attachments/mock_special100/mock_special_086_BL.pages"
+  ]
+}
