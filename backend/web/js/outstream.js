@@ -16,6 +16,7 @@
 (function(){
   const OUT = {
     rows: [],
+    queue: "reply",
     seq: 0,
     policy: { disposition_mode: "manual", disposition_policies: {} },
     mailboxes: [],
@@ -131,6 +132,9 @@
     const qry = (($("outSearch") || {}).value || "").trim().toLowerCase();
     return (OUT.rows || []).filter(r => {
       if(mb !== "ALL" && r.source_mailbox !== mb) return false;
+      if(OUT.queue === "reply" && r.reply_state !== "awaiting") return false;
+      if(OUT.queue === "failed" && r.reply_state !== "failed") return false;
+      if(OUT.queue === "history" && !r.has_dispatch) return false;
       if(qry){
         const hay = [
           r.email_id, r.from, r.subject, r.source_mailbox,
@@ -142,6 +146,13 @@
     });
   }
 
+  function setQueue(queue){
+    OUT.queue = queue;
+    setText("replyQueueTitle", {reply:"Awaiting reply",failed:"Failed deliveries",history:"Delivery history"}[queue] || "Replies");
+    const bulk = document.getElementById("replyBulkSend");
+    if(bulk) bulk.hidden = queue !== "reply";
+    render();
+  }
   function render(){
     const rows = filteredRows();
     const total = rows.length;
@@ -161,7 +172,8 @@
     const tbody = $("outList");
     if(!tbody) return;
     if(!rows.length){
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;">No classified emails match this source / search.</td></tr>`;
+      const message = OUT.queue === "failed" ? "No failed deliveries match this source / search." : OUT.queue === "history" ? "No delivery history matches this source / search." : "No replies are waiting for this source / search.";
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px;">${message}</td></tr>`;
       renderMatrix();
       return;
     }
@@ -186,7 +198,7 @@
     } else if(mismatch){
       mismatchCell = `<span style="color:var(--warn);font-size:12px;">${esc(it.review_reason || "escalated")}</span>`;
     } else {
-      mismatchCell = `<span style="color:var(--ok);font-size:12px;">✓ SI ↔ BL aligned</span>`;
+      mismatchCell = `<span style="color:var(--ok);font-size:12px;">${it.status === "OK" ? "✓ SI ↔ BL aligned" : "No SI / BL comparison result"}</span>`;
     }
 
     const shortMb = it.source_mailbox && it.source_mailbox.length > 30
@@ -201,7 +213,14 @@
 
     let replyCell;
     if(it.reply_state === "sent"){
-      replyCell = `<span class="pill pill-clean" style="background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3);">✅ Replied</span>`;
+      replyCell = `<span class="pill pill-clean" style="background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3);">Sent · SMTP accepted</span>`;
+    } else if(it.reply_state === "failed"){
+      const why = it.last_error ? String(it.last_error) : "";
+      replyCell = `<span style="color:var(--bad)" ${why ? `title="${esc(why)}"` : ""}>Send failed${why ? ": " + esc(why.length > 80 ? why.slice(0, 80) + "..." : why) : ""}</span>`;
+    } else if(it.reply_state === "simulated"){
+      replyCell = `<span style="color:var(--warn)">Simulated · not sent</span>`;
+    } else if(it.reply_state === "unknown"){
+      replyCell = `<span>Delivery unconfirmed</span>`;
     } else if(it.reply_state === "awaiting"){
       if(eff === "auto"){
         replyCell = `<span class="pill" style="background:rgba(56,189,248,.12);color:#38bdf8;border:1px solid rgba(56,189,248,.3);">⚡ Auto-queued</span>`;
@@ -214,7 +233,9 @@
 
     const actions =
       `<div style="display:flex;gap:6px;">` +
-      `<button class="btn btn-sm" onclick="Outstream.openReturn('${q(id)}')">↩ Reply</button>` +
+      `<button class="btn btn-sm" onclick="ReviewReply.inspect('${q(id)}')">Review</button>` +
+      `<button class="btn btn-sm" onclick="ReviewReply.inspect('${q(id)}', true)">History</button>` +
+      `<button class="btn btn-sm" onclick="Outstream.openReturn('${q(id)}')">${it.reply_state === "sent" ? "New reply" : it.reply_state === "failed" ? "Retry" : "Reply"}</button>` +
       `</div>`;
 
     return `<tr>
@@ -285,17 +306,14 @@
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ disposition_mode: mode }),
       });
-      if(res.ok){
-        const d = await res.json();
-        OUT.policy = {
-          disposition_mode: d.disposition_mode,
-          disposition_policies: d.disposition_policies || {},
-        };
-        toast(`Outstream response policy set to ${mode}`, "ok");
-        render();
-      } else {
-        toast("Failed to update response policy", "bad");
-      }
+      const d = await res.json();
+      if(!res.ok) throw new Error(d.detail || "Request failed");
+      OUT.policy = {
+        disposition_mode: d.disposition_mode,
+        disposition_policies: d.disposition_policies || {},
+      };
+      toast(`Outstream response policy set to ${mode}`, "ok");
+      render();
     }catch(e){
       toast("Failed to update response policy", "bad");
     }
@@ -311,17 +329,14 @@
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ disposition_policies: dp }),
       });
-      if(res.ok){
-        const d = await res.json();
-        OUT.policy = {
-          disposition_mode: d.disposition_mode,
-          disposition_policies: d.disposition_policies || {},
-        };
-        toast(`Source ${mb} response set to ${mode}`, "ok");
-        render();
-      } else {
-        toast("Failed to update source policy", "bad");
-      }
+      const d = await res.json();
+      if(!res.ok) throw new Error(d.detail || "Request failed");
+      OUT.policy = {
+        disposition_mode: d.disposition_mode,
+        disposition_policies: d.disposition_policies || {},
+      };
+      toast(`Source ${mb} response set to ${mode}`, "ok");
+      render();
     }catch(e){
       toast("Failed to update source policy", "bad");
     }
@@ -335,17 +350,15 @@
         body: JSON.stringify({ override }),
       });
       const d = await res.json();
-      if(res.ok){
-        const row = (OUT.rows || []).find(r => r.email_id === email_id);
-        if(row){
-          row.disposition_override = d.disposition_override;
-          row.effective_disposition = d.effective_disposition;
-        }
-        toast(`Disposition for ${email_id} -> ${d.effective_disposition}`, "ok");
-        render();
-      } else {
-        toast("Failed to set disposition", "bad");
+      if(!res.ok) throw new Error(d.detail || "Request failed");
+      if(!OUT.rows.length) await reload();
+      const row = (OUT.rows || []).find(r => r.email_id === email_id);
+      if(row){
+        row.disposition_override = d.disposition_override;
+        row.effective_disposition = d.effective_disposition;
       }
+      toast(`Disposition for ${email_id} -> ${d.effective_disposition}`, "ok");
+      render();
     }catch(e){
       toast("Failed to set disposition", "bad");
     }
@@ -367,6 +380,7 @@
 
   async function openReturn(email_id){
     curEmail = email_id;
+    if(!OUT.rows.length) await reload();
     const row = (OUT.rows || []).find(r => r.email_id === email_id);
     try{
       const res = await fetch(`/api/emails/${encodeURIComponent(email_id)}/return`, {
@@ -375,6 +389,7 @@
         body: JSON.stringify({ dry_run: true }),
       });
       const d = await res.json();
+      if(!res.ok) throw new Error(d.detail || "Request failed");
       const via = $("outRetVia"); if(via) via.textContent = d.reply_via || "-";
       const to = $("outRetTo"); if(to) to.textContent = (row && row.from) ? row.from : (d.reply_via || "-");
       const sub = $("outRetSub"); if(sub) sub.value = d.subject || "";
@@ -407,9 +422,12 @@
         body: JSON.stringify({ subject, body }),
       });
       const d = await res.json();
-      toast(`Replied via ${d.reply_via} (${d.delivery})`, "ok");
+      if(!res.ok) throw new Error(d.detail || "Request failed");
+      const failed = ["FAILED", "ERROR"].includes(d.delivery);
+      toast(failed ? "Send failed. Review the Failed queue before retrying." : d.delivery === "SIMULATED" ? "Simulation recorded. No email was sent." : "SMTP accepted the reply. Receipt is not confirmed.", failed ? "bad" : "ok");
       closeReturnModal();
       await reload();
+      if(window.ReviewReply) window.ReviewReply.refresh();
     }catch(e){
       toast("Failed to dispatch reply", "bad");
     }
@@ -431,7 +449,8 @@
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({}),
         });
-        if(res.ok) okN++; else failN++;
+        const outcome = await res.json();
+        if(res.ok && !["FAILED", "ERROR"].includes(outcome.delivery)) okN++; else failN++;
       }catch(_){ failN++; }
     }));
     toast(`Auto-replied ${okN} (failed ${failN})`, failN ? "warn" : "ok");
@@ -440,6 +459,7 @@
 
   // ---- export --------------------------------------------------------------
   window.Outstream = {
+    setQueue,
     init,
     reload,
     render,

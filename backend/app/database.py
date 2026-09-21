@@ -73,6 +73,10 @@ def _migrate_columns(eng, session_factory) -> None:
         de_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(dispatched_emails)")).fetchall()}
         if "email_id" not in de_cols:
             conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN email_id VARCHAR(128)"))
+        if "gmail_message_id" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN gmail_message_id VARCHAR(128)"))
+        if "error" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN error VARCHAR(512)"))
 
     # Backfill source_mailbox for rows written before the column existed
     from app.models import EmailRecord as _ER

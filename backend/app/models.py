@@ -332,4 +332,5 @@ class DispatchRecord(Base):
     channel = Column(String(128), nullable=True)  # "sdoc-hackathon-bundle@averis.com" etc.
     delivery = Column(String(32), default="SIMULATED")  # SIMULATED | SENT | FAILED
     gmail_message_id = Column(String(128), nullable=True)
+    error = Column(String(512), nullable=True)  # transport failure reason, when delivery = FAILED
     created_at = Column(DateTime, default=utcnow, onupdate=utcnow)

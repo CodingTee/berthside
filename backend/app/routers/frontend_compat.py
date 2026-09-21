@@ -150,7 +150,16 @@ def list_emails(
     # EmailRecords carry the source mailbox + per-item disposition override.
     email_rec_map = {e.email_id: e for e in db.query(EmailRecord).all()}
     # A DispatchRecord linked by email_id means a reply was already dispatched.
-    dispatched_eids = {d.email_id for d in db.query(DispatchRecord.email_id).all() if d.email_id}
+    latest_dispatch = {}
+    for dispatch in db.query(DispatchRecord).order_by(DispatchRecord.id.desc()).all():
+        linked_id = dispatch.email_id
+        if not linked_id:
+            candidates = ["INGEST-" + dispatch.stage_id]
+            if dispatch.stage_id.startswith("STG-"):
+                candidates.append(dispatch.stage_id[4:])
+            linked_id = next((key for key in candidates if key in email_rec_map), None)
+        if linked_id:
+            latest_dispatch.setdefault(linked_id, dispatch)
     pol = _get_disposition_policy(db)
 
     items = []
@@ -174,10 +183,15 @@ def list_emails(
                     if email_rec and email_rec.disposition_override
                     else "INHERIT")
         eff = effective_disposition(pol, mb, override)
-        has_dispatch = eid in dispatched_eids
+        dispatch = latest_dispatch.get(eid)
+        has_dispatch = dispatch is not None
         rstatus = r.status if r else None
         if has_dispatch:
-            reply_state = "sent"
+            delivery = (dispatch.delivery or "").upper()
+            reply_state = ("sent" if delivery in {"SENT", "SENT_SMTP"}
+                           else "failed" if delivery in {"FAILED", "ERROR"}
+                           else "simulated" if delivery == "SIMULATED"
+                           else "unknown")
         elif rstatus in ("MISMATCH", "NEEDS_REVIEW"):
             reply_state = "awaiting"
         else:
@@ -199,6 +213,9 @@ def list_emails(
             "effective_disposition": eff,
             "has_dispatch": has_dispatch,
             "reply_state": reply_state,
+            "delivery": dispatch.delivery if dispatch else None,
+            "last_error": (dispatch.error or None) if dispatch else None,
+            "last_dispatch_at": dispatch.created_at.isoformat() if dispatch and dispatch.created_at else None,
         })
 
     total = len(items)
@@ -411,7 +428,9 @@ def outstream_return(email_id: str, payload: OutstreamReturnIn,
         subject=subject,
         body=body,
         channel=mb,
-        delivery=smtp_res.get("delivery", "SIMULATED"),
+        delivery="FAILED" if smtp_res.get("status") == "ERROR" else smtp_res.get("delivery", "SIMULATED"),
+        gmail_message_id=smtp_res.get("message_id"),
+        error=(smtp_res.get("error") or "")[:512] or None,
     )
     db.add(rec)
     db.commit()
@@ -420,15 +439,22 @@ def outstream_return(email_id: str, payload: OutstreamReturnIn,
         "email_id": email_id, "reply_via": mb, "decision": decision,
         "subject": subject, "body": body,
         "dispatch_id": rec.id, "delivery": rec.delivery,
+        "error": smtp_res.get("error"),
     }
 
 
 @router.get("/emails/{email_id}/dispatch-history")
 def outstream_dispatch_history(email_id: str, db: Session = Depends(get_db)):
     """List prior outstream replies dispatched for an email."""
+    from sqlalchemy import and_, or_
+    stage_ids = [f"STG-{email_id}"]
+    if email_id.startswith("INGEST-"):
+        stage_ids.append(email_id[len("INGEST-"):])
     rows = (
         db.query(DispatchRecord)
-        .filter_by(email_id=email_id)
+        .filter(or_(DispatchRecord.email_id == email_id,
+                    and_(DispatchRecord.email_id.is_(None),
+                         DispatchRecord.stage_id.in_(stage_ids))))
         .order_by(DispatchRecord.id.desc())
         .all()
     )
@@ -438,7 +464,11 @@ def outstream_dispatch_history(email_id: str, db: Session = Depends(get_db)):
             "decision": r.decision,
             "subject": r.subject,
             "channel": r.channel,
+            "recipient": r.recipient,
+            "body": r.body,
+            "message_id": r.gmail_message_id,
             "delivery": r.delivery,
+            "error": r.error,
             "created_at": r.created_at.isoformat() if r.created_at else "",
         }
         for r in rows

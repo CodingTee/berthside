@@ -430,6 +430,7 @@ function reflectWorkflow(status){
 
 /* ---------- detail ---------- */
 function renderDetail(d){
+  setTimeout(() => window.ReviewReply && window.ReviewReply.attach(d.email.email_id), 0);
   const e=d.email, r=d.result;
   let cmp="";
   if(d.comparisons && d.comparisons.length){
@@ -923,7 +924,7 @@ $("#themeBtn").addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){
 })();
 
 setFocus(localStorage.getItem("sdoc-focus")==="1");
-window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!=="review"&&h!=="gateway"&&h!=="outstream"&&!h.startsWith("lifecycle")&&!h.startsWith("/")&&h!==state.active)openEmail(h);});
+window.addEventListener("hashchange",()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!=="review"&&h!=="gateway"&&h!=="outstream"&&h!=="reply"&&h!=="failed"&&h!=="history"&&!h.startsWith("lifecycle")&&!h.startsWith("/")&&h!==state.active)openEmail(h);});
 /* ---------- command palette ---------- */
 const ICONS2={
   shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
@@ -1109,7 +1110,7 @@ $("#palList").addEventListener("click",e=>{
   }
 });
 
-loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!=="review"&&h!=="gateway"&&h!=="outstream"&&!h.startsWith("lifecycle")&&!h.startsWith("/"))openEmail(h); else renderEmptyDetail();});
+loadSummary().then(loadList).then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h&&h!=="review"&&h!=="gateway"&&h!=="outstream"&&h!=="reply"&&h!=="failed"&&h!=="history"&&!h.startsWith("lifecycle")&&!h.startsWith("/"))openEmail(h); else renderEmptyDetail();});
 loadIntegrations();   /* stored API results only: no reprocessing */
 
 

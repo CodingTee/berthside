@@ -17,6 +17,15 @@
    Master Console Router & Workspace Switcher Logic
    ========================================================================== */
 function switchView(name){
+  const queue = name === "outstream" ? "reply" : name;
+  const workbench = ["review", "reply", "failed", "history", "outstream"].includes(name);
+  const header = document.getElementById("reviewReplyHeader");
+  if(header) header.hidden = !workbench;
+  document.querySelectorAll("[data-review-queue]").forEach(b => {
+    b.classList.toggle("primary", b.dataset.reviewQueue === queue);
+    b.setAttribute("aria-pressed", String(b.dataset.reviewQueue === queue));
+  });
+  if(["reply", "failed", "history"].includes(queue)) name = "outstream";
   const navGateway = document.getElementById("navGateway");
   const navReview = document.getElementById("navReview");
   const navLifecycle = document.getElementById("navLifecycle");
@@ -37,12 +46,15 @@ function switchView(name){
   } else if(name === "lifecycle"){
     if(navLifecycle) navLifecycle.classList.add("active");
     if(viewLifecycle) viewLifecycle.hidden = false;
-    if(!window.location.hash.startsWith("#lifecycle")) history.replaceState(null, "", "#lifecycle");
+    // Lifecycle owns its own hashes (#/, #/s/<id>); don't clobber them
+    const h = window.location.hash;
+    if(!h.startsWith("#/") && !h.startsWith("#lifecycle")) history.replaceState(null, "", "#lifecycle");
     if(window.Lifecycle && window.Lifecycle.init) window.Lifecycle.init();
   } else if(name === "outstream"){
-    if(navOutstream) navOutstream.classList.add("active");
+    if(navReview) navReview.classList.add("active");
     if(viewOutstream) viewOutstream.hidden = false;
-    if(window.location.hash !== "#outstream") history.replaceState(null, "", "#outstream");
+    history.replaceState(null, "", "#" + queue);
+    if(window.Outstream) window.Outstream.setQueue(queue);
     if(window.Outstream && window.Outstream.init) window.Outstream.init();
   } else {
     if(navReview) navReview.classList.add("active");
@@ -88,8 +100,9 @@ window.addEventListener("hashchange", () => {
   const h = window.location.hash;
   if(h === "#gateway") switchView("gateway");
   else if(h.startsWith("#lifecycle")) switchView("lifecycle");
-  else if(h === "#outstream") switchView("outstream");
+  else if(["#outstream", "#reply", "#failed", "#history"].includes(h)) switchView(h.slice(1));
   else if(h === "#review") switchView("review");
+  else if(h.startsWith("#/")) switchView("lifecycle");
 });
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -97,7 +110,9 @@ window.addEventListener("DOMContentLoaded", () => {
   const h = window.location.hash;
   if(h === "#gateway") switchView("gateway");
   else if(h.startsWith("#lifecycle")) switchView("lifecycle");
-  else if(h === "#outstream") switchView("outstream");
+  else if(["#outstream", "#reply", "#failed", "#history"].includes(h)) switchView(h.slice(1));
+  else if(h === "#review") switchView("review");
+  else if(h.startsWith("#/")) switchView("lifecycle");
   else switchView("review");
 });
 
@@ -966,7 +981,7 @@ table.list tbody tr{cursor:pointer;transition:.15s}
 table.list tbody tr:hover{background:var(--surface-hover)}
 table.list tbody tr:last-child td{border-bottom:0}
 /* Keyboard / click selection: the arrow keys need something visible to move,
-   so the highlight mirrors the inbox rows on the Review Console. */
+   so the highlight mirrors the inbox rows on the Review &amp; Reply. */
 table.list tbody tr.sel{background:color-mix(in srgb,var(--accent) 11%,transparent)}
 table.list tbody tr.sel:hover{background:color-mix(in srgb,var(--accent) 17%,transparent)}
 table.list tbody tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
@@ -1160,6 +1175,11 @@ table.list tbody tr.sel .key{color:var(--accent)}
 .lc-content.dash-mode .panel{display:flex;flex-direction:column;flex:1;min-height:0;margin-bottom:0}
 .btn:hover .hk{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
 
+
+.rr-header{padding:16px 20px;margin-bottom:12px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.rr-header[hidden]{display:none}.rr-header h2{margin:0 0 5px;font-size:20px}.rr-header p{color:var(--muted);margin:0 0 14px;font-size:13px}
+.rr-header nav{display:flex;gap:8px;flex-wrap:wrap}.rr-actions{padding:14px;border:1px solid var(--border);border-radius:10px;margin:12px 0}
+.rr-history pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:12px}.rr-history article{padding:12px 0;border-top:1px solid var(--border)}
 </style>
 </head>
 <body data-page-node-id="wzcVVSuVBtDzNxMgWcXGVQ">
@@ -1229,9 +1249,9 @@ table.list tbody tr.sel .key{color:var(--accent)}
         <span>Gateway &amp; Sandbox</span>
         <span class="hk">0</span>
       </button>
-      <button class="navlink active" id="navReview" type="button" onclick="switchView('review')" data-tip="Review Console" data-tip-desc="Email-centric console: process 520 inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review Console">
+      <button class="navlink active" id="navReview" type="button" onclick="switchView('review')" data-tip="Review &amp; Reply" data-tip-desc="Email-centric console: process 520 inbox and review SI ↔ BL mismatches" data-tip-kbd="1" data-tip-pos="right" aria-label="Review &amp; Reply">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-        <span>Review Console</span>
+        <span>Review &amp; Reply</span>
         <span class="hk">1</span>
       </button>
       <button class="navlink" id="navLifecycle" type="button" onclick="switchView('lifecycle')" data-tip="Shipment Lifecycle" data-tip-desc="Shipment-centric console: version history, diffs and the resolution center" data-tip-kbd="2" data-tip-pos="right" aria-label="Shipment Lifecycle">
@@ -1239,11 +1259,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
         <span>Shipment Lifecycle</span>
         <span class="hk">2</span>
       </button>
-      <button class="navlink" id="navOutstream" type="button" onclick="switchView('outstream')" data-tip="Outstream Buffer" data-tip-desc="Post-classification disposition: SI to BL mismatches, per-source auto / manual reply &amp; reply-needed queue" data-tip-kbd="3" data-tip-pos="right" aria-label="Outstream Buffer">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9z"/></svg>
-        <span>Outstream Buffer</span>
-        <span class="hk">3</span>
-      </button>
+
     </div>
 
     <div class="panel-box" data-page-node-id="TGnqw11nrbhOZG9Nn4vgFP">
@@ -1422,6 +1438,15 @@ table.list tbody tr.sel .key{color:var(--accent)}
       </div>
     </div>
 
+<section id="reviewReplyHeader" class="rr-header" hidden>
+  <div><h2>Review &amp; Reply</h2><p>Inspect the evidence, prepare a reply, and keep the delivery history.</p></div>
+  <nav aria-label="Review and reply queues">
+    <button class="btn" data-review-queue="review" onclick="switchView('review')">Review</button>
+    <button class="btn" data-review-queue="reply" onclick="switchView('reply')">Awaiting reply</button>
+    <button class="btn" data-review-queue="failed" onclick="switchView('failed')">Failed</button>
+    <button class="btn" data-review-queue="history" onclick="switchView('history')">History</button>
+  </nav>
+</section>
     <!-- VIEW 2: REVIEW CONSOLE (DEFAULT ACTIVE) -->
     <div id="viewReview" class="console-view">
       <div class="kpi-bar" id="kpis" data-page-node-id="MnDL1ijvY4PaZZpApCVFPI"></div>
@@ -1469,7 +1494,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
             Search
             <span class="hk">Ctrl K</span>
           </button>
-          <button class="btn" type="button" onclick="switchView('review')" data-tip="Back to Review Console" data-tip-desc="Return to the email-centric verification console" data-tip-kbd="B" data-tip-pos="bottom" aria-label="Back to Review Console">
+          <button class="btn" type="button" onclick="switchView('review')" data-tip="Back to Review &amp; Reply" data-tip-desc="Return to the email-centric verification console" data-tip-kbd="B" data-tip-pos="bottom" aria-label="Back to Review &amp; Reply">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back to Review<span class="hk">B</span>
           </button>
         </div>
@@ -1490,7 +1515,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
         </div>
         <div class="kpi-card ok">
           <span class="kpi-num" id="outKpiSent">0</span>
-          <span class="kpi-lbl">✅ Replied / Dispatched</span>
+          <span class="kpi-lbl">Sent (SMTP accepted)</span>
         </div>
         <div class="kpi-card purple">
           <span class="kpi-num" id="outKpiReview">0</span>
@@ -1531,7 +1556,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
         </div>
       </div>
 
-      <div class="matrix-panel">
+      <details class="matrix-panel"><summary style="padding:14px;cursor:pointer">Reply settings · auto / manual by source</summary>
         <div class="matrix-head">
           <div>
             <div class="matrix-title">📡 Response Disposition Policy <span class="matrix-sub">· per-mailbox auto / manual (post-classification)</span></div>
@@ -1539,16 +1564,16 @@ table.list tbody tr.sel .key{color:var(--accent)}
           </div>
         </div>
         <div class="matrix-grid" id="outMatrixGrid"></div>
-      </div>
+      </details>
 
       <div class="table-panel">
         <div class="table-header">
           <div style="display:flex;align-items:center;gap:6px;">
-            <span>📨 Outstream Buffer · Classified &amp; Dispositioned</span>
+            <span>📨 <span id="replyQueueTitle">Awaiting reply</span></span>
             <span id="outCountBadge" style="font-size:12px;color:var(--muted);font-weight:400;"></span>
           </div>
           <div class="bulk-bar">
-            <button class="btn btn-sm btn-primary" type="button" onclick="Outstream.bulkReplyEligible()">⚡ Auto-reply all eligible</button>
+            <button class="btn btn-sm btn-primary" id="replyBulkSend" type="button" onclick="Outstream.bulkReplyEligible()">⚡ Auto-reply all eligible</button>
             <button class="btn btn-sm" type="button" onclick="Outstream.reload()">🔄 Refresh</button>
           </div>
         </div>
@@ -1689,6 +1714,7 @@ table.list tbody tr.sel .key{color:var(--accent)}
 <script src="/ui/js/gateway.js"></script>
 <script src="/ui/js/lifecycle.js"></script>
 <script src="/ui/js/outstream.js"></script>
+<script src="/ui/js/review_reply.js"></script>
 
 <!-- Outstream Return Modal (post-classification reply / clarification) -->
 <div class="modal-overlay hidden" id="outReturnModal">
