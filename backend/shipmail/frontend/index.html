@@ -927,26 +927,14 @@ body.resizing .mail-body{user-select:none}
 /* ---------- conversation list ---------- */
 /* 52px header, folder name left, count right. The filter selects squeezed in
    between them share the same line rather than adding a second row. */
-.listbar{display:flex;flex-direction:column;gap:9px;padding:12px 14px 10px;flex:0 0 auto;
+.listbar{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:52px;box-sizing:border-box;flex:0 0 auto;
   border-bottom:1px solid var(--border);background:#ffffff;position:relative;z-index:2}
 [data-theme="dark"] .listbar{background:var(--surface-2)}
-.listbar .lb-top{display:flex;align-items:center;justify-content:space-between;width:100%}
-.listbar .lb-title{font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:7px;color:var(--text)}
-.listbar .lb-title svg{width:16px;height:16px;color:var(--ok)}
+.listbar .lb-title-wrap{display:flex;align-items:center;gap:8px}
+.listbar .lb-ico{width:18px;height:18px;color:#10b981}
+.listbar .lb-title{font-size:14px;font-weight:700;color:var(--text)}
 .listbar .lb-count{font-size:11px;font-weight:700;color:var(--muted-2);background:var(--surface-3);
   padding:2px 8px;border-radius:12px;border:1px solid var(--border)}
-
-.listbar .lb-filters{display:flex;align-items:center;gap:6px;flex-wrap:wrap;width:100%}
-.listbar .inbox-search-wrap{flex:1 1 140px;min-width:120px;position:relative;display:flex;align-items:center}
-.listbar .inbox-search-wrap input{width:100%;height:30px;font-size:11.5px;padding:0 10px 0 28px;
-  border-radius:9px;background:var(--surface-3);border:1px solid var(--border);color:var(--text);outline:none;transition:.15s}
-.listbar .inbox-search-wrap input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,212,191,.15)}
-.listbar .inbox-search-ico{position:absolute;left:8px;font-size:11px;color:var(--muted-2);pointer-events:none}
-.listbar select{height:30px;font-size:11px;color:var(--text);background:var(--surface-3);
-  border:1px solid var(--border);border-radius:9px;padding:0 22px 0 8px;appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='none' stroke='%238b9bb4' stroke-width='2'%3E%3Cpath d='M2 3.5l3 3 3-3'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 7px center;cursor:pointer;flex:0 1 auto}
-.listbar select:hover{border-color:var(--border-strong)}
 
 .list{overflow-y:auto;flex:1;background:#ffffff}
 [data-theme="dark"] .list{background:var(--surface-2)}
@@ -1635,44 +1623,11 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
     <!-- CONVERSATION LIST -->
     <div class="panel inbox-panel" data-page-node-id="8TiJEVL9wEDjFQ6XYI9a6t">
       <div class="listbar" data-page-node-id="5z8HufOwaI6r7RbICGftu6">
-        <div class="lb-top">
-          <div class="lb-title-wrap">
-            <svg class="lb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-            <span class="lb-title" id="boxTitle">Inbox</span>
-            <span class="lb-count" id="listCount">0</span>
-          </div>
+        <div class="lb-title-wrap">
+          <svg class="lb-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+          <span class="lb-title" id="boxTitle">Inbox</span>
         </div>
-        <div class="lb-filters" data-page-node-id="20PyGkBc2tdHonlycsikeb">
-          <div class="inbox-search-wrap">
-            <span class="inbox-search-ico">🔍</span>
-            <input type="text" id="inbox-q" placeholder="Filter: subject, sender, id..." autocomplete="off" spellcheck="false">
-          </div>
-          <select id="f-src" aria-label="Filter by source">
-            <option value="">All sources</option>
-            <option value="gmail">Gmail</option>
-            <option value="outlook">Outlook</option>
-          </select>
-          <select id="f-reply" aria-label="Filter by reply status">
-            <option value="">All reply statuses</option>
-            <option value="needed">Reply needed</option>
-            <option value="none">No reply needed</option>
-          </select>
-          <select id="f-cat" aria-label="Filter by category">
-            <option value="">All categories</option>
-            <option value="BL">BL Comparison</option>
-            <option value="SI">SI Request</option>
-            <option value="INVOICE">Invoice</option>
-            <option value="OTHERS">Others</option>
-          </select>
-          <select id="f-status" aria-label="Filter by status">
-            <option value="">All statuses</option>
-            <option value="OK">OK</option>
-            <option value="MISMATCH">Mismatch</option>
-            <option value="NEEDS_REVIEW">Needs Review</option>
-            <option value="__none">Not processed</option>
-          </select>
-          <select id="f-kind" style="display:none"></select>
-        </div>
+        <span class="lb-count" id="listCount">0</span>
       </div>
       <div class="list" id="list" data-page-node-id="rLMpC4XGqVsKTtAFgJDHrR"></div>
     </div>
@@ -4319,7 +4274,10 @@ function palSearchMail(q){
   }, 90);
 }
 function applyStatus(st){
-  state.status = st; $("f-status").value = st; pin("status:" + st);
+  state.status = st;
+  const el = $("f-status");
+  if(el) el.value = st;
+  pin("status:" + st);
   renderKPIs(); renderList();
 }
 function palHover(i){ palIdx = i; renderPalette(); }
