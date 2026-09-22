@@ -241,6 +241,14 @@ def email_detail(email_id: str, db: Session = Depends(get_db)):
         raise HTTPException(404, f"email not found: {email_id}")
 
     report = db.query(ReportRecord).filter_by(email_id=email_id).first()
+    if report is None:
+        try:
+            from app.database import OAuthSessionLocal
+            odb = OAuthSessionLocal()
+            report = odb.query(ReportRecord).filter_by(email_id=email_id).first()
+            odb.close()
+        except Exception:
+            pass
 
     comparisons = []
     for fr in ((report.field_results or []) if report else []):
@@ -313,12 +321,24 @@ class FrontendReviewIn(BaseModel):
 @router.post("/emails/{email_id}/review")
 def review(email_id: str, payload: FrontendReviewIn,
            db: Session = Depends(get_db)):
+    target_db = db
     report = db.query(ReportRecord).filter_by(email_id=email_id).first()
     if report is None:
-        report = workflow.process_email(db, email_id)
+        try:
+            from app.database import OAuthSessionLocal
+            odb = OAuthSessionLocal()
+            rep_o = odb.query(ReportRecord).filter_by(email_id=email_id).first()
+            if rep_o is not None:
+                target_db = odb
+                report = rep_o
+        except Exception:
+            pass
+
+    if report is None:
+        report = workflow.process_email(target_db, email_id)
 
     decision = "CONFIRM" if payload.action == "confirm" else "CORRECT"
-    db.add(ReviewRecord(
+    target_db.add(ReviewRecord(
         report_id=report.id,
         email_id=email_id,
         reviewer="human",
@@ -338,8 +358,8 @@ def review(email_id: str, payload: FrontendReviewIn,
         if payload.status != "NEEDS_REVIEW":
             report.review_reason = None
 
-    db.commit()
-    return {
+    target_db.commit()
+    res = {
         "ok": True,
         "result": {
             "email_id": email_id,
@@ -350,6 +370,9 @@ def review(email_id: str, payload: FrontendReviewIn,
             "decided_by": "human",
         },
     }
+    if target_db is not db:
+        target_db.close()
+    return res
 
 
 # --------------------------------------------------- outstream disposition
