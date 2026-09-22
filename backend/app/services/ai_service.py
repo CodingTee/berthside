@@ -40,10 +40,26 @@ from app.services.labels import label_from_key
 log = logging.getLogger(__name__)
 settings = get_settings()
 
+# Runtime override set by the gateway console (gateway_policy.engine). When
+# unset, the .env value remains authoritative.
+_runtime_provider: Optional[str] = None
+
+_VALID_PROVIDERS = ("rule", "ollama", "cascade", "hybrid", "remote")
+
+
+def set_runtime_provider(name: Optional[str]) -> None:
+    """Pin the classification/extract provider at runtime (UI selection)."""
+    global _runtime_provider
+    _runtime_provider = name if name in _VALID_PROVIDERS else None
+
+
+def current_provider() -> str:
+    return _runtime_provider or settings.ai_provider
+
 
 # --------------------------------------------------------------------------
 def classify_email(email: dict) -> Classification:
-    provider = settings.ai_provider
+    provider = current_provider()
     if provider in ("remote", "hybrid", "cascade", "ollama"):
         try:
             if provider == "ollama":
@@ -51,11 +67,15 @@ def classify_email(email: dict) -> Classification:
                 if not gateway.check_ollama_status().get("online"):
                     raise RuntimeError("Ollama not reachable")
                 res = gateway.classify_ambiguous_email(email, backend="ollama")
-                return Classification(res["category"], res["confidence"], res["source"])
+                return Classification(res["category"], res["confidence"],
+                                      res.get("reason") or res["source"],
+                                      res["source"])
             if provider == "cascade":
                 from app.services.llm_gateway import gateway
                 res = gateway.classify_ambiguous_email(email)
-                return Classification(res["category"], res["confidence"], res["source"])
+                return Classification(res["category"], res["confidence"],
+                                      res.get("reason") or res["source"],
+                                      res["source"])
             return _remote_classify(email)
         except Exception as exc:  # noqa: BLE001 — degrade, never crash
             log.warning("remote/cascade/ollama classify failed (%s); provider=%s",
@@ -72,7 +92,7 @@ def extract_document(doc_type: str, filename: str, content: bytes) -> extractor.
     # HEIF: their mime map has no entry for it and would label the bytes
     # image/jpeg, which reads as a corrupt JPEG on the far side.
     filename, content = photo.normalize_image(filename, content)
-    provider = settings.ai_provider
+    provider = current_provider()
     if provider in ("remote", "hybrid", "cascade", "ollama"):
         try:
             if provider in ("cascade", "ollama"):

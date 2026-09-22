@@ -283,6 +283,7 @@ class EmailVerdict:
     field_results: list[dict] = field(default_factory=list)
     extracted: dict = field(default_factory=dict)
     pair: Optional[ComparedPair] = None
+    classify_source: str = "rule-classifier"
 
 
 # How many leading lines count as the heading, i.e. where a document names
@@ -391,6 +392,7 @@ def evaluate_email(email: dict,
             category=cls.category,
             confidence=cls.confidence,
             classification_reason=cls.reason,
+            classify_source=cls.source,
             status=NON_COMPARISON_STATUS,
             extracted={"classification_reason": cls.reason,
                        "confidence": cls.confidence},
@@ -408,6 +410,7 @@ def evaluate_email(email: dict,
                 category=cls.category,
                 confidence=cls.confidence,
                 classification_reason=cls.reason,
+                classify_source=cls.source,
                 status="OK",
                 extracted={
                     "si_attachment": si_path, "bl_attachment": bl_path,
@@ -423,6 +426,7 @@ def evaluate_email(email: dict,
             category=cls.category,
             confidence=cls.confidence,
             classification_reason=cls.reason,
+            classify_source=cls.source,
             status="NEEDS_REVIEW",
             review_reason="missing_attachment",
             # Evidence for the human reviewer: which document is absent and
@@ -450,6 +454,7 @@ def evaluate_email(email: dict,
             category=cls.category,
             confidence=cls.confidence,
             classification_reason=cls.reason,
+            classify_source=cls.source,
             status="NEEDS_REVIEW",
             review_reason="wrong_doc_type",
             extracted={
@@ -475,6 +480,7 @@ def evaluate_email(email: dict,
             category=cls.category,
             confidence=cls.confidence,
             classification_reason=cls.reason,
+            classify_source=cls.source,
             status="NEEDS_REVIEW",
             review_reason="unreadable",
             extracted={
@@ -502,6 +508,7 @@ def evaluate_email(email: dict,
             category=cls.category,
             confidence=cls.confidence,
             classification_reason=cls.reason,
+            classify_source=cls.source,
             status="NEEDS_REVIEW",
             review_reason="unreadable",
             extracted={
@@ -531,6 +538,7 @@ def evaluate_email(email: dict,
         category=cls.category,
         confidence=cls.confidence,
         classification_reason=cls.reason,
+        classify_source=cls.source,
         status=outcome.status,
         review_reason=outcome.review_reason,
         has_defect=outcome.has_defect,
@@ -553,6 +561,7 @@ def _apply_verdict(report: ReportRecord, verdict: EmailVerdict) -> None:
     """
     report.category = verdict.category
     report.status = verdict.status
+    report.classify_source = verdict.classify_source
     report.has_defect = 1 if verdict.has_defect else 0
     report.defect_fields = verdict.defect_fields
     report.review_reason = verdict.review_reason

@@ -163,16 +163,19 @@
   // Full action set: used inside the row-detail modal.
   function stageActionsHtml(it){
     const stop = "event.stopPropagation()";
+    if(it.status === "QUARANTINED" && it.security_status === "BLOCKED"){
+      return `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
+    }
+    const directDispatchBtn = `<button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;padding:6px 14px;box-shadow:0 1px 3px rgba(5,150,105,0.3);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')">🚀 审核通过并回信给客户 (穿透直发 · CC业务员)</button>`;
+
     if(it.status === "STAGED"){
       return `
+        ${directDispatchBtn}
         <button class="btn btn-sm btn-primary" onclick="${stop};Gateway.approveEmail('${q(it.stage_id)}')">✅ Approve &amp; Ingest</button>
         <button class="btn btn-sm btn-danger" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', true)">📤 Reject &amp; Clarify</button>
       `;
     }
     if(it.status === "QUARANTINED"){
-      if(it.security_status === "BLOCKED"){
-        return `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
-      }
       return `
         <button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="${stop};Gateway.approveEmail('${q(it.stage_id)}')">🔓 Release &amp; Ingest</button>
         <button class="btn btn-sm" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', true)">↩️ Return to Sender</button>
@@ -180,13 +183,15 @@
     }
     if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
       return `
+        ${directDispatchBtn}
         <span style="color:var(--ok);font-weight:600;font-size:12px;">✓ Ingested</span>
         <button class="btn btn-sm" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', false)">↩️ Return to Sender</button>
       `;
     }
     if(it.status === "RETURNED"){
       return `
-        <span style="color:var(--accent);font-weight:600;font-size:12px;">↩️ Returned via ${esc(it.source_mailbox)}</span>
+        ${directDispatchBtn}
+        <span style="color:var(--accent);font-weight:600;font-size:12px;">✓ Dispatched to Client</span>
         <button class="btn btn-sm" onclick="${stop};Gateway.openReturn('${q(it.stage_id)}', false)">Return Again</button>
       `;
     }
@@ -198,22 +203,22 @@
 
   // One compact primary action per row; everything else lives in the modal.
   function stagePrimaryHtml(it){
-    if(it.status === "STAGED"){
-      return `<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();Gateway.approveEmail('${q(it.stage_id)}')">✅ Approve</button>`;
-    }
+    const stop = "event.stopPropagation()";
     if(it.status === "QUARANTINED"){
       if(it.security_status === "BLOCKED"){
         return `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Blocked</span>`;
       }
-      return `<button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="event.stopPropagation();Gateway.approveEmail('${q(it.stage_id)}')">🔓 Release</button>`;
-    }
-    if(it.status === "APPROVED" || it.status === "AUTO_INGESTED"){
-      return `<span style="color:var(--ok);font-weight:600;font-size:12px;margin-right:6px;">✓</span><button class="btn btn-sm" onclick="event.stopPropagation();Gateway.openReturn('${q(it.stage_id)}', false)">↩ Return</button>`;
+      return `<button class="btn btn-sm" style="border-color:var(--warn);color:var(--warn);background:rgba(251,191,36,.08);" onclick="${stop};Gateway.approveEmail('${q(it.stage_id)}')">🔓 Release</button>`;
     }
     if(it.status === "RETURNED"){
-      return `<button class="btn btn-sm" onclick="event.stopPropagation();Gateway.openReturn('${q(it.stage_id)}', false)">↩ Return Again</button>`;
+      return `
+        <span style="color:var(--ok);font-weight:700;font-size:11px;margin-right:4px;">✓ 已直发</span>
+        <button class="btn btn-sm" style="background:#059669;color:#fff;font-weight:700;font-size:11px;padding:3px 8px;" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="重新穿透直发给客户并CC业务员">🚀 重发</button>
+      `;
     }
-    return `<button class="btn btn-sm" onclick="event.stopPropagation();Gateway.openReturn('${q(it.stage_id)}', false)">↩ Return</button>`;
+    return `
+      <button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;font-size:11.5px;padding:4px 10px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="以系统官方身份直接发送带Averis认证章的高清HTML报告给客户，同时CC抄送业务员">🚀 审核并回信客户</button>
+    `;
   }
 
   function renderStagedList(items){
@@ -243,13 +248,18 @@
       const statusChip = `<span class="stg-status ${statusTone[it.status] || ""}">${esc(it.status)}</span>`;
       const mode = effectiveMode(it.source_mailbox);
 
+      const isFwd = it.target_client && it.sender && (it.target_client.toLowerCase() !== it.sender.toLowerCase());
+      const senderHtml = isFwd
+        ? `<span class="stg-sender" title="Client: ${esc(it.target_client)} | Forwarded by: ${esc(it.sender)}"><strong style="color:#0f172a;">${esc(it.target_client)}</strong> <span style="font-size:10.5px;color:var(--muted);font-weight:normal;">(via ${esc(it.sender)})</span></span>`
+        : `<span class="stg-sender" title="${esc(it.sender || "")}">${esc(it.sender || "-")}</span>`;
+
       html += `
         <tr data-id="${it.stage_id}" class="stg-row" title="Click for full detail" onclick="Gateway.openStageDetail('${q(it.stage_id)}')">
           <td style="font-family:var(--mono);font-size:11.5px;color:var(--muted);">${esc(it.stage_id)}</td>
           <td>
             <div class="stg-subj" title="${esc(it.subject)}">${esc(it.subject)}</div>
             <div class="stg-meta">
-              <span class="stg-sender" title="${esc(it.sender || "")}">${esc(it.sender || "-")}</span>
+              ${senderHtml}
               <span class="pill pill-src" title="Target mailbox">${esc(it.source_mailbox || "-")}</span>
               <span class="eff-tag ${mode === "auto" ? "auto" : "manual"}">${mode === "auto" ? "AUTO" : "MANUAL"}</span>
             </div>
@@ -268,7 +278,11 @@
     const set = (id, v) => { const el = document.getElementById(id); if(el) el.innerHTML = v; };
     set("sdSubject", esc(it.subject));
     set("sdStage", esc(it.stage_id));
-    set("sdSender", esc(it.sender || "-"));
+    const isFwdModal = it.target_client && it.sender && (it.target_client.toLowerCase() !== it.sender.toLowerCase());
+    const senderModalHtml = isFwdModal
+      ? `<b>${esc(it.target_client)}</b> <span style="font-size:11px;color:var(--muted);">(forwarded via ${esc(it.sender)})</span>`
+      : esc(it.sender || "-");
+    set("sdSender", senderModalHtml);
     const mode = effectiveMode(it.source_mailbox);
     set("sdMailbox",
       `<span class="pill pill-src">${esc(it.source_mailbox || "-")}</span> ` +
@@ -379,6 +393,26 @@
       closeReturnModal();
     }catch(e){
       toast("Failed to dispatch return", "bad");
+    }
+  }
+
+  async function dispatchToClient(stageId){
+    if(!confirm("确认以系统官方身份将带 Averis 认证章的高清 HTML 报告直接穿透发送给原客户，并同时抄送（CC）业务员留存？")) return;
+    toast("🚀 正在通过系统官方 SMTP 穿透直发给客户并抄送业务员...", "ok");
+    try {
+      const res = await fetch(`/api/v1/gateway/emails/${stageId}/dispatch-client`, { method: "POST" });
+      const d = await res.json();
+      if(res.ok && d.status === "SUCCESS"){
+        const ccNote = d.cc ? ` (已抄送: ${d.cc})` : "";
+        toast(`✅ 官方报告已正式直发客户: ${d.recipient}${ccNote}`, "ok");
+        loadStatus();
+        loadStagedEmails();
+        closeStageDetail();
+      } else {
+        toast(d.detail || d.message || "穿透直发失败", "bad");
+      }
+    } catch(e) {
+      toast("穿透直发请求失败: " + e.message, "bad");
     }
   }
 
@@ -931,6 +965,7 @@
     openReturn,
     closeReturnModal,
     confirmReturn,
+    dispatchToClient,
     openSimModal,
     closeSimModal,
     selectScenario,

@@ -169,6 +169,9 @@ def effective_disposition(pol: GatewayPolicyRecord, mailbox: Optional[str],
 @router.get("/status", summary="Get gateway health, AI engine probe, and policy")
 def gateway_status(db: Session = Depends(get_db)):
     pol = _get_policy(db)
+    # Keep the runtime provider in step with what the console displays.
+    from app.services import ai_service
+    ai_service.set_runtime_provider(pol.engine)
     
     # 1. Probe local Ollama (cached, non-blocking) with zero external token cost
     ollama_stat = _ollama_status_cached()
@@ -251,6 +254,9 @@ def update_gateway_config(payload: GatewayConfigIn, db: Session = Depends(get_db
     pol = _get_policy(db)
     if payload.engine in ("cascade", "ollama", "rule"):
         pol.engine = payload.engine
+        # Make the console selection authoritative for classification now.
+        from app.services import ai_service
+        ai_service.set_runtime_provider(pol.engine)
     if payload.ingest_mode in ("auto", "manual"):
         pol.ingest_mode = payload.ingest_mode
     if payload.source_policies is not None:
@@ -298,12 +304,15 @@ def list_staged_emails(
         q_staged = q_staged.filter(StagedEmailRecord.status == status)
 
     staged_records = q_staged.order_by(StagedEmailRecord.id.desc()).all()
+    from app.services.email_utils import extract_original_sender
+
     staged_items = [
         {
             "id": r.id,
             "stage_id": r.stage_id,
             "source_mailbox": r.source_mailbox,
             "sender": r.sender,
+            "target_client": extract_original_sender(r.body) or r.sender,
             "recipient": r.recipient,
             "subject": r.subject,
             "body_snippet": (r.body or "")[:120],
@@ -986,12 +995,17 @@ def send_customer_notice_page(
 
     # If auto_send is requested (e.g. from 1-click action or confirm button)
     if auto_send:
+        operator_cc = None
+        if staged.sender and staged.sender.lower() != target_client.lower():
+            operator_cc = staged.sender
+
         smtp_res = dispatch_smtp_email(
             to_email=target_client,
             subject=customer_subj,
             body=customer_text,
             html_body=customer_html,
             sender=settings.smtp_from or settings.imap_user,
+            cc=operator_cc,
         )
 
         rec = DispatchRecord(
@@ -1007,6 +1021,7 @@ def send_customer_notice_page(
         db.add(rec)
         db.commit()
 
+        cc_info_html = f"<br>Carbon Copy (CC) to Operator: <strong style='color:#0f172a;'>{html.escape(operator_cc)}</strong>" if operator_cc else ""
         success_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1025,7 +1040,7 @@ def send_customer_notice_page(
     <div class="success-badge">✅ Official Customer Notice Dispatched Successfully!</div>
     <h2 style="margin:0 0 10px 0;">Notice Delivered to Client</h2>
     <p style="color:#475569;font-size:14px;line-height:1.5;">
-      The executive HTML documentation notice has been transmitted via SMTP to <strong>{html.escape(target_client)}</strong>.<br>
+      The executive HTML documentation notice has been transmitted via SMTP to: <strong>{html.escape(target_client)}</strong>.{cc_info_html}<br>
       Delivery status: <span style="font-family:monospace;font-weight:bold;color:#047857;">{html.escape(smtp_res.get('delivery', 'SENT'))}</span>.
     </p>
     <div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:20px;">
@@ -1159,12 +1174,17 @@ def dispatch_customer_notice_api(
     )
     customer_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'} - Ref #{payload.stage_id}"
 
+    operator_cc = None
+    if staged.sender and staged.sender.lower() != target_client.lower():
+        operator_cc = staged.sender
+
     smtp_res = dispatch_smtp_email(
         to_email=target_client,
         subject=customer_subj,
         body=customer_text,
         html_body=customer_html,
         sender=settings.smtp_from or settings.imap_user,
+        cc=operator_cc,
     )
 
     rec = DispatchRecord(
@@ -1184,6 +1204,85 @@ def dispatch_customer_notice_api(
         "status": "SUCCESS",
         "stage_id": payload.stage_id,
         "recipient": target_client,
+        "cc": operator_cc,
+        "delivery": smtp_res.get("delivery", "SENT"),
+        "channel": smtp_res.get("channel", "SMTP"),
+    }
+
+
+@router.post("/emails/{stage_id}/dispatch-client", summary="1-Click Console Direct Dispatch to Client with Operator CC")
+def console_dispatch_to_client(stage_id: str, db: Session = Depends(get_db)):
+    """Allows operators to dispatch official HTML audit report directly to customer and CC operator from the Web Console."""
+    from app.services.email_utils import (
+        build_customer_html_notice,
+        build_customer_structured_text,
+        clean_subject,
+        extract_original_sender,
+    )
+    from app.services.smtp_dispatcher import dispatch_smtp_email
+
+    staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
+    if not staged:
+        raise HTTPException(status_code=404, detail=f"Stage record {stage_id} not found")
+
+    rep = db.query(ReportRecord).filter_by(email_id=f"INGEST-{stage_id}").first()
+    target_client = extract_original_sender(staged.body) or staged.sender or "customer@example.com"
+    clean_subj = clean_subject(staged.subject or "Shipping Documents")
+    is_mismatch = (getattr(rep, "status", None) == "MISMATCH") if rep else False
+    status_desc = f"{'Discrepancies identified' if is_mismatch else 'Verified with 0 discrepancies'}"
+
+    customer_text = build_customer_structured_text(
+        clean_subj=clean_subj,
+        stage_id=stage_id,
+        status_desc=status_desc,
+        rep=rep,
+        target_client=target_client,
+        source_mailbox=staged.source_mailbox,
+    )
+    customer_html = build_customer_html_notice(
+        clean_subj=clean_subj,
+        stage_id=stage_id,
+        status_desc=status_desc,
+        rep=rep,
+        target_client=target_client,
+        source_mailbox=staged.source_mailbox,
+    )
+    customer_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'} - Ref #{stage_id}"
+
+    operator_cc = None
+    if staged.sender and staged.sender.lower() != target_client.lower():
+        operator_cc = staged.sender
+
+    smtp_res = dispatch_smtp_email(
+        to_email=target_client,
+        subject=customer_subj,
+        body=customer_text,
+        html_body=customer_html,
+        sender=settings.smtp_from or settings.imap_user,
+        cc=operator_cc,
+    )
+
+    rec = DispatchRecord(
+        stage_id=stage_id,
+        email_id=f"INGEST-{stage_id}",
+        source_mailbox=staged.source_mailbox,
+        recipient=target_client,
+        decision="MISMATCH" if is_mismatch else "VERIFIED",
+        delivery=smtp_res.get("delivery", "SENT"),
+        subject=customer_subj,
+        channel=smtp_res.get("channel", "SMTP"),
+    )
+    db.add(rec)
+    staged.status = "RETURNED"
+    db.commit()
+
+    return {
+        "status": "SUCCESS",
+        "message": f"Official notice dispatched to {target_client}" + (f" (CC: {operator_cc})" if operator_cc else ""),
+        "stage_id": stage_id,
+        "recipient": target_client,
+        "cc": operator_cc,
+        "subject": customer_subj,
         "delivery": smtp_res.get("delivery", "SENT"),
         "channel": smtp_res.get("channel", "SMTP"),
     }

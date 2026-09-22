@@ -63,6 +63,8 @@ class ReportRecord(Base):
 
     # classification
     category = Column(String(32))  # BL_COMPARISON | SI_REQUEST | INVOICE_QUERY | GENERAL | SPAM
+    # Which engine classified this email: "rule-classifier", "llm-text (...)".
+    classify_source = Column(String(64), nullable=True)
 
     # outcome for BL_COMPARISON emails
     status = Column(String(32))   # OK | MISMATCH | NEEDS_REVIEW | SKIPPED | ERROR

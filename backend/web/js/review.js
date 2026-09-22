@@ -165,6 +165,14 @@ const fmt = n => (n??0).toLocaleString();
 
 function catBadge(c){if(!c)return `<span class="badge cat" style="--c:var(--muted-2)">-</span>`;const col=`var(--cat-${c})`;return `<span class="badge cat" style="--c:${col}">${c.replace(/_/g," ")}</span>`;}
 function stBadge(s){if(!s)return `<span class="badge st" style="--c:var(--muted-2)">-</span>`;return `<span class="badge st ${s}">${s.replace(/_/g," ")}</span>`;}
+/* Which engine classified this email (reports.classify_source). */
+function srcBadge(src){
+  if(!src) return "";
+  if(src.indexOf("llm-text")===0) return `<span class="badge" style="--c:#38bdf8" title="${esc(src)}">LLM</span>`;
+  if(src.indexOf("ocr")!==-1) return `<span class="badge" style="--c:#f59e0b" title="${esc(src)}">OCR</span>`;
+  if(src==="rule-classifier") return `<span class="badge" style="--c:var(--muted-2)" title="rule engine">RULE</span>`;
+  return `<span class="badge" style="--c:var(--muted-2)" title="${esc(src)}">${esc(src)}</span>`;
+}
 /* ---------- confidence heat strip ----------
    The compat API exposes no confidence/score field, so we do NOT invent one.
    Tone is read straight off the verdict; the differing-field count only deepens
@@ -358,7 +366,7 @@ function renderReviewList(hasFilters){
       <span class="heat ${h.k}" style="--c:${h.tone};--o:${h.op}" role="img" aria-label="${esc(h.tip)}" title="${esc(h.tip)}"></span>
       <div class="top"><span class="sbj">${esc(r.subject||"(no subject)")}</span>${stBadge(r.status)}</div>
       <div class="from"><span class="sender-address">${esc(r.from||"unknown sender")}</span><span class="id mail-record-id">${esc(r.email_id)}</span></div>
-      <div class="mt">${catBadge(r.category)}<span class="badge">${esc(({awaiting:"Awaiting reply",failed:"Failed",sent:"Sent",simulated:"Simulated",unknown:"Unconfirmed"})[r.reply_state]||"No reply needed")}</span><span>📎 ${r.n_attachments}</span>${hum}</div>
+      <div class="mt">${catBadge(r.category)}${srcBadge(r.classify_source)}<span class="badge">${esc(({awaiting:"Awaiting reply",failed:"Failed",sent:"Sent",simulated:"Simulated",unknown:"Unconfirmed"})[r.reply_state]||"No reply needed")}</span><span>📎 ${r.n_attachments}</span>${hum}</div>
     </div>`;
   }).join("");
 }
@@ -607,6 +615,7 @@ function renderDetail(d){
       <h2>${esc(e.subject||"(no subject)")}</h2>
       <div class="kv"><b>From:</b> ${esc(e.from||"unknown")} &nbsp;·&nbsp; <b>ID:</b> <span style="font-family:var(--mono)">${esc(e.email_id)}</span></div>
       <div class="kv"><b>Decided by:</b> <span class="dotby">${byIcon(r.decided_by)}</span>${r.rule&&r.decided_by!=="human"?` <span style="color:var(--muted-2)">· ${esc(r.rule)}</span>`:""}</div>
+      ${r.classify_source?`<div class="kv"><b>Classified by:</b> ${srcBadge(r.classify_source)} <span style="color:var(--muted-2)">${esc(r.classify_source)}</span></div>`:""}
       <div class="verdict-line" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px"><b style="color:var(--muted)">Verdict:</b> <span>${verdict}</span>${shBtn}</div>
     </div>
     <section><h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 7l8 5 8-5"/></svg>Email body</h3><pre class="body">${esc(e.body||"")}</pre></section>

@@ -78,6 +78,10 @@ def _migrate_columns(eng, session_factory) -> None:
         if "error" not in de_cols:
             conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN error VARCHAR(512)"))
 
+        rep_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(reports)")).fetchall()}
+        if "classify_source" not in rep_cols:
+            conn.execute(text("ALTER TABLE reports ADD COLUMN classify_source VARCHAR(64)"))
+
     # Backfill source_mailbox for rows written before the column existed
     from app.models import EmailRecord as _ER
     from app.models import infer_source_mailbox as _infer
@@ -87,6 +91,16 @@ def _migrate_columns(eng, session_factory) -> None:
         for r in null_rows:
             r.source_mailbox = _infer(r.email_id, r.sender)
         if null_rows:
+            s.commit()
+
+    # Every report predating classify_source was produced by the rule engine.
+    from app.models import ReportRecord as _RR
+
+    with session_factory() as s:
+        null_reps = s.query(_RR).filter(_RR.classify_source.is_(None)).all()
+        for r in null_reps:
+            r.classify_source = "rule-classifier"
+        if null_reps:
             s.commit()
 
 

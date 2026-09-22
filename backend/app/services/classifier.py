@@ -73,6 +73,8 @@ class Classification:
     category: str
     confidence: float
     reason: str
+    # Which engine produced the verdict: "rule-classifier", "llm-text (...)".
+    source: str = "rule-classifier"
 
 
 def classify(email: dict) -> Classification:

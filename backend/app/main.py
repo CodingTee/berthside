@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import OAuthSessionLocal, SessionLocal, get_db, init_db
-from app.models import EmailRecord, infer_source_mailbox
+from app.models import EmailRecord, GatewayPolicyRecord, infer_source_mailbox
 from app.routers import (
     ai_assist,
     emails,
@@ -391,6 +391,20 @@ def on_startup() -> None:
     memory limit.
     """
     init_db()
+
+    # The gateway console's AI engine selection is authoritative once a policy
+    # row exists; .env only covers the pre-policy boot.
+    try:
+        from app.services import ai_service
+        db = SessionLocal()
+        try:
+            pol = db.query(GatewayPolicyRecord).first()
+            if pol and pol.engine:
+                ai_service.set_runtime_provider(pol.engine)
+        finally:
+            db.close()
+    except Exception as exc:  # noqa: BLE001 - never block startup on this
+        logging.warning("AI provider restore failed: %s", exc)
 
     try:
         seed_email_records()

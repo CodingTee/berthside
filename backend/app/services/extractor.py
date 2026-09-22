@@ -141,6 +141,16 @@ class ExtractionResult:
     def is_complete(self) -> bool:
         return not self.missing and self.readable
 
+    def to_dict(self) -> dict[str, Any]:
+        """Plain-dict view consumed by the LLM gateway fallback paths."""
+        return {
+            "doc_type": self.doc_type,
+            "fields": dict(self.fields),
+            "missing": list(self.missing),
+            "readable": self.readable,
+            "source": self.source,
+        }
+
 
 # --------------------------------------------------------------------- helpers
 def _looks_like_binary(text: str) -> bool:

@@ -57,11 +57,81 @@ def _extract_part_bytes(part: email.message.Message) -> Optional[bytes]:
     if isinstance(payload, bytes):
         return payload
     inner = part.get_payload()
+    data = None
     if isinstance(inner, list) and inner and isinstance(inner[0], email.message.Message):
-        return inner[0].as_bytes()
-    if isinstance(inner, email.message.Message):
-        return inner.as_bytes()
-    return None
+        data = inner[0].as_bytes()
+    elif isinstance(inner, email.message.Message):
+        data = inner.as_bytes()
+    elif isinstance(inner, str):
+        data = inner.encode("utf-8")
+    elif isinstance(inner, bytes):
+        data = inner
+
+    if data:
+        cte = (part.get("Content-Transfer-Encoding") or "").lower().strip()
+        if cte == "base64":
+            try:
+                import base64
+                data = base64.b64decode(data.strip())
+            except Exception:
+                pass
+    return data
+
+
+def find_nested_email_attachments(msg: email.message.Message) -> List[Tuple[str, bytes]]:
+    """Identify and collect nested .eml / .msg messages attached to this email."""
+    nested_list: List[Tuple[str, bytes]] = []
+
+    def _traverse(part: email.message.Message) -> None:
+        content_type = part.get_content_type().lower()
+        disposition = str(part.get("Content-Disposition") or "").lower()
+        filename = part.get_filename()
+        if filename:
+            filename = decode_mime_str(filename)
+
+        is_eml = (
+            content_type == "message/rfc822"
+            or (filename and filename.lower().endswith((".eml", ".msg")))
+        )
+        if is_eml or ("attachment" in disposition) or filename:
+            raw_bytes = _extract_part_bytes(part)
+            if raw_bytes:
+                from app.services import nested_mail
+                att_name = filename or f"forwarded_message_{len(nested_list)+1}.eml"
+                if is_eml or nested_mail.is_nested_mail(att_name, raw_bytes):
+                    nested_list.append((att_name, raw_bytes))
+                    return  # Do not descend inside this nested email container
+
+        if part.is_multipart():
+            payload = part.get_payload()
+            if isinstance(payload, list):
+                for child in payload:
+                    if isinstance(child, email.message.Message):
+                        _traverse(child)
+
+    _traverse(msg)
+    return nested_list
+
+
+def has_direct_document_attachments(msg: email.message.Message) -> bool:
+    """Return True if the outer email itself has non-nested file attachments."""
+    if not msg.is_multipart():
+        return False
+    payload = msg.get_payload()
+    if not isinstance(payload, list):
+        return False
+    for part in payload:
+        if isinstance(part, email.message.Message):
+            content_type = part.get_content_type().lower()
+            disposition = str(part.get("Content-Disposition") or "").lower()
+            filename = part.get_filename()
+            if filename:
+                filename = decode_mime_str(filename).lower()
+            is_eml = content_type == "message/rfc822" or (filename and filename.endswith((".eml", ".msg")))
+            if not is_eml and ("attachment" in disposition or filename):
+                return True
+    return False
+
 
 
 def _collect_nested_attachments(name: str, payload: bytes, ingest_dir: Path, depth: int = 0) -> List[Dict[str, Any]]:
@@ -151,6 +221,235 @@ def extract_email_payload(msg: email.message.Message, ingest_dir: Path) -> Tuple
 
 
 
+def _stage_and_verify_single_email(
+    db: Session,
+    stage_id: str,
+    subject: str,
+    body: str,
+    sender_email: str,
+    raw_sender: str,
+    attachments: List[Dict[str, Any]],
+    source_mailbox: str,
+    settings: Any,
+    batch_info: Optional[Tuple[int, int]] = None,
+    message_id: Optional[str] = None,
+    references: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Inspect safety, classify, create StagedEmailRecord, ingest to pipeline, and optionally auto-reply."""
+    # 1. Security Inspection
+    security_status = "CLEAN"
+    security_details = []
+    att_names = []
+    for att in attachments:
+        safe, reason = verify_file_safety(att["filename"], att["bytes"])
+        security_details.append({"filename": att["filename"], "is_safe": safe, "reason": reason})
+        att_names.append(att["filename"])
+        if not safe:
+            security_status = "BLOCKED"
+
+    # 2. Deterministic Classification
+    from app.services import classifier
+    cls_info = classifier.classify({
+        "subject": subject,
+        "body": body,
+        "from": sender_email or raw_sender,
+        "attachments": att_names,
+    })
+    category = cls_info.category
+    confidence = cls_info.confidence
+
+    # 3. Security and Spam Status Gate
+    if security_status == "BLOCKED":
+        stage_status = "QUARANTINED"
+        ai_reason = f"Quarantined: dangerous attachment detected ({', '.join(d['filename'] for d in security_details if not d['is_safe'])})"
+    elif category == "SPAM":
+        stage_status = "QUARANTINED"
+        ai_reason = f"Quarantined: {cls_info.reason}"
+    else:
+        stage_status = "APPROVED"
+        ai_reason = f"Classified as {category} ({cls_info.reason})"
+
+    if batch_info:
+        cur_idx, total_count = batch_info
+        ai_reason = f"[Batch {cur_idx}/{total_count}] {ai_reason}"
+
+    # 4. Staging row
+    staged = StagedEmailRecord(
+        stage_id=stage_id,
+        source_mailbox=source_mailbox or "imap.inbound@averis.com",
+        sender=sender_email or raw_sender,
+        recipient=source_mailbox or "sdoc-hub@averis.com",
+        subject=subject,
+        body=body,
+        attachments=att_names,
+        security_status=security_status,
+        security_details=security_details,
+        category=category,
+        confidence=confidence,
+        ai_reason=ai_reason,
+        status=stage_status,
+        ai_engine="deterministic-rules (local regex)",
+    )
+    db.add(staged)
+    db.commit()
+    db.refresh(staged)
+
+    # 5. Ingest into workflow pipeline ONLY if clean AND category is BL_COMPARISON
+    report_summary = None
+    rep = None
+    if security_status == "CLEAN" and category == "BL_COMPARISON":
+        email_id = f"INGEST-{stage_id}"
+        email_rec = EmailRecord(
+            email_id=email_id,
+            sender=sender_email or raw_sender,
+            subject=subject,
+            body=body,
+            attachments=att_names,
+            received_at=staged.received_at,
+            source_mailbox=staged.source_mailbox,
+        )
+        db.add(email_rec)
+        db.commit()
+        try:
+            workflow.process_email(db, email_id)
+            rep = db.query(ReportRecord).filter_by(email_id=email_id).first()
+            if rep:
+                report_summary = f"Verdict: {rep.status}, Category: {rep.category}"
+        except Exception as exc:
+            log.warning("Workflow pipeline error for %s: %s", email_id, exc)
+
+    # 6. Strict Auto-Reply Gatekeeper
+    smtp_result = None
+    should_reply = False
+    suppression_reason = ""
+
+    if not settings.auto_reply_on_verification:
+        suppression_reason = "Auto-reply disabled in settings"
+    elif not sender_email:
+        suppression_reason = "No sender email address"
+    elif security_status != "CLEAN" or stage_status == "QUARANTINED":
+        suppression_reason = f"Security suppression: {security_status} / {stage_status} (Silent drop, zero backscatter)"
+    elif category == "SPAM":
+        suppression_reason = f"Spam suppression: detected as spam/phishing ({cls_info.reason})"
+    elif category != "BL_COMPARISON":
+        suppression_reason = f"Category suppression: non-shipping comparison category ({category})"
+    elif not att_names:
+        suppression_reason = "Content suppression: no document attachments present"
+    elif not rep or not rep.status:
+        suppression_reason = "Pipeline suppression: no comparison report generated"
+    elif rep.status not in ("OK", "MISMATCH", "NEEDS_REVIEW"):
+        suppression_reason = f"Status suppression: report status ({rep.status}) is an unhandled internal error"
+    else:
+        should_reply = True
+
+    if not should_reply:
+        log.info("Auto-reply suppressed for stage %s: %s", stage_id, suppression_reason)
+    else:
+        from app.services.email_utils import (
+            build_customer_structured_text,
+            build_enterprise_audit_receipt,
+            clean_subject,
+            extract_original_sender,
+        )
+        import urllib.parse
+
+        clean_subj = clean_subject(subject)
+        orig_client = extract_original_sender(body)
+        target_client = orig_client or sender_email
+        is_mismatch = rep.status == "MISMATCH"
+        is_review = rep.status == "NEEDS_REVIEW"
+
+        if is_mismatch:
+            reply_subj = f"Re: {clean_subj} - B/L Discrepancies Flagged - Ref #{stage_id}"
+            status_desc = f"Discrepancies identified ({report_summary})"
+        elif is_review:
+            review_msg = rep.review_reason or "Pending Review"
+            reply_subj = f"Re: {clean_subj} - Document Review Notice ({review_msg}) - Ref #{stage_id}"
+            status_desc = f"Held for operational review ({review_msg})"
+        else:
+            reply_subj = f"Re: {clean_subj} - Document Verification Complete - Ref #{stage_id}"
+            status_desc = f"Verified with 0 discrepancies ({report_summary})"
+
+        # Construct executive-grade counterpart reply for customer
+        client_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'}"
+        client_reply_text = build_customer_structured_text(
+            clean_subj=clean_subj,
+            stage_id=stage_id,
+            status_desc=status_desc,
+            rep=rep,
+            target_client=target_client,
+            source_mailbox=staged.source_mailbox,
+        )
+        mailto_link = f"mailto:{target_client}?{urllib.parse.urlencode({'subject': client_subj, 'body': client_reply_text})}"
+        # Construct pinpoint Gmail operator search: from:source_email + subject:(keywords)
+        safe_subj_kw = re.sub(r'[^\w\s-]', ' ', clean_subj).strip()
+        if safe_subj_kw:
+            thread_query = f"from:{target_client} subject:({safe_subj_kw})"
+        else:
+            thread_query = f"from:{target_client}"
+        gmail_thread_search = f"https://mail.google.com/mail/u/0/#search/{urllib.parse.quote_plus(thread_query)}"
+
+        public_base = settings.public_base_url or "http://127.0.0.1:8000"
+        dispatch_url = (
+            f"{public_base.rstrip('/')}/api/v1/gateway/customer-notice/send"
+            f"?stage_id={stage_id}&recipient={urllib.parse.quote_plus(target_client)}&auto_send=true"
+        )
+
+        reply_body, html_body = build_enterprise_audit_receipt(
+            clean_subj=clean_subj,
+            stage_id=stage_id,
+            status_desc=status_desc,
+            rep=rep,
+            orig_client=orig_client,
+            sender_email=sender_email,
+            target_client=target_client,
+            client_subj=client_subj,
+            client_reply_text=client_reply_text,
+            mailto_link=mailto_link,
+            gmail_thread_search=gmail_thread_search,
+            source_mailbox=staged.source_mailbox,
+            dispatch_url=dispatch_url,
+        )
+
+        operator_cc = None
+        if sender_email and target_client and sender_email.lower() != target_client.lower():
+            operator_cc = sender_email
+
+        smtp_result = dispatch_smtp_email(
+            to_email=sender_email,
+            subject=reply_subj,
+            body=reply_body,
+            html_body=html_body,
+            in_reply_to=message_id,
+            references=references,
+            sender=settings.smtp_from or settings.imap_user,
+            cc=operator_cc,
+        )
+
+        # Persist dispatch record
+        rec = DispatchRecord(
+            stage_id=stage_id,
+            source_mailbox=staged.source_mailbox,
+            recipient=sender_email,
+            decision="MISMATCH" if is_mismatch else "VERIFIED",
+            subject=reply_subj,
+            body=reply_body,
+            channel=smtp_result.get("channel", "SMTP"),
+            delivery=smtp_result.get("delivery", "SIMULATED"),
+        )
+        db.add(rec)
+        staged.status = "RETURNED"
+        db.commit()
+
+    return {
+        "stage_id": stage_id,
+        "sender": sender_email,
+        "subject": subject,
+        "security_status": security_status,
+        "smtp_delivery": smtp_result.get("delivery") if smtp_result else None,
+    }
+
+
 def poll_imap_inbox(db: Session) -> Dict[str, Any]:
     """Connect to IMAP server, fetch UNSEEN emails, process, and optionally auto-reply."""
     settings = get_settings()
@@ -205,220 +504,76 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
             message_id = msg.get("Message-ID", "")
             references = msg.get("References", "") or message_id
 
-            body, attachments = extract_email_payload(msg, ingest_dir)
-
-            # Security Inspection
-            security_status = "CLEAN"
-            security_details = []
-            att_names = []
-            for att in attachments:
-                safe, reason = verify_file_safety(att["filename"], att["bytes"])
-                security_details.append({"filename": att["filename"], "is_safe": safe, "reason": reason})
-                att_names.append(att["filename"])
-                if not safe:
-                    security_status = "BLOCKED"
-
+            nested_emails = find_nested_email_attachments(msg)
+            is_batch = len(nested_emails) > 1 or (len(nested_emails) == 1 and not has_direct_document_attachments(msg))
             now_str = dt.datetime.now().strftime("%H%M%S%f")[:9]
-            stage_id = f"STG-IMAP-{now_str}"
 
-            # Deterministic Classification
-            from app.services import classifier
-            cls_info = classifier.classify({
-                "subject": subject,
-                "body": body,
-                "from": sender_email or raw_sender,
-                "attachments": att_names,
-            })
-            category = cls_info.category
-            confidence = cls_info.confidence
+            if is_batch:
+                total_nested = len(nested_emails)
+                log.info(
+                    "Batch forward detected: %d nested email(s) from %s. Unbundling...",
+                    total_nested,
+                    sender_email or raw_sender,
+                )
+                for idx, (att_name, eml_bytes) in enumerate(nested_emails, 1):
+                    child_msg = email.message_from_bytes(eml_bytes)
+                    child_subj_raw = child_msg.get("Subject") or att_name
+                    child_subject = decode_mime_str(child_subj_raw)
+                    child_from_raw = child_msg.get("From", "")
+                    child_date = child_msg.get("Date", "")
+                    child_body, child_attachments = extract_email_payload(child_msg, ingest_dir)
 
-            # Security and Spam Status Gate
-            if security_status == "BLOCKED":
-                stage_status = "QUARANTINED"
-                ai_reason = f"Quarantined: dangerous attachment detected ({', '.join(d['filename'] for d in security_details if not d['is_safe'])})"
-            elif category == "SPAM":
-                stage_status = "QUARANTINED"
-                ai_reason = f"Quarantined: {cls_info.reason}"
+                    wrapper_sender_str = sender_email or raw_sender
+                    header_lines = [
+                        f"---------- Forwarded message (Batch {idx} of {total_nested}) ---------",
+                    ]
+                    if child_from_raw:
+                        header_lines.append(f"From: {child_from_raw}")
+                    if child_subject:
+                        header_lines.append(f"Subject: {child_subject}")
+                    if child_date:
+                        header_lines.append(f"Date: {child_date}")
+                    if wrapper_sender_str:
+                        header_lines.append(f"Forwarded-By: {wrapper_sender_str}\n")
+                    child_full_body = "\n".join(header_lines) + "\n" + (child_body or "")
+
+                    child_stage_id = f"STG-IMAP-{now_str}-{idx:02d}"
+                    child_res = _stage_and_verify_single_email(
+                        db=db,
+                        stage_id=child_stage_id,
+                        subject=child_subject,
+                        body=child_full_body,
+                        sender_email=wrapper_sender_str,
+                        raw_sender=raw_sender,
+                        attachments=child_attachments,
+                        source_mailbox=settings.imap_user or "imap.inbound@averis.com",
+                        settings=settings,
+                        batch_info=(idx, total_nested),
+                        message_id=message_id,
+                        references=references,
+                    )
+                    processed_stages.append(child_res)
             else:
-                stage_status = "APPROVED"
-                ai_reason = f"Classified as {category} ({cls_info.reason})"
-
-            # Staging row
-            staged = StagedEmailRecord(
-                stage_id=stage_id,
-                source_mailbox=settings.imap_user or "imap.inbound@averis.com",
-                sender=sender_email or raw_sender,
-                recipient=settings.imap_user or "sdoc-hub@averis.com",
-                subject=subject,
-                body=body,
-                attachments=att_names,
-                security_status=security_status,
-                security_details=security_details,
-                category=category,
-                confidence=confidence,
-                ai_reason=ai_reason,
-                status=stage_status,
-                ai_engine="deterministic-rules (local regex)",
-            )
-            db.add(staged)
-            db.commit()
-            db.refresh(staged)
-
-            # Ingest into workflow pipeline ONLY if clean AND category is BL_COMPARISON
-            report_summary = None
-            rep = None
-            if security_status == "CLEAN" and category == "BL_COMPARISON":
-                email_id = f"INGEST-{stage_id}"
-                email_rec = EmailRecord(
-                    email_id=email_id,
-                    sender=sender_email or raw_sender,
+                body, attachments = extract_email_payload(msg, ingest_dir)
+                stage_id = f"STG-IMAP-{now_str}"
+                res = _stage_and_verify_single_email(
+                    db=db,
+                    stage_id=stage_id,
                     subject=subject,
                     body=body,
-                    attachments=att_names,
-                    received_at=staged.received_at,
-                    source_mailbox=staged.source_mailbox,
-                )
-                db.add(email_rec)
-                db.commit()
-                try:
-                    workflow.process_email(db, email_id)
-                    rep = db.query(ReportRecord).filter_by(email_id=email_id).first()
-                    if rep:
-                        report_summary = f"Verdict: {rep.status}, Category: {rep.category}"
-                except Exception as exc:
-                    log.warning("Workflow pipeline error for %s: %s", email_id, exc)
-
-            # Strict Auto-Reply Gatekeeper:
-            # Prevents backscatter spam, ignores non-shipping noise, and silences quarantined payloads.
-            smtp_result = None
-            should_reply = False
-            suppression_reason = ""
-
-            if not settings.auto_reply_on_verification:
-                suppression_reason = "Auto-reply disabled in settings"
-            elif not sender_email:
-                suppression_reason = "No sender email address"
-            elif security_status != "CLEAN" or stage_status == "QUARANTINED":
-                # SILENT DROP / QUARANTINE: Never respond to malware or quarantined files
-                suppression_reason = f"Security suppression: {security_status} / {stage_status} (Silent drop, zero backscatter)"
-            elif category == "SPAM":
-                # SILENT DROP: Never respond to spam
-                suppression_reason = f"Spam suppression: detected as spam/phishing ({cls_info.reason})"
-            elif category != "BL_COMPARISON":
-                suppression_reason = f"Category suppression: non-shipping comparison category ({category})"
-            elif not att_names:
-                suppression_reason = "Content suppression: no document attachments present"
-            elif not rep or not rep.status:
-                suppression_reason = "Pipeline suppression: no comparison report generated"
-            elif rep.status not in ("OK", "MISMATCH", "NEEDS_REVIEW"):
-                suppression_reason = f"Status suppression: report status ({rep.status}) is an unhandled internal error"
-            else:
-                should_reply = True
-
-            if not should_reply:
-                log.info("Auto-reply suppressed for stage %s: %s", stage_id, suppression_reason)
-            else:
-                from app.services.email_utils import (
-                    build_customer_structured_text,
-                    build_enterprise_audit_receipt,
-                    clean_subject,
-                    extract_original_sender,
-                )
-                import urllib.parse
-
-                clean_subj = clean_subject(subject)
-                orig_client = extract_original_sender(body)
-                target_client = orig_client or sender_email
-                is_mismatch = rep.status == "MISMATCH"
-                is_review = rep.status == "NEEDS_REVIEW"
-
-                if is_mismatch:
-                    reply_subj = f"Re: {clean_subj} - B/L Discrepancies Flagged - Ref #{stage_id}"
-                    status_desc = f"Discrepancies identified ({report_summary})"
-                elif is_review:
-                    review_msg = rep.review_reason or "Pending Review"
-                    reply_subj = f"Re: {clean_subj} - Document Review Notice ({review_msg}) - Ref #{stage_id}"
-                    status_desc = f"Held for operational review ({review_msg})"
-                else:
-                    reply_subj = f"Re: {clean_subj} - Document Verification Complete - Ref #{stage_id}"
-                    status_desc = f"Verified with 0 discrepancies ({report_summary})"
-
-                # Construct executive-grade counterpart reply for customer
-                client_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'}"
-                client_reply_text = build_customer_structured_text(
-                    clean_subj=clean_subj,
-                    stage_id=stage_id,
-                    status_desc=status_desc,
-                    rep=rep,
-                    target_client=target_client,
-                    source_mailbox=staged.source_mailbox,
-                )
-                mailto_link = f"mailto:{target_client}?{urllib.parse.urlencode({'subject': client_subj, 'body': client_reply_text})}"
-                # Construct pinpoint Gmail operator search: from:source_email + subject:(keywords)
-                safe_subj_kw = re.sub(r'[^\w\s-]', ' ', clean_subj).strip()
-                if safe_subj_kw:
-                    thread_query = f"from:{target_client} subject:({safe_subj_kw})"
-                else:
-                    thread_query = f"from:{target_client}"
-                gmail_thread_search = f"https://mail.google.com/mail/u/0/#search/{urllib.parse.quote_plus(thread_query)}"
-
-                public_base = settings.public_base_url or "http://127.0.0.1:8000"
-                dispatch_url = (
-                    f"{public_base.rstrip('/')}/api/v1/gateway/customer-notice/send"
-                    f"?stage_id={stage_id}&recipient={urllib.parse.quote_plus(target_client)}&auto_send=true"
-                )
-
-                reply_body, html_body = build_enterprise_audit_receipt(
-                    clean_subj=clean_subj,
-                    stage_id=stage_id,
-                    status_desc=status_desc,
-                    rep=rep,
-                    orig_client=orig_client,
                     sender_email=sender_email,
-                    target_client=target_client,
-                    client_subj=client_subj,
-                    client_reply_text=client_reply_text,
-                    mailto_link=mailto_link,
-                    gmail_thread_search=gmail_thread_search,
-                    source_mailbox=staged.source_mailbox,
-                    dispatch_url=dispatch_url,
-                )
-
-                smtp_result = dispatch_smtp_email(
-                    to_email=sender_email,
-                    subject=reply_subj,
-                    body=reply_body,
-                    html_body=html_body,
-                    in_reply_to=message_id,
+                    raw_sender=raw_sender,
+                    attachments=attachments,
+                    source_mailbox=settings.imap_user or "imap.inbound@averis.com",
+                    settings=settings,
+                    batch_info=None,
+                    message_id=message_id,
                     references=references,
-                    sender=settings.smtp_from or settings.imap_user,
                 )
-
-                # Persist dispatch record
-                rec = DispatchRecord(
-                    stage_id=stage_id,
-                    source_mailbox=staged.source_mailbox,
-                    recipient=sender_email,
-                    decision="MISMATCH" if is_mismatch else "VERIFIED",
-                    subject=reply_subj,
-                    body=reply_body,
-                    channel=smtp_result.get("channel", "SMTP"),
-                    delivery=smtp_result.get("delivery", "SIMULATED"),
-                )
-                db.add(rec)
-                staged.status = "RETURNED"
-                db.commit()
+                processed_stages.append(res)
 
             # Mark as read
             mail.store(num, "+FLAGS", "\\Seen")
-
-            processed_stages.append({
-                "stage_id": stage_id,
-                "sender": sender_email,
-                "subject": subject,
-                "security_status": security_status,
-                "smtp_delivery": smtp_result.get("delivery") if smtp_result else None,
-            })
 
         mail.close()
         mail.logout()

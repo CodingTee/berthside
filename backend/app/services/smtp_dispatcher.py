@@ -14,7 +14,7 @@ import smtplib
 import time
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from app.config import get_settings
 
@@ -29,9 +29,18 @@ def dispatch_smtp_email(
     in_reply_to: Optional[str] = None,
     references: Optional[str] = None,
     sender: Optional[str] = None,
+    cc: Optional[Union[str, List[str]]] = None,
 ) -> Dict[str, Any]:
     """Send an outbound email via live SMTP, or fallback to SIMULATED delivery."""
     settings = get_settings()
+
+    # Format CC addresses if provided
+    cc_str = None
+    if cc:
+        if isinstance(cc, list):
+            cc_str = ", ".join(c.strip() for c in cc if c and c.strip())
+        elif isinstance(cc, str) and cc.strip():
+            cc_str = cc.strip()
 
     # 1. Fallback check: if no host configured, record as SIMULATED
     if not settings.smtp_host or not settings.smtp_host.strip():
@@ -41,6 +50,7 @@ def dispatch_smtp_email(
             "status": "FALLBACK_SIMULATED",
             "message_id": f"<sim-{int(time.time()*1000)}@sdoc.local>",
             "to": to_email,
+            "cc": cc_str,
             "subject": subject,
             "channel": "SIMULATED",
         }
@@ -62,6 +72,8 @@ def dispatch_smtp_email(
 
     msg["From"] = from_addr
     msg["To"] = to_email
+    if cc_str:
+        msg["Cc"] = cc_str
     msg["Subject"] = subject
     msg["Date"] = email.utils.formatdate(localtime=True)
     msg["Message-ID"] = msg_id
@@ -100,12 +112,13 @@ def dispatch_smtp_email(
 
         server.send_message(msg)
         server.quit()
-        log.info("Live SMTP email sent successfully to %s, Subject: %s", to_email, subject)
+        log.info("Live SMTP email sent successfully to %s (CC: %s), Subject: %s", to_email, cc_str, subject)
         return {
             "delivery": "SENT_SMTP",
             "status": "SUCCESS",
             "message_id": msg_id,
             "to": to_email,
+            "cc": cc_str,
             "subject": subject,
             "channel": f"SMTP ({settings.smtp_host})",
         }
@@ -117,6 +130,7 @@ def dispatch_smtp_email(
             "error": str(exc),
             "message_id": msg_id,
             "to": to_email,
+            "cc": cc_str,
             "subject": subject,
             "channel": f"SMTP_FAILED ({settings.smtp_host})",
         }

@@ -70,6 +70,15 @@ async function waitFor(pred, timeout = 8000){
     const loaded = await waitFor(() => rowCount() > 0);
     check("review list renders", loaded, "rows=" + rowCount());
     const total = rowCount();
+
+    // 0b. classification-source badge renders on rows that have a report
+    const apiData = await (await window.fetch("/api/emails?limit=2000")).json();
+    const withSrc = (apiData.items || []).filter(r => r.classify_source).length;
+    const badges = [...window.document.querySelectorAll("#list .row .badge")]
+      .filter(b => /^(RULE|LLM|OCR)$/.test(b.textContent.trim())).length;
+    check("classify-source badge rendered", withSrc > 0 && badges >= withSrc,
+      `api=${withSrc} badges=${badges}`);
+
     const callsAfterLoad = emailCalls;
 
     // 1. source dropdown populated from real data

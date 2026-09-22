@@ -1,7 +1,9 @@
 """Cascading LLM Gateway & Fallback Router for SDOC.
 
 Architecture:
-- Fallback Sequence: Gemini -> Zhipu AI -> Alibaba DashScope -> Local Rules/OCR.
+- Fallback Sequence (cascade mode): Gemini -> Zhipu AI -> Alibaba DashScope -> Ollama (local) -> Rules/OCR.
+- Fallback Sequence (ollama mode): Ollama (local) -> Rules/OCR. No cloud key needed.
+- Every consumer sees which engine answered via the "source" field of the result.
 - Modality-Based Model Routing:
   * Multimodal / Vision (Images, rotated scans, noisy PDFs) -> Big Vision Models
     (Gemini 2.5 Flash, GLM-4.6v, Qwen-VL-Max)
@@ -176,7 +178,7 @@ class LLMGateway:
         if self.check_ollama_status().get("online"):
             try:
                 log.info("Attempting Vision with local Ollama %s...", self.settings.ollama_model)
-                res = self.call_vision_ollama(b64_data, mime_type, prompt)
+                res = self.call_vision_ollama(image_bytes, mime_type, prompt)
                 if res:
                     return res
             except Exception as exc:
@@ -333,7 +335,7 @@ class LLMGateway:
         return {
             "category": rc.category,
             "confidence": rc.confidence,
-            "reason": rc.rule_matched,
+            "reason": rc.reason,
             "source": "rule-classifier"
         }
 

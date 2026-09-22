@@ -177,27 +177,24 @@ def test_imap_batch_forwarded_attachments_unpacked(db_session):
 
             res = poll_imap_inbox(db_session)
             assert res["status"] == "SUCCESS"
-            assert res["polled_count"] == 1
+            assert res["polled_count"] == 2
 
-            # Verify that single staged record contains attachments from BOTH inner emails
-            staged = db_session.query(StagedEmailRecord).filter_by(sender="operator@forwarder.com").first()
-            assert staged is not None
-            assert staged.subject == "FWD: Batch verification for BKG-8831"
-            assert "BKG-8831_SI.txt" in staged.attachments
-            assert "BKG-8831_BL.txt" in staged.attachments
+            # Verify that 2 independent staged records were created with isolated attachments
+            staged_records = (
+                db_session.query(StagedEmailRecord)
+                .filter_by(sender="operator@forwarder.com")
+                .order_by(StagedEmailRecord.stage_id)
+                .all()
+            )
+            assert len(staged_records) == 2
+            stg1, stg2 = staged_records
+            assert stg1.subject == "Original SI for BKG-8831"
+            assert stg1.attachments == ["BKG-8831_SI.txt"]
+            assert "-01" in stg1.stage_id
 
-            # Verify that workflow processed the single email pairing SI and BL from both forwarded emails
-            from app.models import ReportRecord
-            report = db_session.query(ReportRecord).filter_by(email_id=f"INGEST-{staged.stage_id}").first()
-            assert report is not None
-            assert report.status in ("OK", "MISMATCH")
-            assert report.category == "BL_COMPARISON"
-
-            # Verify unified reply sent back to sender
-            mock_smtp.assert_called_once()
-            call_kwargs = mock_smtp.call_args[1]
-            assert call_kwargs["to_email"] == "operator@forwarder.com"
-            assert "Verdict: OK" in call_kwargs["body"] or "Verdict: MISMATCH" in call_kwargs["body"]
+            assert stg2.subject == "Original Draft B/L for BKG-8831"
+            assert stg2.attachments == ["BKG-8831_BL.txt"]
+            assert "-02" in stg2.stage_id
     finally:
         settings.imap_host = ""
         settings.imap_port = 993
@@ -437,10 +434,10 @@ def test_customer_notice_endpoints(client, db_session):
     staged = StagedEmailRecord(
         stage_id="STG-NOTICE-007",
         source_mailbox="averis.demo@gmail.com",
-        sender="shipper@exportcorp.com",
+        sender="operator-forwarder@test.com",
         recipient="averis.demo@gmail.com",
-        subject="Draft BL BKG-4455 for Verification",
-        body="Please find draft BL attached.",
+        subject="Fwd: Draft BL BKG-4455 for Verification",
+        body="---------- Forwarded message ---------\nFrom: Alice <shipper@exportcorp.com>\nSubject: Draft BL\n\nPlease find draft BL attached.",
         attachments=["Draft_BL.pdf"],
         security_status="CLEAN",
         category="BL_COMPARISON",
@@ -483,6 +480,7 @@ def test_customer_notice_endpoints(client, db_session):
         mock_smtp.assert_called_once()
         kwargs = mock_smtp.call_args[1]
         assert kwargs["to_email"] == "shipper@exportcorp.com"
+        assert kwargs["cc"] == "operator-forwarder@test.com"
         assert "EVER CHIC / 100W" in kwargs["html_body"]
         assert "VERIFIED WITH 0 DISCREPANCIES" in kwargs["html_body"]
 
@@ -491,7 +489,7 @@ def test_customer_notice_endpoints(client, db_session):
         assert rec is not None
         assert rec.recipient == "shipper@exportcorp.com"
 
-    # 3. Test POST API Dispatch
+        # 3. Test POST API Dispatch
     with patch("app.services.smtp_dispatcher.dispatch_smtp_email") as mock_smtp2:
         mock_smtp2.return_value = {"delivery": "SENT_SMTP", "channel": "SMTP"}
         res_api = client.post(
@@ -502,6 +500,26 @@ def test_customer_notice_endpoints(client, db_session):
         data = res_api.json()
         assert data["status"] == "SUCCESS"
         assert data["recipient"] == "custom_recipient@test.com"
+
+    # 4. Test 1-Click Console Direct Dispatch (CC Operator)
+    with patch("app.services.smtp_dispatcher.dispatch_smtp_email") as mock_smtp3:
+        mock_smtp3.return_value = {"delivery": "SENT_SMTP", "channel": "SMTP"}
+        res_console = client.post("/api/v1/gateway/emails/STG-NOTICE-007/dispatch-client")
+        assert res_console.status_code == 200
+        cdata = res_console.json()
+        assert cdata["status"] == "SUCCESS"
+        assert cdata["recipient"] == "shipper@exportcorp.com"
+        assert cdata["cc"] == "operator-forwarder@test.com"
+
+        mock_smtp3.assert_called_once()
+        ckw = mock_smtp3.call_args[1]
+        assert ckw["to_email"] == "shipper@exportcorp.com"
+        assert ckw["cc"] == "operator-forwarder@test.com"
+        assert "EVER CHIC / 100W" in ckw["html_body"]
+
+        # Verify staged status flipped to RETURNED
+        stg = db_session.query(StagedEmailRecord).filter_by(stage_id="STG-NOTICE-007").first()
+        assert stg.status == "RETURNED"
 
 
 
