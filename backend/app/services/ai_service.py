@@ -105,6 +105,7 @@ def extract_document(doc_type: str, filename: str, content: bytes) -> extractor.
                         doc_type=doc_type,
                         fields=res_dict.get("fields", {}),
                         readable=res_dict.get("readable", True),
+                        source=res_dict.get("source", ""),
                     )
                     remote.missing = extractor.missing_of(remote.fields)
                     return _merge_with_local(remote, doc_type, filename, content)
@@ -119,6 +120,7 @@ def extract_document(doc_type: str, filename: str, content: bytes) -> extractor.
                         doc_type=doc_type,
                         fields=res_dict.get("fields", {}),
                         readable=res_dict.get("readable", True),
+                        source=res_dict.get("source", ""),
                     )
                     remote.missing = extractor.missing_of(remote.fields)
                     return _merge_with_local(remote, doc_type, filename, content)
@@ -154,6 +156,8 @@ def _merge_with_local(remote: extractor.ExtractionResult, doc_type: str,
     remote.fields = merged
     remote.missing = extractor.missing_of(merged)
     remote.readable = True
+    if not remote.source:
+        remote.source = local.source
     return remote
 
 

@@ -1,4 +1,4 @@
-"""Application settings — all runtime knobs come from environment variables.
+"""Application settings. Every runtime knob comes from environment variables.
 
 Copy .env.example to .env and adjust. Every variable has a local-dev default so
 the API runs out of the box with the static data bundle.
@@ -106,10 +106,21 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     zhipuai_api_key: str = ""
 
-    # Local / Private GPU Ollama Configuration
+    # Ollama endpoint: local install, LAN box, or a public HTTPS endpoint
+    # (tunnel / reverse proxy / cloud GPU). Only the URL changes.
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5vl:7b"
-    ollama_api_key: str = ""
+    ollama_api_key: str = ""  # sent as Bearer; only needed behind an auth proxy
+
+    # Liveness probe budget for /api/tags. Kept short so a warm endpoint answers
+    # instantly; a timeout is retried once on the cold-start budget below, so a
+    # host that is waking up is not reported as offline. Raise the cold-start
+    # value when the endpoint sits behind a tunnel or a sleeping cloud GPU.
+    ollama_probe_timeout_seconds: float = 2.0
+    ollama_cold_start_timeout_seconds: float = 90.0
+    # /api/chat budget. Loading the model into VRAM happens here, not in the
+    # probe, so this is the knob that actually absorbs a cold model.
+    ollama_request_timeout_seconds: float = 180.0
 
     # -- processing --------------------------------------------------------
     process_max_emails: int = 0  # 0 = no limit for POST /emails/process-all
@@ -123,7 +134,11 @@ class Settings(BaseSettings):
     # static bundle is plain text, so this never affects the local score).
     ocr_enabled: bool = True
 
-    # -- email channel (real IMAP inbound & SMTP outbound) -----------------
+    # -- email channel (real IMAP inbound & SMTP / Resend outbound) --------
+    # Resend.com REST API (HTTPS:443 - works seamlessly on Render.com)
+    resend_api_key: str = ""
+    resend_from: str = "Averis SDOC Hub <onboarding@resend.dev>"
+
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

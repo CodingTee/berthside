@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import re
+import socket
 import time
 from typing import Any, Optional
 import urllib.error
@@ -44,6 +45,13 @@ COMPLETENESS_FIELDS = [
 ]
 
 
+def _is_timeout(exc: BaseException) -> bool:
+    """True when the failure was the clock running out, not an answer."""
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return True
+    return isinstance(getattr(exc, "reason", None), (TimeoutError, socket.timeout))
+
+
 class LLMGateway:
     """Industrial multi-provider cascading LLM gateway with graceful fallback."""
 
@@ -58,34 +66,66 @@ class LLMGateway:
             "dashscope": self.settings.dashscope_api_key or os.getenv("DASHSCOPE_API_KEY", "").strip(),
         }
 
-    def check_ollama_status(self) -> dict[str, Any]:
-        """Check if local or remote Ollama GPU instance is online and what models are ready."""
-        url = f"{self.settings.ollama_base_url.rstrip('/')}/api/tags"
+    def check_ollama_status(self, timeout: Optional[float] = None) -> dict[str, Any]:
+        """Check if local or remote Ollama GPU instance is online and what models are ready.
+
+        Without an explicit `timeout` the probe uses the quick budget first and
+        retries once on the cold-start budget, so a tunnel that is still coming
+        up, or a host that is waking, is not mistaken for an offline GPU. The
+        reply carries `cold_start` / `probe_seconds` so callers can see which
+        budget answered.
+        """
+        settings = self.settings
+        url = f"{settings.ollama_base_url.rstrip('/')}/api/tags"
         headers = {}
-        if self.settings.ollama_api_key:
-            headers["Authorization"] = f"Bearer {self.settings.ollama_api_key}"
-        try:
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=1.5) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                models = [m.get("name") for m in data.get("models", [])]
-                has_target = self.settings.ollama_model in models or any(self.settings.ollama_model.split(":")[0] in m for m in models)
-                return {
-                    "online": True,
-                    "models": models,
-                    "current_model": self.settings.ollama_model,
-                    "model_ready": has_target,
-                    "endpoint": self.settings.ollama_base_url,
-                }
-        except Exception as exc:
-            return {
-                "online": False,
-                "models": [],
-                "current_model": self.settings.ollama_model,
-                "model_ready": False,
-                "endpoint": self.settings.ollama_base_url,
-                "error": str(exc),
-            }
+        if settings.ollama_api_key:
+            headers["Authorization"] = f"Bearer {settings.ollama_api_key}"
+
+        if timeout is not None:
+            budgets = [float(timeout)]
+        else:
+            budgets = [settings.ollama_probe_timeout_seconds,
+                       settings.ollama_cold_start_timeout_seconds]
+            # A misconfigured pair should not make the same wait twice.
+            budgets = [b for i, b in enumerate(budgets) if b > 0 and b not in budgets[:i]]
+
+        last_error: Optional[BaseException] = None
+        for index, budget in enumerate(budgets):
+            started = time.time()
+            try:
+                req = urllib.request.Request(url, headers=headers)
+                with urllib.request.urlopen(req, timeout=budget) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    models = [m.get("name") for m in data.get("models", [])]
+                    has_target = settings.ollama_model in models or any(
+                        settings.ollama_model.split(":")[0] in m for m in models)
+                    return {
+                        "online": True,
+                        "models": models,
+                        "current_model": settings.ollama_model,
+                        "model_ready": has_target,
+                        "endpoint": settings.ollama_base_url,
+                        "cold_start": index > 0,
+                        "probe_seconds": round(time.time() - started, 2),
+                    }
+            except Exception as exc:
+                last_error = exc
+                if index + 1 < len(budgets):
+                    # Only wait longer when the endpoint is silent; a refusal or
+                    # an HTTP error answers immediately and will not improve.
+                    if not _is_timeout(exc):
+                        break
+                    log.info(
+                        "Ollama probe timed out after %.1fs; retrying on the cold-start budget (%.1fs)",
+                        budget, budgets[index + 1])
+        return {
+            "online": False,
+            "models": [],
+            "current_model": settings.ollama_model,
+            "model_ready": False,
+            "endpoint": settings.ollama_base_url,
+            "error": str(last_error),
+        }
 
     def _call_ollama(self, prompt: str, system_prompt: str = "", images_b64: list[str] = None) -> Optional[str]:
         """Invoke Ollama (qwen2.5vl:7b) via local or remote GPU endpoint."""
@@ -109,7 +149,9 @@ class LLMGateway:
             headers["Authorization"] = f"Bearer {self.settings.ollama_api_key}"
 
         req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers)
-        with urllib.request.urlopen(req, timeout=40) as resp:
+        # Loading a cold model into VRAM can take minutes; OLLAMA_REQUEST_TIMEOUT_SECONDS
+        # is the budget for the whole call, not just the transfer.
+        with urllib.request.urlopen(req, timeout=self.settings.ollama_request_timeout_seconds) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return data.get("message", {}).get("content")
 
@@ -173,7 +215,7 @@ class LLMGateway:
             except Exception as exc:
                 log.warning("DashScope vision failed: %s; falling back to Local OCR", exc)
 
-        # 4. Tier 4 (local, free): Ollama VLM — used when cloud keys are absent
+        # 4. Tier 4 (local, free): Ollama VLM, used when cloud keys are absent
         #    or all cloud providers failed. Gracefully skipped if Ollama is down.
         if self.check_ollama_status().get("online"):
             try:
@@ -222,7 +264,7 @@ class LLMGateway:
             except Exception as exc:
                 log.warning("DashScope text failed: %s", exc)
 
-        # 4. Tier 4 (local, free): Ollama VLM text — no cloud key needed.
+        # 4. Tier 4 (local, free): Ollama VLM text, no cloud key needed.
         if self.check_ollama_status().get("online"):
             try:
                 log.info("Attempting Text with local Ollama %s...", self.settings.ollama_model)
@@ -280,7 +322,7 @@ class LLMGateway:
             if text:
                 res = extractor.extract_fields(text, doc_type)
                 res_dict = res.to_dict()
-                res_dict["source"] = "local-rapidocr"
+                res_dict["source"] = "image-ocr"
                 return res_dict
         except Exception as e:
             log.warning("Local RapidOCR fallback failed: %s", e)

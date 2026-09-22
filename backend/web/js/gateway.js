@@ -166,7 +166,7 @@
     if(it.status === "QUARANTINED" && it.security_status === "BLOCKED"){
       return `<span style="color:var(--bad);font-weight:600;font-size:12px;">🔒 Malware Blocked</span>`;
     }
-    const directDispatchBtn = `<button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;padding:6px 14px;box-shadow:0 1px 3px rgba(5,150,105,0.3);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')">🚀 审核通过并回信给客户 (穿透直发 · CC业务员)</button>`;
+    const directDispatchBtn = `<button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;padding:6px 14px;box-shadow:0 1px 3px rgba(5,150,105,0.3);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')">🚀 Approve &amp; Dispatch to Client (CC Operator)</button>`;
 
     if(it.status === "STAGED"){
       return `
@@ -212,12 +212,12 @@
     }
     if(it.status === "RETURNED"){
       return `
-        <span style="color:var(--ok);font-weight:700;font-size:11px;margin-right:4px;">✓ 已直发</span>
-        <button class="btn btn-sm" style="background:#059669;color:#fff;font-weight:700;font-size:11px;padding:3px 8px;" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="重新穿透直发给客户并CC业务员">🚀 重发</button>
+        <span style="color:var(--ok);font-weight:700;font-size:11px;margin-right:4px;">✓ Dispatched</span>
+        <button class="btn btn-sm" style="background:#059669;color:#fff;font-weight:700;font-size:11px;padding:3px 8px;" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="Resend official report to client and CC operator">🚀 Resend</button>
       `;
     }
     return `
-      <button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;font-size:11.5px;padding:4px 10px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="以系统官方身份直接发送带Averis认证章的高清HTML报告给客户，同时CC抄送业务员">🚀 审核并回信客户</button>
+      <button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;font-size:11.5px;padding:4px 10px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="Send official Averis verification notice to client and CC operator">🚀 Review &amp; Reply Client</button>
     `;
   }
 
@@ -397,22 +397,22 @@
   }
 
   async function dispatchToClient(stageId){
-    if(!confirm("确认以系统官方身份将带 Averis 认证章的高清 HTML 报告直接穿透发送给原客户，并同时抄送（CC）业务员留存？")) return;
-    toast("🚀 正在通过系统官方 SMTP 穿透直发给客户并抄送业务员...", "ok");
+    if(!confirm("Dispatch official HTML audit report directly to client with Averis verification seal and CC operator?")) return;
+    toast("🚀 Dispatching official report to client via SMTP and CCing operator...", "ok");
     try {
       const res = await fetch(`/api/v1/gateway/emails/${stageId}/dispatch-client`, { method: "POST" });
       const d = await res.json();
       if(res.ok && d.status === "SUCCESS"){
-        const ccNote = d.cc ? ` (已抄送: ${d.cc})` : "";
-        toast(`✅ 官方报告已正式直发客户: ${d.recipient}${ccNote}`, "ok");
+        const ccNote = d.cc ? ` (CC: ${d.cc})` : "";
+        toast(`✅ Official report dispatched to client: ${d.recipient}${ccNote}`, "ok");
         loadStatus();
         loadStagedEmails();
         closeStageDetail();
       } else {
-        toast(d.detail || d.message || "穿透直发失败", "bad");
+        toast(d.detail || d.message || "Client dispatch failed", "bad");
       }
     } catch(e) {
-      toast("穿透直发请求失败: " + e.message, "bad");
+      toast("Client dispatch request failed: " + e.message, "bad");
     }
   }
 
@@ -925,7 +925,8 @@
       const smtpBadge = document.getElementById("smtpChannelBadge");
       if(smtpBadge){
         if(d.smtp.configured){
-          smtpBadge.innerHTML = `<span class="badge-dot" style="background:#10b981;"></span> <b style="color:#10b981;">LIVE</b> (${d.smtp.host})`;
+          const label = d.smtp.provider === "RESEND" ? "Resend HTTPS" : d.smtp.host;
+          smtpBadge.innerHTML = `<span class="badge-dot" style="background:#10b981;"></span> <b style="color:#10b981;">LIVE</b> (${label})`;
         } else {
           smtpBadge.innerHTML = `<span class="badge-dot" style="background:var(--muted-2);"></span> Simulated Fallback`;
         }

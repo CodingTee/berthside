@@ -1338,9 +1338,18 @@ table.list tbody tr.sel .key{color:var(--accent)}
 #viewReview .row .top{display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:14px;align-items:center}
 #viewReview .row .top .sbj{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #viewReview .row .top .badge{justify-self:center;max-width:130px}
-#viewReview .row .mt{display:grid;grid-template-columns:155px 145px;gap:6px 10px;justify-content:start;align-items:center}
-#viewReview .row .mt .cat{grid-column:1;grid-row:1;justify-self:center}
-#viewReview .row .mt .id{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#viewReview .row .mt{display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:0;width:100%}
+#viewReview .row .mt .mt-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;line-height:1}
+#viewReview .row .mt .mt-meta-right{display:inline-flex;align-items:center;gap:6px;flex-shrink:0}
+#viewReview .row .mt .mt-att{font-family:var(--mono);font-size:11px;color:var(--muted-2);display:inline-flex;align-items:center;gap:2px;letter-spacing:0.2px}
+.badge.badge-src{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:0.5px;padding:2px 6px;border-radius:4px;color:var(--c,var(--muted-2));background:color-mix(in srgb,var(--c,var(--muted-2)) 10%,transparent);border:1px solid color-mix(in srgb,var(--c,var(--muted-2)) 25%,transparent)}
+.badge.badge-reply{font-size:10.5px;font-weight:650;padding:2px 8px;border-radius:12px;letter-spacing:.2px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.badge.badge-reply.reply-none{color:var(--muted-2);background:color-mix(in srgb,var(--text) 4%,transparent);border:1px solid var(--border);opacity:0.85}
+.badge.badge-reply.reply-awaiting{color:#fbbf24;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.38);box-shadow:0 0 8px -3px rgba(245,158,11,0.25)}
+.badge.badge-reply.reply-sent{color:#10b981;background:rgba(16,185,129,0.14);border:1px solid rgba(16,185,129,0.35)}
+.badge.badge-reply.reply-failed{color:#ef4444;background:rgba(239,68,68,0.14);border:1px solid rgba(239,68,68,0.35)}
+.badge.badge-reply.reply-simulated{color:#818cf8;background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.3)}
+.badge.badge-reply.reply-unknown{color:var(--muted);background:var(--surface-2);border:1px solid var(--border)}
 @media(max-width:1100px){#viewReview .list .row{grid-template-columns:140px minmax(200px,1fr) 310px;gap:10px}#viewReview .row .mt{grid-column:3;grid-row:1}#viewReview .row .top{grid-template-columns:minmax(0,1fr) 130px;gap:8px}}
 @media(max-width:850px){#viewReview .list .row{min-width:760px;display:grid}#viewReview .list{overflow:auto}}
 

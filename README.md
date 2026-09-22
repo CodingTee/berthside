@@ -1,29 +1,53 @@
-# SDOC: Shipping Document Verification System
+# ShipSync: Shipping Document Verification System
 
-Averis x Monash Hackathon 2026 entry. An automated pipeline that reads a shipping
-operations inbox, classifies every email, extracts freight fields from Shipping
-Instruction (SI) and Bill of Lading (BL) attachments, compares them field by field,
-and escalates anything ambiguous to a human reviewer through a web-based Review Desk.
+Averis x Monash Hackathon 2026 entry. ShipSync is an enterprise hub for shipping
+operations: email comes in, gets filtered by a source trust matrix, classified,
+verified against its documents, and the sender gets an answer back, all in one
+system. It removes the weekly grind of hand-checking seven fields between the SI
+and the BL across hundreds of emails, where one missed digit holds a shipment
+at port.
 
-The rule-based engine achieves a perfect score (1.000) on the official local
-self-evaluation CLI (`score_cli.py`) over the full 520-email dataset.
+The rule-based engine achieves a perfect FINAL score of 1.0000 on the official
+local self-evaluation CLI (`score_cli.py`) over the full 520-email dataset, and
+the same 1.0000 holds under six kinds of meaning-preserving noise.
+
+## What ShipSync does
+
+1. **Filters before ingestion.** Mail from a sender that is not registered in
+   the source trust matrix is filtered before it ever enters the pipeline.
+   A security gate blocks executables and spoofed attachments before they are
+   opened.
+2. **Classifies every email.** Five categories (BL_COMPARISON, SI_REQUEST,
+   INVOICE_QUERY, GENERAL, SPAM) with provenance badges showing whether the
+   verdict came from rules, an LLM, or OCR.
+3. **Extracts and compares seven fields** (shipper, consignee, notify party,
+   port of loading, port of discharge, container count, gross weight kg)
+   between the SI and the BL with a deterministic engine: never an LLM. A
+   missing counterpart document is itself flagged as a defect, never skipped.
+4. **Escalates anything ambiguous** to a human with the reason and partial
+   evidence attached; a person confirms or corrects, and the report updates.
+5. **Closes the loop over SMTP.** Every verified case gets a receipt drafted
+   automatically and sent as a real threaded email (MIME multipart, RFC 5322
+   In-Reply-To/References headers). Rejections get a rejection letter. Delivery
+   states are honest: `SENT_SMTP`, `SIMULATED` (recorded as such, never faked),
+   `SMTP_FAILED`. Every dispatch is audited.
 
 ## Team and ownership
 
 | Member | Role | Where to work | Current tasks |
 |---|---|---|---|
-| **Loong** | Backend / Deployment | `app/Dockerfile`, cloud platform config, `pipeline/` | Deploy the Review Desk to a cloud platform (Render / Railway / HF Spaces) and get the public prototype link. The Dockerfile and `requirements.txt` are ready; this is a mandatory deliverable. |
-| **Quiab** | Backend / API | `app/main.py`, `sdoc/engine.py` | Extend the FastAPI endpoints if the frontend needs more data, improve the human review flow (confirm / override), keep the submission export correct. |
+| **Loong** | Backend / Deployment | `backend/Dockerfile`, cloud platform config | Deploy ShipSync to a cloud platform (Render / Railway / HF Spaces) and get the public prototype link. The Dockerfile and `requirements.txt` are ready; this is a mandatory deliverable. |
+| **Quiab** | Backend / API | `backend/app/`, `sdoc/engine.py` | Extend the FastAPI endpoints if the frontend needs more data, improve the human review flow (confirm / override), keep the submission export correct. |
 | **Tee** | Algorithm | `sdoc/classifier.py`, `sdoc/extractor.py`, `sdoc/comparator.py` | LLM fallbacks (see "Where AI plugs in"), robustness tests |
-| **Wang** | Frontend | `app/static/index.html` | UI polish, attachment viewer, screenshots for slides |
+| **Wang** | Frontend | `backend/web/`, `backend/shipmail/` | UI polish, screenshots for slides |
 | **Hioman** | Floater | Anywhere help is needed | Pick an open task from any row, coordinate first |
 
 Ground rules:
 
 1. Work on your own branch (`backend/...`, `frontend/...`, `algorithm/...`),
    merge into `main` via pull request.
-2. The `sdoc/` engine currently scores 1.000 on the official local evaluator.
-   Before changing anything inside it, run
+2. The `sdoc/` engine currently scores FINAL 1.0000 on the official local
+   evaluator. Before changing anything inside it, run
    `python pipeline/pipeline.py --data sdoc-hackathon-bundle` and compare the
    result with `score_cli.py`. If the score drops, the change does not go in.
 3. Not sure where a change belongs? Ask in the group chat before editing.
@@ -39,87 +63,54 @@ the triage, the comparison, and the escalation loop, and it always shows its wor
 ## Architecture
 
 ```
-                        +---------------------------------------------+
-                        |                Review Desk (web)            |
-                        |   inbox list / SI vs BL diff / review form  |
-                        +--------------------------^------------------+
-                                                   | JSON over HTTP
-                        +--------------------------v------------------+
-                        |           FastAPI app (app/main.py)         |
-                        |   summary, list, detail, review, submit     |
-                        +--------------------------+------------------+
-                                                   | python imports
-    +------------------+                +----------v-----------+
-    |  Email inbox     |                |   sdoc engine        |
-    |  (JSON + files)  |--------------->|  classifier.py       |
-    +------------------+                |  extractor.py        |
-                                        |  comparator.py       |
-                                        |  engine.py           |
-                                        +----------------------+
+   +---------------------------+         +------------------------------------+
+   |  ShipMail   /shipmail/    |         |  Centralized hub   /ui/            |
+   |  OAuth inbox · compose    | <-----> |  Gateway · Review&Reply ·          |
+   |  threads · attachments    | switcher|  Shipment Lifecycle                |
+   +-------------+-------------+         +-----------------+------------------+
+                 |                       JSON over HTTP     |
+                 +-----------+-----------------------------+-----------+
+                             v                                         v
+              +--------------------------+            +----------------------+
+              |  FastAPI (app/main.py)   |            |  sdoc engine         |
+              |  REST API, persistence,  |----------->|  classifier.py       |
+              |  trust matrix, SMTP out  |  imports   |  extractor.py        |
+              +--------------------------+            |  comparison.py       |
+                                                      +----------------------+
 ```
 
 Three clean layers:
 
-1. **Engine (`sdoc/`)**: pure Python, zero web dependencies. Takes an inbox
-   directory, returns per-email verdicts. This is where the algorithm lives.
-2. **Service (`app/main.py`)**: thin FastAPI wrapper. Caches engine results in
-   memory at startup, serves them as JSON, and persists human review decisions.
-3. **Frontend (`app/static/index.html`)**: dependency-free HTML/CSS/JS single
-   page. Talks to the API only; contains no business logic.
+1. **Engine (`sdoc/`)**: pure Python, zero web dependencies. Takes an inbox,
+   returns per-email verdicts. This is where the algorithm lives.
+2. **Service (`backend/app/`)**: FastAPI wrapper. Persists verdicts, reviews
+   and dispatches in two databases (enterprise hub + ShipMail OAuth), enforces
+   the source trust matrix, and runs the SMTP dispatcher.
+3. **Frontend (`backend/web/`, `backend/shipmail/`)**: dependency-free
+   HTML/CSS/JS. Talks to the API only; contains no business logic.
 
-## System surfaces (ShipMail + Dashboard)
+## System surfaces (two systems, one switcher)
 
-The product now has three user-facing surfaces, all served by the **same
-single backend** (one Render service, no extra split):
+ShipSync ships as two systems behind a single workspace switcher, both served
+by the same backend:
 
-```
-              ┌────────────────────────────────────────────┐
-              │  ShipMail                 /shipmail/        │
-              │  inbox · email detail · attachments        │
-              │  + ShipSync side panel                     │
-              │  (static demo data in                      │
-              │   backend/shipmail/data/)                  │
-              └───────────────────┬────────────────────────┘
-                                  │ ShipSync logo → opens in NEW tab
-              ┌───────────────────v────────────────────────┐
-              │  ShipSync Dashboard     /ui/               │
-              │  operations console (existing web app)     │
-              └───────────────────┬────────────────────────┘
-                                  │
-              ┌───────────────────v────────────────────────┐
-              │              ShipSync API                  │
-              │  GET  /api/health                          │
-              │  POST /api/process      (cached, deduped)  │
-              │  GET  /api/results      (stored only)      │
-              │  GET  /api/results/{key}                    │
-              └───────────────────┬────────────────────────┘
-                                  │
-                       Existing ShipSync core (unchanged)
-              classification → extraction → verification
-```
+* **ShipMail (`/shipmail/`)**: the personal side. A real email client with
+  single-point OAuth login (Gmail, plus Outlook via PKCE): real message
+  threads, real attachments, filters by verdict and attachment type, compose.
+* **Centralized hub (`/ui/`)**: the operations side, with three consoles:
+  * Secure and Gateway: source trust matrix, per-source ingestion policy,
+    security gate, simulate-drop scenarios.
+  * Review and Reply (unified): triage, reply queue, failed queue, history,
+    provenance badges, human corrections that re-run the comparison.
+  * Shipment Lifecycle: shipment view with document versioning, so a third
+    revision of a BL is compared against the right counterpart.
 
-Key behaviours (implemented in `backend/app/routers/integration.py` and
-`backend/app/services/result_cache.py`):
+Inbound rule: mail from a sender that is not in the source trust matrix is
+filtered before it ever enters the system. Nothing unvetted touches the
+pipeline. The SMTP reply loop (receipt drafting, threading headers, dispatch
+audit) is demonstrated in the hub.
 
-* **Process once, store, reuse.** `POST /api/process` deduplicates on
-  `email_id` / `message_id` / `thread_id` plus a content hash, stores the
-  result in the `process_results` table, and returns the stored result on
-  every repeat call (`"cached": true`). Only `force: true` (explicit
-  re-process) or actually-changed content runs the core again.
-* **Reading never processes.** `GET /api/results` and `GET /api/results/{key}`
-  only return stored results. Opening the inbox, refreshing, switching emails
-  or reopening the Dashboard therefore costs no OCR / classification /
-  extraction / verification.
-* **No polling.** Neither frontend contains a `setInterval` or background
-  refresh loop. API calls happen only on explicit user actions.
-* **Static ShipMail data.** The demo inbox lives in
-  `backend/shipmail/data/` (`emails.json`, `shipments.json`,
-  `attachments/`) and is served as plain files — opening the inbox never
-  touches the backend.
-* **Side panel and Dashboard share results.** The Dashboard's *Integrations*
-  panel and the ShipMail side panel read the same `process_results` rows.
-* **Real Gmail** stays a separate integration (`/api/gmail/*`, OAuth — no
-  username/password) feeding the same API and core.
+Everything is also a documented REST API at `/docs` (FastAPI Swagger).
 
 
 ## Repository layout (and who owns what)
@@ -132,9 +123,10 @@ sdoc/
   comparator.py      field comparison + defect flags      [AI/algorithm, backend]
   engine.py          orchestration, review overlay        [backend]
 
-app/
-  main.py            FastAPI endpoints                    [backend]
-  static/index.html  Review Desk UI                       [frontend]
+backend/
+  app/               FastAPI service: routers, services, models
+  web/               hub consoles UI (gateway / review / lifecycle)
+  shipmail/          ShipMail client UI
   requirements.txt   runtime dependencies                 [backend]
   Dockerfile         cloud deployment                     [devops]
 
@@ -150,29 +142,27 @@ sdoc-hackathon-bundle/   official dataset (provided by organizers, committed
 
 | Area | Files | Owner | Current state | Next steps |
 |---|---|---|---|---|
-| Frontend | `app/static/index.html` | Wang | Working: stats cards, filterable inbox, SI vs BL diff table, review form | Polish UX, add attachment viewer, screenshots for slides |
-| Backend / API | `app/main.py`, `sdoc/engine.py` | Quiab | Working: 6 endpoints, review persistence, submission export | Extend endpoints on frontend request, improve review flow |
-| Deployment | `app/Dockerfile`, `app/requirements.txt` | Loong | Dockerfile ready, not yet deployed | Push to a cloud platform, verify the public link works, keep it up during judging |
+| Frontend | `backend/web/`, `backend/shipmail/` | Wang | Working: hub consoles (gateway / review / lifecycle), ShipMail client with OAuth, filters, drafts | Polish UX, screenshots for slides |
+| Backend / API | `backend/app/` | Quiab | Working: REST API, review persistence, submission export, trust matrix, SMTP dispatch | Extend endpoints on frontend request, improve review flow |
+| Deployment | `backend/Dockerfile`, `backend/requirements.txt` | Loong | Dockerfile ready, not yet deployed | Push to a cloud platform, verify the public link works, keep it up during judging |
 | Algorithm (deterministic) | `sdoc/classifier.py`, `sdoc/extractor.py`, `sdoc/comparator.py` | Tee | Working: full score on local eval | Robustness testing on regenerated datasets |
 | AI integration | hooks already exist, see below | Tee (owner), Hioman (support) | Plugs into existing slots | LLM fallbacks (see "Where AI plugs in") |
 | Docs / video | README, slides, demo video | Hioman | TODO | 5 min video, slide deck, submission form |
 
 ## Where AI plugs in
 
-The engine was designed so that LLM capabilities extend it without rewriting it:
+The engine was designed so that LLM capabilities extend it without rewriting it,
+and the fallback chain is cloud LLM to local Ollama to rules, so the hybrid
+path is never worse than rules alone:
 
-1. **Classification fallback** (`sdoc/classifier.py`): the classifier is an
-   ordered rule chain and the `Classification.decided_by` field already supports
-   `"rule" | "llm" | "human"`. An LLM arbiter can be appended after the
-   deterministic rules to handle ambiguous emails; the orchestrator needs no
-   changes. This also feeds the hackathon requirement that the solution
-   incorporates AI technology as a key component.
-2. **Extraction fallback** (`sdoc/extractor.py`): scanned or image-only PDFs
-   currently route to NEEDS_REVIEW. A vision/OCR model can attempt extraction
-   first and only escalate when confidence is low.
-3. **Review assist** (`sdoc/engine.py`): for NEEDS_REVIEW emails, an LLM can
-   draft the reviewer note (what is wrong, what to check) shown in the Review
-   Desk form, so the human confirms instead of investigating from scratch.
+1. **Classification**: the rule chain decides first; an LLM (cloud or local
+   Ollama) can be selected as the triage engine in the gateway, and every
+   verdict records its provenance (rule, LLM, or OCR) as a badge.
+2. **Extraction**: scanned or image-only PDFs route through the PDF ladder
+   (text layer, tables, 300 DPI render plus OCR). OCR output is escalated to
+   a human with the transcription attached, never silently compared.
+3. **Ollama runs locally**: keeping a model in the loop costs nothing in
+   model API bills.
 
 ## Setup
 
@@ -180,41 +170,35 @@ Requirements: Python 3.11+ (tested on 3.13).
 
 ```bash
 # 1. create a virtual environment
+cd backend
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 # 2. install dependencies
-pip install -r app/requirements.txt
+pip install -r requirements.txt
 
-# 3. dataset: sdoc-hackathon-bundle/ is already in the repo root.
-#    If you removed it, download the official bundle and place it at the root.
-
-# 4a. batch mode: produce submission.json
-python pipeline/pipeline.py --data sdoc-hackathon-bundle
-
-# 4b. web mode: run the Review Desk
-cd app
-uvicorn main:app --host 0.0.0.0 --port 8000
-# open http://localhost:8000
+# 3. run the backend
+uvicorn app.main:app --reload --port 8000
+# ShipMail:  http://localhost:8000/shipmail/
+# Hub:       http://localhost:8000/ui/
+# API docs:  http://localhost:8000/docs
 ```
 
-Configuration (optional environment variables):
+Configuration (optional environment variables, see `backend/.env.example`):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SDOC_DATA_ROOT` | `../sdoc-hackathon-bundle` | inbox dataset location |
-| `SDOC_REVIEWS` | `app/data/reviews.json` | human review persistence |
-| `PORT` | `8000` | server port |
+| `DATABASE_URL_ENTERPRISE` | `sqlite:///./sdoc_enterprise.db` | hub database (corpus, gateway, audits) |
+| `DATABASE_URL_OAUTH` | `sqlite:///./sdoc_oauth.db` | ShipMail database (operator Gmail + verdicts) |
+| `AI_PROVIDER` | `rule` | `rule` (offline) / `ollama` / `remote` / `hybrid` |
 
 ### Docker
 
-Build from the repository root (the Dockerfile needs both `sdoc/` and `app/`):
+Build from the repository root:
 
 ```bash
-docker build -f app/Dockerfile -t sdoc-desk .
-docker run -p 8000:8000 \
-  -v /path/to/sdoc-hackathon-bundle:/srv/data:ro \
-  sdoc-desk
+docker build -f backend/Dockerfile -t shipsync .
+docker run -p 8000:8000 shipsync
 ```
 
 ## API
@@ -240,7 +224,11 @@ human review queue.
 
 The official formula: 50% end-to-end accuracy + 30% classification macro-F1 +
 20% defect-F1, with NEEDS_REVIEW handling scored separately as reliability.
-Current local result via `score_cli.py`: **1.000**.
+Current local result via `score_cli.py`: **FINAL 1.0000** (e2e 46/46,
+macro-F1 1.000, defect-F1 1.000), and **1.0000 again** after injecting six
+kinds of meaning-preserving noise (whitespace, non-breaking spaces, blank
+lines, ALL CAPS, collapsed lines, reworded labels). 322 automated tests and
+UI probes gate every push; the score has never regressed.
 
 ## Important note on the dataset
 

@@ -49,14 +49,21 @@ router = APIRouter(prefix="/api/v1/gateway", tags=["gateway-quarantine"])
 # ---------------------------------------------------------------------------
 # Non-blocking Ollama liveness probe
 #
-# check_ollama_status() does a synchronous network call to the local GPU
-# endpoint, which can stall ~1.5s when the model is cold. /status is hit on
-# every page load, every triage action and every 8s poll, so a blocking probe
-# makes the whole console feel sluggish. Cache the result and refresh it in the
-# background instead.
+# check_ollama_status() does a synchronous network call to the GPU endpoint,
+# which stalls while the host is cold. /status is hit on every page load, every
+# triage action and every 8s poll, so a blocking probe makes the whole console
+# feel sluggish. Cache the result and refresh it in the background instead.
+# Budgets come from OLLAMA_PROBE_TIMEOUT_SECONDS / OLLAMA_COLD_START_TIMEOUT_SECONDS.
 # ---------------------------------------------------------------------------
-_ollama_probe_cache: Dict[str, Any] = {"value": None, "ts": 0.0}
+_ollama_probe_cache: Dict[str, Any] = {"value": None, "ts": 0.0, "inflight": False}
 _ollama_probe_lock = threading.Lock()
+
+
+def _store_probe(val: Any) -> None:
+    with _ollama_probe_lock:
+        _ollama_probe_cache["value"] = val
+        _ollama_probe_cache["ts"] = time.time()
+        _ollama_probe_cache["inflight"] = False
 
 
 def _refresh_ollama_probe() -> None:
@@ -64,23 +71,32 @@ def _refresh_ollama_probe() -> None:
         val = gateway.check_ollama_status()
     except Exception:
         val = None
-    with _ollama_probe_lock:
-        _ollama_probe_cache["value"] = val
-        _ollama_probe_cache["ts"] = time.time()
+    _store_probe(val)
 
 
-# Warm the cache once at import: a single ~1.5s cost at startup, not per request.
-_refresh_ollama_probe()
+# Warm the cache once at import: a single probe cost at startup, not per
+# request. Quick budget only, so a silent endpoint cannot delay boot by the
+# whole cold-start budget; later refreshes escalate on their own thread.
+try:
+    _store_probe(gateway.check_ollama_status(
+        timeout=get_settings().ollama_probe_timeout_seconds))
+except Exception:
+    _store_probe(None)
 
 
 def _ollama_status_cached(ttl: float = 20.0) -> Dict[str, Any]:
     with _ollama_probe_lock:
         val = _ollama_probe_cache["value"]
         ts = _ollama_probe_cache["ts"]
+        inflight = _ollama_probe_cache["inflight"]
     if val is not None and (time.time() - ts) < ttl:
         return val
-    # Cache cold or stale: refresh in the background, return last known value now.
-    threading.Thread(target=_refresh_ollama_probe, daemon=True).start()
+    # Cache cold or stale: refresh in the background, return last known value
+    # now. One probe at a time, or a slow cold start piles up threads.
+    if not inflight:
+        with _ollama_probe_lock:
+            _ollama_probe_cache["inflight"] = True
+        threading.Thread(target=_refresh_ollama_probe, daemon=True).start()
     if val is not None:
         return val
     return {
@@ -208,6 +224,9 @@ def gateway_status(db: Session = Depends(get_db)):
         "finance@averis.com",
         "transpacific@averis.com",
     ]
+    for mb in (pol.source_policies or {}).keys():
+        if mb and mb not in available_mailboxes:
+            available_mailboxes.append(mb)
 
     # Per-source staged backlog so the Trust Matrix can show live counts.
     source_staged = {
@@ -554,8 +573,8 @@ def _build_return_receipt(staged: StagedEmailRecord):
 def build_outstream_receipt(email_rec: EmailRecord, report) -> tuple[str, str, str]:
     """Compose a return/amendment receipt for an already-classified email.
 
-    Mirrors ``_build_return_receipt`` but operates on an ``EmailRecord`` — the
-    post-classification outstream domain — instead of a staged row. The
+    Mirrors ``_build_return_receipt`` but operates on an ``EmailRecord``, the
+    post-classification outstream domain, instead of a staged row. The
     decision flips to REJECTED when classification flagged a mismatch or an
     escalation, otherwise VERIFIED. ``build_outstream_receipt`` is imported by
     the frontend-compat router so the outstream buffer can dispatch replies
@@ -661,17 +680,45 @@ def dispatch_history(stage_id: str, db: Session = Depends(get_db)):
 
 @router.get("/email-channel/status", summary="Get status of live IMAP and SMTP email channels")
 def email_channel_status():
-    """Report whether live IMAP inbound and SMTP outbound are configured."""
+    """Report whether live IMAP inbound and SMTP/Resend outbound are configured."""
     from app.config import get_settings
     cfg = get_settings()
+    resend_ok = bool(cfg.resend_api_key and cfg.resend_api_key.strip())
+    smtp_ok = bool(cfg.smtp_host and cfg.smtp_host.strip())
+    outbound_ok = resend_ok or smtp_ok
+
+    if resend_ok:
+        provider = "RESEND"
+        host = "api.resend.com (HTTPS:443)"
+        port = 443
+        user = "resend_api_key"
+        from_email = cfg.resend_from or "Averis SDOC Hub <onboarding@resend.dev>"
+        mode = "LIVE_RESEND"
+    elif smtp_ok:
+        provider = "SMTP"
+        host = cfg.smtp_host
+        port = cfg.smtp_port
+        user = cfg.smtp_user or "(none)"
+        from_email = cfg.smtp_from or cfg.smtp_user or "sdoc-hub@averis.com"
+        mode = "LIVE_SMTP"
+    else:
+        provider = "SIMULATED"
+        host = "(not configured)"
+        port = cfg.smtp_port
+        user = "(none)"
+        from_email = "sdoc-hub@averis.com"
+        mode = "SIMULATED"
+
     return {
         "smtp": {
-            "configured": bool(cfg.smtp_host and cfg.smtp_host.strip()),
-            "host": cfg.smtp_host or "(not configured)",
-            "port": cfg.smtp_port,
-            "user": cfg.smtp_user or "(none)",
-            "from_email": cfg.smtp_from or cfg.smtp_user or "sdoc-hub@averis.com",
-            "mode": "LIVE_SMTP" if cfg.smtp_host else "SIMULATED",
+            "configured": outbound_ok,
+            "provider": provider,
+            "host": host,
+            "port": port,
+            "user": user,
+            "from_email": from_email,
+            "mode": mode,
+            "resend_enabled": resend_ok,
         },
         "imap": {
             "configured": bool(cfg.imap_host and cfg.imap_host.strip()),
