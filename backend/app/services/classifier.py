@@ -83,7 +83,37 @@ def classify(email: dict) -> Classification:
     sender = (email.get("from") or "").lower()
     attachments = [a.lower() for a in (email.get("attachments") or [])]
 
-    # --- 1. spam -----------------------------------------------------------
+    # --- 1. Priority shipping document gate (SI + BL files present) --------
+    # In maritime shipping document workflows, the presence of matching SI and BL
+    # files is conclusive evidence of a document verification / comparison transaction.
+    # Real spammers do not attach paired shipping documents, and spurious "spam"
+    # keywords in the subject or body (e.g. testing notes, client typos, or disclaimers)
+    # must NOT suppress valid shipping operations.
+    try:
+        from app.services import doc_types
+        has_si = any(
+            "_si." in a or "_si_" in a or "si.frombody" in a or doc_types.detect_si_bl(a) == "SI"
+            for a in attachments
+        )
+        has_bl = any(
+            "_bl." in a or "_bl_" in a or "bl.frombody" in a or doc_types.detect_si_bl(a) == "BL"
+            for a in attachments
+        )
+    except Exception:
+        has_si = any("_si." in a or "_si_" in a or "si.frombody" in a for a in attachments)
+        has_bl = any("_bl." in a or "_bl_" in a or "bl.frombody" in a for a in attachments)
+
+    is_explicit_si = bool(re.search(r"shipping[\s_-]?instruction|\bsi\b|submit\s+si|si\s+request", subject))
+    is_explicit_bl = bool(re.search(r"bill[\s_-]?of[\s_-]?lading|draft[\s_-]?b[\/_]?l|\bb[\/_]l\b|\bbl\b", subject))
+
+    if has_si and has_bl:
+        # In real workflow, Gmail sync links counterpart BL to an SI email for 7-field comparison.
+        # But if the email's subject is explicitly a Shipping Instruction, it is an SI submission!
+        if is_explicit_si and not is_explicit_bl:
+            return Classification("SI_REQUEST", 0.95, "explicit SI subject with linked documents")
+        return Classification("BL_COMPARISON", 0.95, "SI + BL attachments present")
+
+    # --- 2. Spam filters (for emails without paired shipping docs) ---------
     # Explicit spam markers in subject (e.g. "I am SPAM", phishing notifications)
     if re.search(r"\b(?:spam|phishing|malware|scam)\b", subject, re.IGNORECASE):
         return Classification("SPAM", 0.99, "explicit spam/malware subject marker")
@@ -117,20 +147,7 @@ def classify(email: dict) -> Classification:
     if any(h in subject for h in system_notifications) or "accounts.google.com" in sender:
         return Classification("GENERAL", 0.95, "system notification email")
 
-    # --- 2. BL comparison vs SI submission ---------------------------------
-    has_si = any("_si." in a or "_si_" in a or "si.frombody" in a for a in attachments)
-    has_bl = any("_bl." in a or "_bl_" in a or "bl.frombody" in a for a in attachments)
-    is_explicit_si = bool(re.search(r"shipping[\s_-]?instruction|\bsi\b|submit\s+si|si\s+request", subject))
-    is_explicit_bl = bool(re.search(r"bill[\s_-]?of[\s_-]?lading|draft[\s_-]?b[\/_]?l|\bb[\/_]l\b|\bbl\b", subject))
-
-    if has_si and has_bl:
-        # In real workflow, Gmail sync links counterpart BL to an SI email for 7-field comparison.
-        # But if the email's subject is explicitly a Shipping Instruction, it is an SI submission!
-        if is_explicit_si and not is_explicit_bl:
-            return Classification("SI_REQUEST", 0.95, "explicit SI subject with linked documents")
-        return Classification("BL_COMPARISON", 0.95, "SI + BL attachments present")
-
-    # --- 3. subject/body intent -------------------------------------------
+    # --- 3. subject/body intent & single document attachments --------------
     bl_hits = sum(1 for h in BL_REQUEST_HINTS if h in subject or h in body)
     si_hits = sum(1 for h in SI_REQUEST_HINTS if h in subject or h in body)
     inv_hits = sum(1 for h in INVOICE_HINTS if h in subject or h in body)
@@ -159,6 +176,4 @@ def classify(email: dict) -> Classification:
     if scores[best] > 0:
         conf = min(0.5 + 0.15 * scores[best], 0.9)
         return Classification(best, conf, f"keyword hits: {scores[best]}")
-    return Classification("GENERAL", 0.6, "no strong signal → default")
-
     return Classification("GENERAL", 0.6, "no strong signal → default")

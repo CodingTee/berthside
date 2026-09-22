@@ -35,6 +35,28 @@ from app.services import workflow
 
 log = logging.getLogger(__name__)
 
+_PROCESSED_MESSAGE_KEYS: set[str] = set()
+
+
+def _get_processed_keys(db: Session) -> set[str]:
+    """Retrieve or pre-populate the set of already processed message IDs / signatures."""
+    global _PROCESSED_MESSAGE_KEYS
+    if not _PROCESSED_MESSAGE_KEYS:
+        try:
+            for row in db.query(StagedEmailRecord).order_by(StagedEmailRecord.id.desc()).limit(200).all():
+                if row.subject:
+                    _PROCESSED_MESSAGE_KEYS.add(row.subject.strip().lower())
+                if isinstance(row.security_details, list):
+                    for d in row.security_details:
+                        if isinstance(d, dict) and d.get("message_id"):
+                            _PROCESSED_MESSAGE_KEYS.add(d["message_id"].strip())
+            for row in db.query(DispatchRecord).order_by(DispatchRecord.id.desc()).limit(200).all():
+                if row.gmail_message_id:
+                    _PROCESSED_MESSAGE_KEYS.add(row.gmail_message_id.strip())
+        except Exception as exc:
+            log.warning("Could not pre-populate processed message keys: %s", exc)
+    return _PROCESSED_MESSAGE_KEYS
+
 
 def decode_mime_str(header_val: Optional[str]) -> str:
     """Safely decode RFC2047 MIME encoded-word headers."""
@@ -247,6 +269,12 @@ def _stage_and_verify_single_email(
         if not safe:
             security_status = "BLOCKED"
 
+    if message_id:
+        security_details.append({"type": "envelope_meta", "message_id": message_id.strip()})
+        _PROCESSED_MESSAGE_KEYS.add(message_id.strip())
+    if subject:
+        _PROCESSED_MESSAGE_KEYS.add(subject.strip().lower())
+
     # 2. Deterministic Classification
     from app.services import classifier
     cls_info = classifier.classify({
@@ -261,7 +289,7 @@ def _stage_and_verify_single_email(
     # 3. Security and Spam Status Gate
     if security_status == "BLOCKED":
         stage_status = "QUARANTINED"
-        ai_reason = f"Quarantined: dangerous attachment detected ({', '.join(d['filename'] for d in security_details if not d['is_safe'])})"
+        ai_reason = f"Quarantined: dangerous attachment detected ({', '.join(d['filename'] for d in security_details if not d.get('is_safe', True))})"
     elif category == "SPAM":
         stage_status = "QUARANTINED"
         ai_reason = f"Quarantined: {cls_info.reason}"
@@ -411,29 +439,54 @@ def _stage_and_verify_single_email(
             dispatch_url=dispatch_url,
         )
 
-        operator_cc = None
-        if sender_email and target_client and sender_email.lower() != target_client.lower():
-            operator_cc = sender_email
+        # Check if straight-through penetration dispatch applies:
+        # If the document is 100% VERIFIED (OK - 0 discrepancies) and we extracted
+        # an original client distinct from the forwarding operator:
+        # Directly dispatch the executive-grade customer notice to the client (target_client)
+        # and CC the operator (sender_email) for their audit record!
+        is_clean_match = bool(rep and rep.status == "OK")
+        has_distinct_client = bool(orig_client and sender_email and orig_client.lower() != sender_email.lower())
+
+        if is_clean_match and has_distinct_client:
+            from app.services.email_utils import build_customer_html_notice
+            dispatch_to = target_client
+            dispatch_cc = sender_email
+            dispatch_subj = client_subj
+            dispatch_body = client_reply_text
+            dispatch_html = build_customer_html_notice(
+                clean_subj=clean_subj,
+                stage_id=stage_id,
+                status_desc=status_desc,
+                rep=rep,
+                target_client=target_client,
+                source_mailbox=staged.source_mailbox,
+            )
+        else:
+            dispatch_to = sender_email
+            dispatch_cc = None
+            dispatch_subj = reply_subj
+            dispatch_body = reply_body
+            dispatch_html = html_body
 
         smtp_result = dispatch_smtp_email(
-            to_email=sender_email,
-            subject=reply_subj,
-            body=reply_body,
-            html_body=html_body,
+            to_email=dispatch_to,
+            subject=dispatch_subj,
+            body=dispatch_body,
+            html_body=dispatch_html,
             in_reply_to=message_id,
             references=references,
             sender=settings.smtp_from or settings.imap_user,
-            cc=operator_cc,
+            cc=dispatch_cc,
         )
 
         # Persist dispatch record
         rec = DispatchRecord(
             stage_id=stage_id,
             source_mailbox=staged.source_mailbox,
-            recipient=sender_email,
+            recipient=dispatch_to,
             decision="MISMATCH" if is_mismatch else "VERIFIED",
-            subject=reply_subj,
-            body=reply_body,
+            subject=dispatch_subj,
+            body=dispatch_body,
             channel=smtp_result.get("channel", "SMTP"),
             delivery=smtp_result.get("delivery", "SIMULATED"),
         )
@@ -477,7 +530,26 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
         mail.select(settings.imap_folder)
 
         typ, msg_ids = mail.search(None, "UNSEEN")
-        if typ != "OK" or not msg_ids or not msg_ids[0]:
+        id_list = [i for i in msg_ids[0].split() if i] if (typ == "OK" and msg_ids and msg_ids[0]) else []
+
+        # Resilience against webmail / mobile auto-read:
+        # If UNSEEN is empty, inspect recent messages in ALL to catch any incoming email
+        # that was auto-marked \Seen by an active web browser or mobile client before this poll cycle.
+        processed_keys = _get_processed_keys(db)
+        if not id_list:
+            typ_all, all_ids = mail.search(None, "ALL")
+            if typ_all == "OK" and all_ids and all_ids[0]:
+                recent_ids = all_ids[0].split()[-10:]
+                for rid in recent_ids:
+                    h_res, h_data = mail.fetch(rid, "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID SUBJECT FROM)])")
+                    if h_res == "OK" and h_data and h_data[0]:
+                        hdr_msg = email.message_from_bytes(h_data[0][1])
+                        h_mid = (hdr_msg.get("Message-ID") or "").strip()
+                        h_subj = decode_mime_str(hdr_msg.get("Subject", "")).strip().lower()
+                        if (h_mid and h_mid not in processed_keys) and (h_subj and h_subj not in processed_keys):
+                            id_list.append(rid)
+
+        if not id_list:
             mail.close()
             mail.logout()
             return {
@@ -487,8 +559,7 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
                 "processed": [],
             }
 
-        id_list = msg_ids[0].split()
-        log.info("Found %d unread emails in %s@%s", len(id_list), settings.imap_user, settings.imap_host)
+        log.info("Found %d candidate emails to process in %s@%s", len(id_list), settings.imap_user, settings.imap_host)
 
         for num in id_list:
             fetch_res, data = mail.fetch(num, "(RFC822)")
@@ -503,6 +574,11 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
             sender_name, sender_email = email.utils.parseaddr(raw_sender)
             message_id = msg.get("Message-ID", "")
             references = msg.get("References", "") or message_id
+
+            if message_id:
+                _PROCESSED_MESSAGE_KEYS.add(message_id.strip())
+            if subject:
+                _PROCESSED_MESSAGE_KEYS.add(subject.strip().lower())
 
             nested_emails = find_nested_email_attachments(msg)
             is_batch = len(nested_emails) > 1 or (len(nested_emails) == 1 and not has_direct_document_attachments(msg))
