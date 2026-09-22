@@ -694,7 +694,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
    left on this page are the overlays (command palette, composer, shortcut
    sheet and toast), which come straight from the Console.
    ========================================================================== */
-.mail-app{flex-direction:column;--rail-w:244px;--inbox-w:360px;--ship-w:480px}
+.mail-app{flex-direction:column;--rail-w:244px;--inbox-w:327px;--ship-w:480px}
 .mail-app.collapsed{--rail-w:72px}
 
 /* ---------- top bar ---------- */
@@ -925,41 +925,41 @@ body.resizing .mail-body{user-select:none}
 .mail-app.collapsed .compose-btn svg{width:18px;height:18px}
 
 /* ---------- conversation list ---------- */
-.listbar{display:flex;align-items:center;padding:0 18px;height:52px;box-sizing:border-box;flex:0 0 auto;
-  border-bottom:1px solid var(--border);background:#ffffff;position:relative;z-index:2}
-[data-theme="dark"] .listbar{background:var(--surface-2)}
-.listbar .lb-title{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.1px}
+.mail-app .inbox-panel{background:#fff;border:0;border-right:1px solid #e5e7eb;border-radius:0;box-shadow:none}
+.listbar{display:flex;align-items:center;padding:0 18px;height:56px;box-sizing:border-box;flex:0 0 auto;
+  border-bottom:1px solid #eef0f4;background:#fff;position:relative;z-index:2}
+[data-theme="dark"] .listbar{background:#fff}
+.listbar .lb-title{font-size:14px;font-weight:750;color:#111827;letter-spacing:0}
 .listbar .lb-ico,.listbar .lb-count{display:none !important}
 .top-search .ts-kbd{display:none}
 
 .list{overflow-y:auto;flex:1;background:#ffffff}
-[data-theme="dark"] .list{background:var(--surface-2)}
+[data-theme="dark"] .list{background:#ffffff}
 .list::-webkit-scrollbar{width:6px}
-.list::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
-.list::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+.list::-webkit-scrollbar-thumb{background:#c9ced6;border-radius:4px}
+.list::-webkit-scrollbar-thumb:hover{background:#aeb6c3}
 
-.list .row{position:relative;display:flex;align-items:center;gap:12px;padding:11px 16px;
-  border-bottom:1px solid var(--border);background:#ffffff;cursor:pointer;transition:background .12s}
-[data-theme="dark"] .list .row{background:var(--surface-2)}
-.list .row:hover{background:var(--surface-hover)}
-.list .row.active{background:color-mix(in srgb,var(--accent) 8%,#ffffff)}
-[data-theme="dark"] .list .row.active{background:color-mix(in srgb,var(--accent) 14%,var(--surface-2))}
+.list .row{position:relative;display:flex;align-items:center;gap:10px;min-height:61px;padding:10px 12px 10px 18px;
+  border-bottom:1px solid #eef0f4;background:#fff;cursor:pointer;transition:background .12s}
+[data-theme="dark"] .list .row{background:#fff}
+.list .row:hover,.list .row.active{background:#fff}
+[data-theme="dark"] .list .row.active{background:#fff}
 
 /* Left vertical heat stripe */
 .list .row .heat{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 2px 2px 0;
-  background:var(--c,#cbd5e1);transition:width .14s,opacity .14s}
-.list .row:hover .heat{width:5px}
-.list .row.active .heat{width:4px;background:linear-gradient(180deg,#10b981,#3b82f6)}
+  background:#18b889;opacity:var(--o,.7);transition:opacity .14s}
+.list .row:hover .heat{opacity:1}
+.list .row.active .heat{background:#18b889}
 
 .row .av{width:38px;height:38px;border-radius:50%;flex:0 0 38px;display:grid;place-items:center;
-  color:#fff;font-weight:700;font-size:13px;letter-spacing:.2px;user-select:none}
-.row .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;justify-content:center}
-.row .who{font-weight:650;font-size:13.5px;color:var(--text);
+  color:#fff!important;background:#b83280!important;font-weight:750;font-size:13px;letter-spacing:0;user-select:none}
+.row .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
+.row .who{font-weight:750;font-size:13px;line-height:1.24;color:#172033;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row.unread .who{font-weight:800}
-.row .subj{font-size:12.8px;font-weight:400;color:var(--muted);
+.row.unread .who{font-weight:750}
+.row .subj{font-size:13px;font-weight:400;line-height:1.25;color:#253044;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row.unread .subj{font-weight:700;color:var(--text)}
+.row.unread .subj{font-weight:400;color:#253044}
 .row .snip{display:none}
 .row .rt{display:none}
 
@@ -1167,8 +1167,8 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
 .toast[hidden]{display:none}
 
 /* ---------- responsive ---------- */
-@media(max-width:1500px){.mail-app{--inbox-w:344px;--ship-w:356px}}
-@media(max-width:1300px){.mail-app{--rail-w:226px;--inbox-w:320px}}
+@media(max-width:1500px){.mail-app{--inbox-w:327px;--ship-w:356px}}
+@media(max-width:1300px){.mail-app{--rail-w:226px;--inbox-w:327px}}
 /* the top bar sheds its lowest-value items first: rail toggle, then the source chip */
 @media(max-width:1240px){.topbar .conn-chip{display:none}}
 @media(max-width:1120px){.topbar .ws-trigger{width:auto;flex:0 0 auto}.topbar .ws-trigger .ws-meta{display:none}}
@@ -3657,14 +3657,14 @@ $("collapseBtn").addEventListener("click", toggleRail);
   const body = document.querySelector(".mail-body");
   if(!body) return;
   const GRIPS = [
-    {el:$("gripList"), prop:"--inbox-w", key:"list", label:"Inbox",   min:248, max:640, base:376,
+    {el:$("gripList"), prop:"--inbox-w", key:"list", label:"Inbox",   min:327, max:327, base:327,
      /* the reading pane, plus the verdict column when it is docked */
      reserve(){ return 320 + (docked() ? shipW() : 0); }},
     {el:$("gripShip"), prop:"--ship-w",  key:"ship", label:"Verdict", min:300, max:620, base:384,
      /* the pocket between the list and the reading pane */
      reserve(){ return 320 + listW(); }}
   ];
-  const LS_COLS = "sdoc_mail_cols";
+  const LS_COLS = "sdoc_mail_cols_reference_inbox";
   const saved = readLS(LS_COLS, {}) || {};
   let drag = null;
 
