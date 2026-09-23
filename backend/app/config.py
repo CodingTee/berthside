@@ -8,7 +8,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -97,6 +97,7 @@ class Settings(BaseSettings):
     # "ollama"   -> local Ollama VLM (qwen2.5vl:7b) only; no cloud key needed
     ai_provider: str = "rule"
     ai_service_url: str = ""  # e.g. http://localhost:8001
+    ai_api_url: str = ""      # alias for ai_service_url / ollama_base_url
     ai_api_key: str = ""
     ai_timeout_seconds: float = 30.0
     ai_max_retries: int = 2
@@ -110,6 +111,19 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5vl:7b"
     ollama_api_key: str = ""
+
+    @model_validator(mode="after")
+    def _sync_ai_settings(self) -> Settings:
+        """Sync AI_API_URL and AI_API_KEY into ollama_base_url and ai_service_url."""
+        if self.ai_api_url:
+            if not self.ai_service_url:
+                self.ai_service_url = self.ai_api_url
+            if self.ollama_base_url in ("http://localhost:11434", ""):
+                self.ollama_base_url = self.ai_api_url
+        if self.ai_api_key:
+            if not self.ollama_api_key:
+                self.ollama_api_key = self.ai_api_key
+        return self
 
     # -- processing --------------------------------------------------------
     process_max_emails: int = 0  # 0 = no limit for POST /emails/process-all
@@ -142,9 +156,14 @@ class Settings(BaseSettings):
     auto_reply_on_verification: bool = True
 
     model_config = SettingsConfigDict(
-        env_file=str(BACKEND_ROOT / ".env"),
+        env_file=(
+            str(BACKEND_ROOT.parent / ".env"),
+            str(BACKEND_ROOT / ".env"),
+            ".env",
+        ),
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     @property
