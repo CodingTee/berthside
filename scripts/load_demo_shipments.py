@@ -93,7 +93,7 @@ def _spawn_server(port: int, timeout_s: float = 120.0):
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--base", default="http://127.0.0.1:8000")
-    ap.add_argument("--data", default=str(BACKEND_ROOT / "demo-shipments"))
+    ap.add_argument("--data", default=str(BACKEND_ROOT / "data" / "demo-shipments"))
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--spawn", action="store_true",
                     help="start a private server, load, then stop it "

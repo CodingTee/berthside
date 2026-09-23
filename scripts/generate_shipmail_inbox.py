@@ -2,11 +2,11 @@
 
 Why this exists
 ---------------
-The Dashboard reads its corpus from ``backend/data/corpus`` (520 emails).
+The Dashboard reads its corpus from ``data/corpus`` (520 emails).
 The ShipMail inbox used to ship with 5 hand-written demo emails, which made
 the two surfaces inconsistent ("Dashboard has 500+ files but Gmail has 5").
 
-This script regenerates ``backend/shipmail/data/emails.json`` (+ a derived
+This script regenerates ``web/shipmail/data/emails.json`` (+ a derived
 ``shipments.json``) straight from the same bundle the Dashboard uses, so the
 inbox always mirrors the Dashboard's dataset and the "process once, store,
 reuse" rule still applies: opening the inbox is one static file fetch with
@@ -21,7 +21,7 @@ Usage
 -----
     python scripts/generate_shipmail_inbox.py
     python scripts/generate_shipmail_inbox.py --bundle /path/to/bundle \
-        --out backend/shipmail/data
+        --out web/shipmail/data
 
 In the Docker image this runs during build with ``--bundle /bundle`` so the
 baked inbox always matches the baked dataset.
@@ -181,11 +181,11 @@ def main() -> None:
     ap.add_argument(
         "--bundle",
         default=str(BACKEND_ROOT / "data" / "corpus"),
-        help="Path to the evaluation corpus (default: backend/data/corpus)",
+        help="Path to the evaluation corpus (default: data/corpus)",
     )
     ap.add_argument(
         "--out",
-        default=str(BACKEND_ROOT / "shipmail" / "data"),
+        default=str(BACKEND_ROOT / "web" / "shipmail" / "data"),
         help="Output directory for emails.json / shipments.json",
     )
     args = ap.parse_args()

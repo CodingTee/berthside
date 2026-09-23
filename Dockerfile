@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 #
-# IMPORTANT: build from the REPOSITORY ROOT, not from backend/:
-#     docker build -f backend/Dockerfile .
+# Build from the REPOSITORY ROOT:
+#     docker build .
 #
 # Render:
 #     dockerContext: .
-#     dockerfilePath: ./backend/Dockerfile
+#     dockerfilePath: ./Dockerfile
 
 FROM python:3.11-slim
 
@@ -21,19 +21,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     DATA_SOURCE=/app/data \
     OCR_ENABLED=1
 
-COPY backend/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY backend/ /app/
+COPY app/ /app/app/
+COPY scripts/ /app/scripts/
+COPY web/ /app/web/
 
-COPY backend/data/corpus/ /bundle/
+COPY data/corpus/ /bundle/
 
-# Build the ShipMail static inbox from the same bundle the Dashboard uses, so
+# Build the ShipMail static inbox from the same corpus the Dashboard uses, so
 # the two surfaces always show the same emails.
-RUN python scripts/generate_shipmail_inbox.py --bundle /bundle --out backend/shipmail/data
+RUN python scripts/generate_shipmail_inbox.py --bundle /bundle --out web/shipmail/data
 
-# Prepare the static hackathon dataset.
+# Prepare the static dataset.
 RUN python scripts/prepare_data.py
 
 # Pre-compute all email reports during Docker build.
@@ -57,7 +59,7 @@ RUN python scripts/precompute_reports.py
 # first boot instead of on first click.
 RUN python scripts/load_demo_shipments.py --spawn
 
-# The source bundle is no longer needed after the dataset
+# The source corpus is no longer needed after the dataset
 # has been copied into /app/data and reports have been generated.
 RUN rm -rf /bundle
 

@@ -51,7 +51,7 @@ def overview(base: str, code: str) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--base", default="http://127.0.0.1:8000")
-    ap.add_argument("--data", default=str(BACKEND_ROOT / "demo-shipments"))
+    ap.add_argument("--data", default=str(BACKEND_ROOT / "data" / "demo-shipments"))
     args = ap.parse_args()
     base = args.base.rstrip("/")
 

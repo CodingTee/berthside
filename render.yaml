@@ -1,10 +1,10 @@
-# Render Blueprint — https://render.com/docs/blueprints
+# Render Blueprint: https://render.com/docs/blueprints
 #
 # One-click deploy: Dashboard → Blueprints → New Blueprint Instance → pick this
 # repo. Render reads this file and creates the service below automatically.
 #
-# The Docker build context is the REPOSITORY ROOT (not backend/), because the
-# image bakes in the evaluation corpus backend/data/corpus/ as well.
+# The Docker build context is the REPOSITORY ROOT, because the image bakes in
+# the evaluation corpus data/corpus/ as well.
 services:
   - type: web
     name: sdoc-backend
@@ -12,7 +12,7 @@ services:
     repo: https://github.com/chaywen/averis-hackathon-2026.git
     branch: main
     dockerContext: .
-    dockerfilePath: ./backend/Dockerfile
+    dockerfilePath: ./Dockerfile
     plan: free
     region: singapore
     healthCheckPath: /health
@@ -35,6 +35,6 @@ services:
         value: "1"
       # SQLite works on the free tier but the disk is ephemeral: the database is
       # rebuilt from the inbox on every cold start. For a persistent DB, set
-      # DATABASE_URL to a Supabase/Postgres URL (see backend/.env.example).
+      # DATABASE_URL to a Supabase/Postgres URL (see .env.example).
       # - key: DATABASE_URL
       #   value: postgresql+psycopg2://postgres:<PASSWORD>@db.<PROJECT>.supabase.co:5432/postgres

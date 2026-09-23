@@ -43,7 +43,6 @@ the triage, the comparison, and the escalation loop, and it always shows its wor
 ## Try it yourself in five minutes
 
 ```bash
-cd backend
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -54,7 +53,7 @@ uvicorn app.main:app --reload --port 8000
    Gateway**. The Source Trust Matrix lists every sender allowed into the
    pipeline.
 2. **Register the mailbox you will send from**: add it in the console, or set
-   `EXTRA_TRUSTED_SOURCES=you@gmail.com` in `backend/.env` and restart. This
+   `EXTRA_TRUSTED_SOURCES=you@gmail.com` in `.env` and restart. This
    step is not optional decoration; an unregistered sender is quarantined
    before classification, which is exactly the behaviour the system advertises.
 3. Send an email **to `averis.demo@gmail.com`** from that mailbox with an SI
@@ -95,7 +94,7 @@ Where entries live:
 
 | Source | Scope | Survives restart |
 |---|---|---|
-| `DEFAULT_TRUSTED_SOURCES` in `backend/app/services/trust_matrix.py` | role mailboxes only (hub intake, booking, finance, ...) | yes, in code |
+| `DEFAULT_TRUSTED_SOURCES` in `app/services/trust_matrix.py` | role mailboxes only (hub intake, booking, finance, ...) | yes, in code |
 | `EXTRA_TRUSTED_SOURCES` env var | your own demo/testing mailboxes, comma-separated; same behaviour locally and on Render | yes, per environment |
 | Hub console (Secure and Gateway) | operator-added sources | yes, persisted in the database |
 
@@ -129,7 +128,7 @@ No code change is needed to move between them. `OLLAMA_MODEL` must match the
 model name on the host (`ollama list`), and `OLLAMA_API_KEY` is sent as a
 Bearer token when an authenticating reverse proxy sits in front.
 
-Cold start is budgeted, not ignored. Three knobs in `backend/.env`:
+Cold start is budgeted, not ignored. Three knobs in `.env`:
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -168,12 +167,12 @@ escalated to a human with the transcription attached, never silently compared.
 
 Three clean layers:
 
-1. **Engine (`sdoc/`)**: pure Python, zero web dependencies. Takes an inbox,
+1. **Engine (`app/services/`)**: pure-Python verification core. Takes an inbox,
    returns per-email verdicts. This is where the algorithm lives.
-2. **Service (`backend/app/`)**: FastAPI wrapper. Persists verdicts, reviews
+2. **Service (`app/`)**: FastAPI wrapper. Persists verdicts, reviews
    and dispatches in two databases (enterprise hub + ShipMail OAuth), enforces
    the source trust matrix, and runs the SMTP dispatcher.
-3. **Frontend (`backend/web/`, `backend/shipmail/`)**: dependency-free
+3. **Frontend (`web/hub/`, `web/shipmail/`)**: dependency-free
    HTML/CSS/JS. Talks to the API only; contains no business logic.
 
 ## System surfaces (two systems, one switcher)
@@ -202,46 +201,50 @@ Everything is also a documented REST API at `/docs` (FastAPI Swagger).
 ## Repository layout
 
 ```
-backend/
-  app/               FastAPI service: routers, services, models
-  web/               hub consoles UI (gateway / review / lifecycle / outstream)
-  shipmail/          ShipMail client UI
-  tests/             pytest suite and UI probes
-  scripts/           evaluation and demo tooling (tune_eval, stress_evaluate)
-  data/corpus/       static evaluation corpus: 520 emails with SI/BL attachments
-  docs/              API contract and architecture notes
-  requirements.txt   runtime dependencies
-  Dockerfile         cloud deployment
-
-render.yaml          Render deployment config
+app/                FastAPI service: routers, services, models
+web/                both consoles: hub/ (gateway / review / lifecycle /
+                    outstream) and shipmail/ (ShipMail client UI)
+data/
+  corpus/           static evaluation corpus: 520 emails with SI/BL attachments
+  *.db              local SQLite databases (gitignored)
+tests/              pytest suite and UI probes
+scripts/            evaluation and demo tooling (tune_eval, stress_evaluate)
+docs/               ARCHITECTURE.md, DEVELOPMENT.md, API_CONTRACT.md, history/
+requirements.txt    runtime dependencies
+Dockerfile          cloud deployment (Render blueprint in render.yaml)
 ```
+
+Deeper documentation: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (design
+rationale), [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) (run, test, score,
+deploy), [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
 
 ## Setup
 
 Requirements: Python 3.11+ (tested on 3.13).
 
 ```bash
-# 1. create a virtual environment
-cd backend
+# 1. create a virtual environment (from the repository root)
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
 # 2. install dependencies
 pip install -r requirements.txt
 
-# 3. run the backend
+# 3. run the server
 uvicorn app.main:app --reload --port 8000
 # ShipMail:  http://localhost:8000/shipmail/
 # Hub:       http://localhost:8000/ui/
 # API docs:  http://localhost:8000/docs
 ```
 
-Configuration (optional environment variables, see `backend/.env.example`):
+Windows shortcut: double-click `start_backend.bat`.
+
+Configuration (optional environment variables, see `.env.example`):
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DATABASE_URL_ENTERPRISE` | `sqlite:///./sdoc_enterprise.db` | hub database (corpus, gateway, audits) |
-| `DATABASE_URL_OAUTH` | `sqlite:///./sdoc_oauth.db` | ShipMail database (operator Gmail + verdicts) |
+| `DATABASE_URL_ENTERPRISE` | `sqlite:///./data/sdoc_enterprise.db` | hub database (corpus, gateway, audits) |
+| `DATABASE_URL_OAUTH` | `sqlite:///./data/sdoc_oauth.db` | ShipMail database (operator Gmail + verdicts) |
 | `AI_PROVIDER` | `rule` | `rule` / `ollama` / `cascade` / `hybrid` / `remote` |
 | `EXTRA_TRUSTED_SOURCES` | *(empty)* | comma-separated mailboxes added to the source trust matrix |
 | `OLLAMA_BASE_URL` | `http://localhost:11434` | where Ollama listens: local, LAN, tunnel or cloud GPU |
@@ -256,7 +259,7 @@ Configuration (optional environment variables, see `backend/.env.example`):
 Build from the repository root:
 
 ```bash
-docker build -f backend/Dockerfile -t shipsync .
+docker build -t shipsync .
 docker run -p 8000:8000 shipsync
 ```
 
@@ -289,12 +292,12 @@ The official formula: 50% end-to-end accuracy + 30% classification macro-F1 +
 Current local result via `score_cli.py`: **FINAL 1.0000** (e2e 46/46,
 macro-F1 1.000, defect-F1 1.000), and **1.0000 again** after injecting six
 kinds of meaning-preserving noise (whitespace, non-breaking spaces, blank
-lines, ALL CAPS, collapsed lines, reworded labels). 332 automated tests and
+lines, ALL CAPS, collapsed lines, reworded labels). 334 automated tests and
 UI probes gate every push; the score has never regressed.
 
 ## A note on the evaluation corpus
 
-This repository commits the static evaluation corpus (`backend/data/corpus/`,
+This repository commits the static evaluation corpus (`data/corpus/`,
 520 emails with SI/BL attachments) so the project runs out of the box. The
 docker variant of the dataset (`sdoc-hackathon-docker/`) is intentionally
 excluded from version control via `.gitignore` and must never be committed: it

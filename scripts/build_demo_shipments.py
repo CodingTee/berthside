@@ -2,7 +2,7 @@
 
 Why this exists
 ---------------
-The primary corpus (``backend/data/corpus``, 520 emails) is what the engine is
+The primary corpus (``data/corpus``, 520 emails) is what the engine is
 **scored** on, so it must never be edited. This script builds a second, much
 smaller and deliberately designed dataset whose job is to *demonstrate* the
 behaviours the future shipment-centred Dashboard needs:
@@ -21,14 +21,14 @@ are deliberately absent rather than faked.
 
 Output layout (all committed, so the demo does not depend on running this):
 
-    backend/demo-shipments/emails.json        sent to POST /api/process
-    backend/demo-shipments/attachments/*      the real binary documents
-    backend/demo-shipments/expectations.json  what each shipment should resolve to
+    data/demo-shipments/emails.json        sent to POST /api/process
+    data/demo-shipments/attachments/*      the real binary documents
+    data/demo-shipments/expectations.json  what each shipment should resolve to
 
 Usage
 -----
     python scripts/build_demo_shipments.py
-    python scripts/build_demo_shipments.py --out backend/demo-shipments
+    python scripts/build_demo_shipments.py --out data/demo-shipments
 """
 from __future__ import annotations
 
@@ -484,7 +484,7 @@ def build(out_dir: Path) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", default=str(BACKEND_ROOT / "demo-shipments"))
+    ap.add_argument("--out", default=str(BACKEND_ROOT / "data" / "demo-shipments"))
     args = ap.parse_args()
     stats = build(Path(args.out))
     print(f"wrote {stats['emails']} emails and "

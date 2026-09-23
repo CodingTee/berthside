@@ -1,0 +1,16 @@
+services:
+  backend:
+    # The image bakes in the evaluation corpus data/corpus/ (inbox +
+    # attachments) and both web consoles.
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Override with your own .env; never commit real secrets.
+      ENVIRONMENT: development
+      CORS_ORIGINS: "*"
+      DATA_SOURCE: /app/data
+      AI_PROVIDER: rule
+    restart: unless-stopped

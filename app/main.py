@@ -91,9 +91,9 @@ app.include_router(gateway.router)
 # Frontends served by this single backend (no extra Render service):
 #   /ui/       -> ShipSync Dashboard / Operations Console (existing web app)
 #   /shipmail/ -> ShipMail inbox (simulated mail client) + ShipSync side panel
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
-SHIPMAIL_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "frontend"
-SHIPMAIL_DATA_DIR = Path(__file__).resolve().parent.parent / "shipmail" / "data"
+WEB_DIR = Path(__file__).resolve().parent.parent / "web" / "hub"
+SHIPMAIL_DIR = Path(__file__).resolve().parent.parent / "web" / "shipmail" / "frontend"
+SHIPMAIL_DATA_DIR = Path(__file__).resolve().parent.parent / "web" / "shipmail" / "data"
 
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 

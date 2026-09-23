@@ -26,9 +26,9 @@ class Settings(BaseSettings):
     # Either a local folder containing inbox/ + attachments/ (static bundle),
     # or the HTTP dataset server URL (e.g. http://localhost:8080).
     #
-    # A relative path is resolved against BACKEND_ROOT, not the current working
-    # directory, so `data/corpus` means the same thing whether the
-    # app is started by `start_backend.bat` (cwd = backend/), by
+    # A relative path is resolved against BACKEND_ROOT (the repository root),
+    # not the current working directory, so `data/corpus` means the same thing
+    # whether the app is started by `start_backend.bat` (cwd = repo root), by
     # `python -m uvicorn` from the repo root, or from anywhere else. `.env` is
     # per-machine and git-ignored, so a relative path there is the portable
     # choice; an absolute path still works unchanged.
@@ -86,11 +86,11 @@ class Settings(BaseSettings):
 
     # -- database (Dual-Track Physical Isolation) ---------------------------
     # 1. Enterprise Hub DB: 520 dataset, carrier EDI, gateway quarantine, audits
-    database_url_enterprise: str = f"sqlite:///{BACKEND_ROOT / 'sdoc_enterprise.db'}"
+    database_url_enterprise: str = f"sqlite:///{BACKEND_ROOT / 'data' / 'sdoc_enterprise.db'}"
     # 2. OAuth DB: personal operator real Gmail mailbox, operator tokens & verdicts
-    database_url_oauth: str = f"sqlite:///{BACKEND_ROOT / 'sdoc_oauth.db'}"
+    database_url_oauth: str = f"sqlite:///{BACKEND_ROOT / 'data' / 'sdoc_oauth.db'}"
     # Default / legacy database URL (aliased to enterprise hub)
-    database_url: str = f"sqlite:///{BACKEND_ROOT / 'sdoc_enterprise.db'}"
+    database_url: str = f"sqlite:///{BACKEND_ROOT / 'data' / 'sdoc_enterprise.db'}"
 
     # -- AI ----------------------------------------------------------------
     # "rule"     -> deterministic built-in classifier/extractor (default, offline)
