@@ -63,3 +63,17 @@ def get_attachment(message_id: str, attachment_id: str) -> bytes:
     )
     data = response.get("data", "")
     return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))
+
+
+def send_message(raw_b64: str, thread_id: str | None = None) -> dict[str, Any]:
+    """Send an RFC 2822 base64url encoded message via authenticated Gmail API."""
+    service = build_service()
+    body: dict[str, Any] = {"raw": raw_b64}
+    if thread_id:
+        body["threadId"] = thread_id
+    return (
+        service.users()
+        .messages()
+        .send(userId="me", body=body)
+        .execute()
+    )

@@ -782,6 +782,16 @@ def oauth_return(
         }
 
     msg = db.query(GmailMessageRecord).filter_by(email_id=email_id).first()
+    from app.services.smtp_dispatcher import dispatch_smtp_email
+    disp_res = dispatch_smtp_email(
+        to_email=email.sender,
+        subject=subject,
+        body=body,
+        sender=account,
+    )
+    delivery_status = disp_res.get("delivery", "SENT_SMTP")
+    channel_name = disp_res.get("channel", "gmail")
+
     rec = DispatchRecord(
         stage_id=email_id,
         source_mailbox=account,
@@ -789,8 +799,8 @@ def oauth_return(
         decision=decision,
         subject=subject,
         body=body,
-        channel="gmail",
-        delivery="SIMULATED",
+        channel=channel_name,
+        delivery=delivery_status,
         gmail_message_id=msg.gmail_message_id if msg else None,
     )
     db.add(rec)

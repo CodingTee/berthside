@@ -11,7 +11,10 @@ from typing import Any
 
 from app.config import get_settings
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
+]
 
 
 def _state_path() -> Path:

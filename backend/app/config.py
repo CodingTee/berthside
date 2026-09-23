@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     gmail_max_results: int = 10
     gmail_polling_enabled: bool = False
     gmail_poll_interval_seconds: int = 60
+    gmail_client_id: str = ""
+    gmail_client_secret: str = ""
+    gmail_refresh_token: str = ""
 
     @field_validator("gmail_credentials_file", "gmail_token_file")
     @classmethod
