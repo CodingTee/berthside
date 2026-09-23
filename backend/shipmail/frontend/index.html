@@ -245,8 +245,8 @@ select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%
 
 /* ---------- inbox list ---------- */
 .list{overflow-y:auto;flex:1}
-.row{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column;gap:7px;
-  position:relative;transition:background .15s}
+.row{padding:10px 12px 10px 18px;border-bottom:1px solid #eef0f4;cursor:pointer;display:flex;flex-direction:row;align-items:center;gap:10px;min-height:61px;
+  position:relative;transition:background .15s;text-align:left;box-sizing:border-box}
 /* Confidence heat strip: tone = the verdict already in the API, opacity = how many
    fields actually differ. Deliberately NOT a made-up confidence percentage. */
 .heat{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 3px 3px 0;
@@ -939,36 +939,123 @@ body.resizing .mail-body{user-select:none}
 .list::-webkit-scrollbar-thumb{background:#c9ced6;border-radius:4px}
 .list::-webkit-scrollbar-thumb:hover{background:#aeb6c3}
 
-.list .row{position:relative;display:flex;align-items:center;gap:10px;min-height:61px;padding:10px 12px 10px 18px;
-  border-bottom:1px solid #eef0f4;background:#fff;cursor:pointer;transition:background .12s}
-[data-theme="dark"] .list .row{background:#fff}
-.list .row:hover,.list .row.active{background:#fff}
-[data-theme="dark"] .list .row.active{background:#fff}
+.list .row{
+  position: relative !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-height: 61px !important;
+  padding: 10px 14px 10px 18px !important;
+  border-bottom: 1px solid #eef0f4 !important;
+  background: #ffffff !important;
+  cursor: pointer;
+  transition: background .12s;
+  box-sizing: border-box !important;
+  text-align: left !important;
+}
+[data-theme="dark"] .list .row{background:#ffffff !important}
+.list .row:hover{background:#f8fafc !important}
+.list .row.active{background:#f4fbf8 !important}
+[data-theme="dark"] .list .row:hover{background:#f8fafc !important}
+[data-theme="dark"] .list .row.active{background:#f4fbf8 !important}
 
 /* Left vertical heat stripe */
-.list .row .heat{position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0 2px 2px 0;
-  background:#18b889;opacity:var(--o,.7);transition:opacity .14s}
-.list .row:hover .heat{opacity:1}
-.list .row.active .heat{background:#18b889}
+.list .row .heat{
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 4px !important;
+  border-radius: 0 2px 2px 0 !important;
+  background: var(--c, #18b889) !important;
+  opacity: var(--o, .7) !important;
+  display: block !important;
+  transition: opacity .14s;
+}
+.list .row:hover .heat{opacity: 1 !important}
+.list .row.active .heat{opacity: 1 !important; display: block !important}
+.list .row::before{display: none !important}
 
-.row .av{width:38px;height:38px;border-radius:50%;flex:0 0 38px;display:grid;place-items:center;
-  color:#fff!important;background:#b83280!important;font-weight:750;font-size:13px;letter-spacing:0;user-select:none}
-.row .mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;justify-content:center}
-.row .who{font-weight:750;font-size:13px;line-height:1.24;color:#172033;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row.unread .who{font-weight:750}
-.row .subj{font-size:13px;font-weight:400;line-height:1.25;color:#253044;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row.unread .subj{font-weight:400;color:#253044}
-.row .snip{display:none}
-.row .rt{display:none}
+.list .row .av,
+.row .av{
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  border-radius: 50% !important;
+  flex: 0 0 38px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #fff !important;
+  background: #b83280 !important;
+  font-weight: 750 !important;
+  font-size: 13px !important;
+  letter-spacing: 0 !important;
+  user-select: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+.list .row .mid,
+.row .mid{
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.list .row .who,
+.row .who{
+  font-weight: 750 !important;
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  color: #172033 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: left !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+.list .row.unread .who,
+.row.unread .who{font-weight: 750 !important}
+.list .row .subj,
+.row .subj{
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  color: #253044 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-align: left !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+.list .row.unread .subj,
+.row.unread .subj{font-weight: 400 !important; color: #253044 !important}
+.list .row .snip,
+.row .snip{display: none !important}
+.list .row .rt,
+.row .rt{display: none !important}
 
 /* Compact list on narrow screen */
-.mail-app.narrow-list .list .row{padding:11px 12px;gap:10px}
+.mail-app.narrow-list .list .row{
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  padding: 10px 12px 10px 18px !important;
+  gap: 10px !important;
+}
 .mail-app.narrow-list .row .rt,
-.mail-app.narrow-list .row .snip{display:none}
+.mail-app.narrow-list .row .snip{display: none !important}
 .mail-app.narrow-list .row .r1 .badge,
-.mail-app.narrow-list .row .r1 .star{display:none}
+.mail-app.narrow-list .row .r1 .star{display: none !important}
 
 /* ---------- reading pane ---------- */
 .mailbar{display:flex;align-items:center;gap:4px;height:52px;padding:0 16px;flex:0 0 auto;min-width:0;
