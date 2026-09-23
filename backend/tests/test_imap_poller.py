@@ -212,10 +212,10 @@ def test_imap_spam_silent_drop_no_reply(db_session):
     settings.auto_reply_on_verification = True
 
     msg = EmailMessage()
-    msg["From"] = "Spammer <spammer@junkmailer.com>"
+    msg["From"] = "Spammer <spammer@example.com>"
     msg["To"] = "hub@example.com"
     msg["Subject"] = "I am SPAM - win free lottery click here"
-    msg["Message-ID"] = "<spam-101@junkmailer.com>"
+    msg["Message-ID"] = "<spam-101@example.com>"
     msg.set_content("Congratulations you won a lottery prize!")
     raw_bytes = msg.as_bytes()
 
@@ -231,7 +231,7 @@ def test_imap_spam_silent_drop_no_reply(db_session):
             assert res["status"] == "SUCCESS"
             assert res["polled_count"] == 1
 
-            staged = db_session.query(StagedEmailRecord).filter_by(sender="spammer@junkmailer.com").first()
+            staged = db_session.query(StagedEmailRecord).filter_by(sender="spammer@example.com").first()
             assert staged is not None
             assert staged.category == "SPAM"
             assert staged.status == "QUARANTINED"
@@ -299,7 +299,7 @@ def test_imap_forwarded_receipt_includes_action_links(db_session):
     settings.auto_reply_on_verification = True
 
     msg = EmailMessage()
-    msg["From"] = "Operator <testuse1491@gmail.com>"
+    msg["From"] = "Operator <operator@averis.com>"
     msg["To"] = "hub@example.com"
     msg["Subject"] = "Fwd: BKG-9900 Draft BL for Verification"
     msg["Message-ID"] = "<fwd-101@gmail.com>"
@@ -307,7 +307,7 @@ def test_imap_forwarded_receipt_includes_action_links(db_session):
         "---------- Forwarded message ---------\n"
         "From: Alice Shipper <alice@shipper-corp.com>\n"
         "Subject: BKG-9900 Draft BL for Verification\n"
-        "To: testuse1491@gmail.com\n\n"
+        "To: operator@averis.com\n\n"
         "Attached draft documents."
     )
     msg.set_content(fwd_body)
@@ -330,7 +330,7 @@ def test_imap_forwarded_receipt_includes_action_links(db_session):
             mock_smtp.assert_called_once()
             call_kwargs = mock_smtp.call_args[1]
             # Must reply to the operator
-            assert call_kwargs["to_email"] == "testuse1491@gmail.com"
+            assert call_kwargs["to_email"] == "operator@averis.com"
             # Body must have mailto to alice
             assert "mailto:alice%40shipper-corp.com" in call_kwargs["body"] or "mailto:alice@shipper-corp.com" in call_kwargs["body"]
             # Body must have Gmail search with from: operator
@@ -374,13 +374,13 @@ def test_imap_receipt_rendered_when_forwarded_from_same_address(db_session):
     settings.auto_reply_on_verification = True
 
     msg = EmailMessage()
-    msg["From"] = "Operator <testuse1491@gmail.com>"
+    msg["From"] = "Operator <operator@averis.com>"
     msg["To"] = "hub@example.com"
     msg["Subject"] = "Fwd: Draft BL BKG-1122 for Verification"
     msg["Message-ID"] = "<user-test-888@gmail.com>"
     fwd_body = (
         "---------- Forwarded message ---------\n"
-        "From: testuse1491@gmail.com\n"
+        "From: operator@averis.com\n"
         "Subject: Draft BL BKG-1122 for Verification\n"
         "To: hub@example.com\n\n"
         "Please verify the attached draft BL."
@@ -404,7 +404,7 @@ def test_imap_receipt_rendered_when_forwarded_from_same_address(db_session):
 
             mock_smtp.assert_called_once()
             call_kwargs = mock_smtp.call_args[1]
-            assert call_kwargs["to_email"] == "testuse1491@gmail.com"
+            assert call_kwargs["to_email"] == "operator@averis.com"
 
             html = call_kwargs.get("html_body", "")
             text = call_kwargs.get("body", "")

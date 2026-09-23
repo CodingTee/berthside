@@ -76,7 +76,7 @@ def test_vision_cascade_falls_to_rapidocr_rules(monkeypatch):
     monkeypatch.setattr(extractor, "extract_fields", lambda text, doc_type: local)
     out = gateway.extract_from_image(b"fake-png-bytes", "fax_bl.png", "BL")
     assert out["readable"] is True
-    assert out["source"] == "local-rapidocr"
+    assert out["source"] == "image-ocr"
     assert out["fields"]["shipper"] == "PACIFIC ASIA TRADING"
 
 

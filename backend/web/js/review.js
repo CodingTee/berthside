@@ -165,13 +165,31 @@ const fmt = n => (n??0).toLocaleString();
 
 function catBadge(c){if(!c)return `<span class="badge cat" style="--c:var(--muted-2)">-</span>`;const col=`var(--cat-${c})`;return `<span class="badge cat" style="--c:${col}">${c.replace(/_/g," ")}</span>`;}
 function stBadge(s){if(!s)return `<span class="badge st" style="--c:var(--muted-2)">-</span>`;return `<span class="badge st ${s}">${s.replace(/_/g," ")}</span>`;}
-/* Which engine classified this email (reports.classify_source). */
 function srcBadge(src){
   if(!src) return "";
-  if(src.indexOf("llm-text")===0) return `<span class="badge" style="--c:#38bdf8" title="${esc(src)}">LLM</span>`;
-  if(src.indexOf("ocr")!==-1) return `<span class="badge" style="--c:#f59e0b" title="${esc(src)}">OCR</span>`;
-  if(src==="rule-classifier") return `<span class="badge" style="--c:var(--muted-2)" title="rule engine">RULE</span>`;
-  return `<span class="badge" style="--c:var(--muted-2)" title="${esc(src)}">${esc(src)}</span>`;
+  if(src.indexOf("llm-text")===0) return `<span class="badge badge-src" style="--c:#38bdf8" title="${esc(src)}">LLM</span>`;
+  if(src.indexOf("ocr")!==-1) return `<span class="badge badge-src" style="--c:#f59e0b" title="${esc(src)}">OCR</span>`;
+  if(src==="rule-classifier") return `<span class="badge badge-src" style="--c:var(--muted-2)" title="Rule Engine">RULE</span>`;
+  return `<span class="badge badge-src" style="--c:var(--muted-2)" title="${esc(src)}">${esc(src)}</span>`;
+}
+function replyBadge(state){
+  const s = (state || "none").toLowerCase();
+  if(s === "awaiting"){
+    return `<span class="badge badge-reply reply-awaiting" title="Inbound email awaiting reply">⏳ Awaiting reply</span>`;
+  }
+  if(s === "sent"){
+    return `<span class="badge badge-reply reply-sent" title="Audit report dispatched via SMTP">✓ Sent</span>`;
+  }
+  if(s === "failed"){
+    return `<span class="badge badge-reply reply-failed" title="SMTP send failed">✕ Failed</span>`;
+  }
+  if(s === "simulated"){
+    return `<span class="badge badge-reply reply-simulated" title="Simulated dispatch">⚡ Simulated</span>`;
+  }
+  if(s === "unknown"){
+    return `<span class="badge badge-reply reply-unknown" title="Unconfirmed delivery">Unconfirmed</span>`;
+  }
+  return `<span class="badge badge-reply reply-none" title="No outbound reply required">No reply needed</span>`;
 }
 /* ---------- confidence heat strip ----------
    The compat API exposes no confidence/score field, so we do NOT invent one.
@@ -360,13 +378,25 @@ function renderReviewList(hasFilters){
   }
   el.innerHTML=state.items.map((r,i)=>{
     const active=r.email_id===state.active?"active":"";
-    const hum=r.decided_by==="human"?'<span class="badge human">HUMAN</span>':"";
+    const hum=r.decided_by==="human"?'<span class="badge human" title="Reviewed & decided by human operator">👤 HUMAN</span>':"";
     const h=heatOf(r);
     return `<div class="row ${active}" data-i="${i}" onclick="openEmail('${esc(r.email_id)}')">
       <span class="heat ${h.k}" style="--c:${h.tone};--o:${h.op}" role="img" aria-label="${esc(h.tip)}" title="${esc(h.tip)}"></span>
       <div class="top"><span class="sbj">${esc(r.subject||"(no subject)")}</span>${stBadge(r.status)}</div>
       <div class="from"><span class="sender-address">${esc(r.from||"unknown sender")}</span><span class="id mail-record-id">${esc(r.email_id)}</span></div>
-      <div class="mt">${catBadge(r.category)}${srcBadge(r.classify_source)}<span class="badge">${esc(({awaiting:"Awaiting reply",failed:"Failed",sent:"Sent",simulated:"Simulated",unknown:"Unconfirmed"})[r.reply_state]||"No reply needed")}</span><span>📎 ${r.n_attachments}</span>${hum}</div>
+      <div class="mt">
+        <div class="mt-row mt-top">
+          ${catBadge(r.category)}
+          <div class="mt-meta-right">
+            ${srcBadge(r.classify_source)}
+            <span class="mt-att" title="${r.n_attachments} attachment(s)">📎 ${r.n_attachments}</span>
+          </div>
+        </div>
+        <div class="mt-row mt-bot">
+          ${replyBadge(r.reply_state)}
+          ${hum}
+        </div>
+      </div>
     </div>`;
   }).join("");
 }

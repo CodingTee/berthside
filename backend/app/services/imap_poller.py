@@ -275,6 +275,17 @@ def _stage_and_verify_single_email(
     if subject:
         _PROCESSED_MESSAGE_KEYS.add(subject.strip().lower())
 
+    # 1.5 Source Trust Matrix Gate
+    from app.services.trust_matrix import is_source_trusted
+    from app.services.email_utils import extract_original_sender
+    orig_client = extract_original_sender(body)
+    is_trusted, trust_reason = is_source_trusted(
+        sender=sender_email or raw_sender,
+        source_mailbox=source_mailbox,
+        orig_client=orig_client,
+        db=db,
+    )
+
     # 2. Deterministic Classification
     from app.services import classifier
     cls_info = classifier.classify({
@@ -286,8 +297,14 @@ def _stage_and_verify_single_email(
     category = cls_info.category
     confidence = cls_info.confidence
 
-    # 3. Security and Spam Status Gate
-    if security_status == "BLOCKED":
+    # 3. Security, Spam, and Source Trust Gate
+    if not is_trusted:
+        security_status = "BLOCKED"
+        stage_status = "QUARANTINED"
+        category = "UNTRUSTED_SOURCE"
+        ai_reason = f"Filtered: {trust_reason} (Untrusted inbound source blocked before pipeline)"
+        log.warning("Inbound email filtered by Source Trust Matrix: stage_id=%s, reason=%s", stage_id, trust_reason)
+    elif security_status == "BLOCKED":
         stage_status = "QUARANTINED"
         ai_reason = f"Quarantined: dangerous attachment detected ({', '.join(d['filename'] for d in security_details if not d.get('is_safe', True))})"
     elif category == "SPAM":
