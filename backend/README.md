@@ -1,6 +1,6 @@
-# SDOC Backend — Shipping Document Verification API
+# ShipSync Backend: Shipping Document Verification API
 
-Averis × Monash Hackathon 2026 — **P2: Backend / API / Cloud / Integration**.
+Averis × Monash Hackathon 2026, **P2: Backend / API / Cloud / Integration**.
 
 Inbox → classification → SI/BL extraction → **deterministic** 7-field comparison
 → discrepancy report → human-in-the-loop review → deployment.
@@ -15,11 +15,11 @@ Frontend (P1)  →  FastAPI (P2)  →  Workflow Controller  →  Comparison Engi
 
 ## Score (official local scorer, 520 emails)
 
-**FINAL 1.0000** — Stage-1 macro-F1 1.000 · Stage-3 field-F1 1.000 ·
+**FINAL 1.0000**: Stage-1 macro-F1 1.000 · Stage-3 field-F1 1.000 ·
 End-to-End **46/46**. Reliability axis is diagnostic only (not weighted).
 
 The same 1.0000 holds after injecting six kinds of meaning-preserving noise
-(see [Robustness](#robustness-noise-that-must-not-change-the-answer)) — that,
+(see [Robustness](#robustness-noise-that-must-not-change-the-answer)); that,
 not the clean-bundle number, is the result that should transfer to the final
 evaluation set.
 
@@ -69,7 +69,7 @@ curl -X POST "http://localhost:8000/emails/process-all"
 # 5. what did we find?
 curl http://localhost:8000/reports/summary/stats
 
-# 6. human review a flagged case (closed loop — re-runs comparison)
+# 6. human review a flagged case (closed loop: re-runs comparison)
 curl -X POST http://localhost:8000/reviews/email_004 \
   -H "Content-Type: application/json" \
   -d '{"decision":"CORRECT","corrected_fields":{"consignee":"UAB NOVAKOPA"},"reviewer":"nicol"}'
@@ -94,7 +94,7 @@ curl -X POST http://localhost:8000/reviews/email_004 \
 | GET | `/health` | Liveness + config echo + counts |
 | GET | `/emails?limit=&offset=` | Inbox listing with processing status |
 | GET | `/emails/{email_id}` | One email (sender, subject, body, attachments) |
-| POST | `/emails/{email_id}/process` | Run the pipeline (idempotent — re-run = retry) |
+| POST | `/emails/{email_id}/process` | Run the pipeline (idempotent: re-run = retry) |
 | POST | `/emails/process-all?limit=` | Process the whole inbox (520 emails, ~2 min) |
 | POST | `/emails/retry-failed?statuses=ERROR&statuses=NEEDS_REVIEW` | Retry every email without a verdict |
 | GET | `/emails/{email_id}/status` | `PENDING`/`PROCESSING`/`COMPLETED`/`NEEDS_HUMAN`/`FAILED` + stage + attempts + error text |
@@ -104,7 +104,7 @@ curl -X POST http://localhost:8000/reviews/email_004 \
 | GET | `/reports/submission/json` | Self-evaluation payload (sample_submission shape) |
 | POST | `/reviews/{email_id}` | Human decision: `CONFIRM` / `CORRECT` / `REJECT` |
 | GET | `/reviews` · `/reviews/{email_id}` | Review history |
-| GET | `/ui/` | Reference client — proves Frontend ↔ Backend |
+| GET | `/ui/` | Reference client, proves Frontend ↔ Backend |
 
 Frozen contract: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) ·
 Freeze record: [`docs/MVP_FREEZE.md`](docs/MVP_FREEZE.md) ·
@@ -118,7 +118,7 @@ curl -X POST http://localhost:8000/reviews/email_004 \
   -d '{"decision":"CORRECT","corrected_fields":{"consignee":"UAB NOVAKOPA"},"reviewer":"nicol"}'
 ```
 `CORRECT` re-runs the **deterministic** comparison with the corrected values and
-rewrites the report — exactly the "confirm or correct → update the report"
+rewrites the report: exactly the "confirm or correct → update the report"
 human-in-the-loop the brief asks for.
 
 ### Build a submission
@@ -130,7 +130,7 @@ curl http://localhost:8000/reports/submission/json \
 python -c "from loader import Inbox; print(Inbox('http://localhost:8080').submit(json.load(open('submission.json'))))"
 ```
 
-## Determinism — non-negotiable
+## Determinism: non-negotiable
 
 `app/services/comparison.py` compares normalized values, never asks an LLM:
 
@@ -144,20 +144,20 @@ python -c "from loader import Inbox; print(Inbox('http://localhost:8080').submit
 ## Messier-input robustness (advanced stage)
 
 The extractor aligns fields by *meaning* via synonym label sets, not exact
-headers — so `Load Port` ≡ `Port of Loading`, `Cnee` ≡ `Consignee`, and weight
+headers, so `Load Port` ≡ `Port of Loading`, `Cnee` ≡ `Consignee`, and weight
 strings like `22,000 kg` / `22000kgs` / `22.000 KG` all normalize the same.
 This is what the advanced stage scores: recognising that two documents express
 the same field differently, and telling a real discrepancy from a formatting
 difference.
 
-## Robustness — noise that must not change the answer
+## Robustness: noise that must not change the answer
 
 ```bash
 python scripts/stress_evaluate.py      # ~30 s, uses the official scorer
 ```
 
 Injects six meaning-preserving perturbations into the 94 SI/BL text pairs and
-re-scores each perturbed submission. No gold answers are read — only the
+re-scores each perturbed submission. No gold answers are read; only the
 aggregate official score.
 
 | perturbation | verdict changes | fields lost | score |
@@ -169,7 +169,7 @@ aggregate official score.
 | whole document on one line | 10 | 0 | 1.0 |
 | reworded field labels | 0 | 0 | 1.0 |
 
-Four real bugs came out of this harness; none were visible on clean data —
+Four real bugs came out of this harness; none were visible on clean data:
 whitespace-variant labels, weight glued to following text (21 577 kg → 21 kg),
 a collapsed document losing six of seven fields, and `Notify Party/Intermediate
 Consignee` being split as if it were two fields.
@@ -183,11 +183,11 @@ unaffected.
 - When a document is **unreadable**, a value is **missing**, the sender attached
   the **wrong document**, or the result is **uncertain**, the case is escalated to
   `NEEDS_REVIEW` **with the reason and the partial evidence** (which attachment is
-  missing, what was extracted) — a person confirms or corrects it, and the report
+  missing, what was extracted); a person confirms or corrects it, and the report
   is updated.
 - **Visible failures:** AI-service outages / timeouts are caught, surfaced as a
   clear status + error text, and retried with exponential backoff (never silent).
-- `POST /emails/{id}/process` is idempotent — calling it again is the retry.
+- `POST /emails/{id}/process` is idempotent: calling it again is the retry.
 - **Review queue grouped by reason:** `GET /api/review-queue` buckets
   escalations by `review_reason`; the ops board at `/ops/` renders them.
 
@@ -210,10 +210,10 @@ keeps the escalation reason honest on any other inbox.
 ### Scanned documents: OCR reads them, humans confirm them
 
 Of the 58 non-txt documents, 8 (emails 511–515) have **no embedded text
-layer** — they literally say `SCANNED COPY - NO TEXT LAYER`. Two are also
+layer**: they literally say `SCANNED COPY - NO TEXT LAYER`. Two are also
 truncated, so nothing can recover those; the rest are read by OCR.
 
-The PDF reader is an escalating ladder — each rung runs only when the previous
+The PDF reader is an escalating ladder: each rung runs only when the previous
 one recovers too few of the 7 compared fields:
 
 | Rung | Reader | Handles |
@@ -221,7 +221,7 @@ one recovers too few of the 7 compared fields:
 | 1 | `pypdf` text layer | machine-generated PDFs (exact, fast) |
 | 2 | `pdfplumber` tables/layout | PDFs whose content is a **table** (pypdf scrambles cell order) |
 | 3 | `pypdfium2` + OCR | **scanned / image-only** PDFs |
-| — | escalate `unreadable` | truncated / genuinely unrecoverable files |
+| - | escalate `unreadable` | truncated / genuinely unrecoverable files |
 
 **OCR output is not trusted blindly.** Transcription errors (`VALPARAISO` →
 `VALPARAISQ`, `CHINA` → `CHIMA`) look exactly like real discrepancies. So any
@@ -239,7 +239,7 @@ transcription must reach a human whether it came from a scanned PDF or a photo
 of an SI.
 
 Every reader is optional. If `pdfplumber` / the OCR engine are not installed
-the ladder degrades to rung 1 and the document escalates as `unreadable` —
+the ladder degrades to rung 1 and the document escalates as `unreadable`,
 never a wrong answer.
 
 Legacy `.doc` (Word 97-2003) is the one reader that cannot be exact: the file is
@@ -318,7 +318,7 @@ a change here cannot move the score.
 | `OK` | BL_COMPARISON, all 7 fields match |
 | `MISMATCH` | ≥1 field differs → `has_defect`, `defect_fields` |
 | `NEEDS_REVIEW` | `missing_attachment` · `unreadable` · `missing_value` · `wrong_doc_type` (with evidence) |
-| `SKIPPED` | Not a comparison request — classification only |
+| `SKIPPED` | Not a comparison request: classification only |
 | `ERROR` | Pipeline exception; message stored, re-`POST` to retry |
 
 ### Why the escalation reason is what it is
@@ -379,10 +379,10 @@ backend/
 ├── Dockerfile · docker-compose.yml · requirements.txt · .env.example
 ```
 
-## Regression gates — run before every push
+## Regression gates: run before every push
 
 ```bash
-python -m pytest tests -q          # 128 unit/integration tests (no server needed)
+python -m pytest tests -q          # 332 unit/integration tests (no server needed)
 python scripts/tune_eval.py        # score with the official scorer (expect 1.0000)
 python scripts/stress_evaluate.py  # score under 6 noise perturbations (expect 1.0)
 python scripts/smoke_test.py       # 9 E2E checks against the live API
@@ -399,7 +399,7 @@ since that is the only directory the harness covers.
 ## Scoring / tuning loop (no Docker required)
 
 `scripts/tune_eval.py` runs the full pipeline in-process and grades it with the
-organisers' `score_cli.py` — the local equivalent of `POST /submit`. ~10 s for
+organisers' `score_cli.py`, the local equivalent of `POST /submit`. ~10 s for
 all 520 emails, so tune against the real metric instead of guessing.
 
 ```bash

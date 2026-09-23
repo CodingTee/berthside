@@ -26,31 +26,11 @@ the same 1.0000 holds under six kinds of meaning-preserving noise.
    missing counterpart document is itself flagged as a defect, never skipped.
 4. **Escalates anything ambiguous** to a human with the reason and partial
    evidence attached; a person confirms or corrects, and the report updates.
-5. **Closes the loop over SMTP.** Every verified case gets a receipt drafted
+5. **Closes the loop over email.** Every verified case gets a receipt drafted
    automatically and sent as a real threaded email (MIME multipart, RFC 5322
    In-Reply-To/References headers). Rejections get a rejection letter. Delivery
    states are honest: `SENT_SMTP`, `SIMULATED` (recorded as such, never faked),
    `SMTP_FAILED`. Every dispatch is audited.
-
-## Team and ownership
-
-| Member | Role | Where to work | Current tasks |
-|---|---|---|---|
-| **Loong** | Backend / Deployment | `backend/Dockerfile`, cloud platform config | Deploy ShipSync to a cloud platform (Render / Railway / HF Spaces) and get the public prototype link. The Dockerfile and `requirements.txt` are ready; this is a mandatory deliverable. |
-| **Quiab** | Backend / API | `backend/app/`, `sdoc/engine.py` | Extend the FastAPI endpoints if the frontend needs more data, improve the human review flow (confirm / override), keep the submission export correct. |
-| **Tee** | Algorithm | `sdoc/classifier.py`, `sdoc/extractor.py`, `sdoc/comparator.py` | LLM fallbacks (see "Where AI plugs in"), robustness tests |
-| **Wang** | Frontend | `backend/web/`, `backend/shipmail/` | UI polish, screenshots for slides |
-| **Hioman** | Floater | Anywhere help is needed | Pick an open task from any row, coordinate first |
-
-Ground rules:
-
-1. Work on your own branch (`backend/...`, `frontend/...`, `algorithm/...`),
-   merge into `main` via pull request.
-2. The `sdoc/` engine currently scores FINAL 1.0000 on the official local
-   evaluator. Before changing anything inside it, run
-   `python pipeline/pipeline.py --data sdoc-hackathon-bundle` and compare the
-   result with `score_cli.py`. If the score drops, the change does not go in.
-3. Not sure where a change belongs? Ask in the group chat before editing.
 
 ## Why this matters
 
@@ -59,6 +39,113 @@ field, across hundreds of emails a week. Labels are inconsistent ("Load Port" vs
 "POL" vs "Port of Loading"), attachments arrive as txt, PDF, Excel or Word, and
 some documents are corrupted, mislabeled, or missing values. This system automates
 the triage, the comparison, and the escalation loop, and it always shows its work.
+
+## Try it yourself in five minutes
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+1. Open the hub at `http://localhost:8000/ui/` and go to **Secure and
+   Gateway**. The Source Trust Matrix lists every sender allowed into the
+   pipeline.
+2. **Register the mailbox you will send from**: add it in the console, or set
+   `EXTRA_TRUSTED_SOURCES=you@gmail.com` in `backend/.env` and restart. This
+   step is not optional decoration; an unregistered sender is quarantined
+   before classification, which is exactly the behaviour the system advertises.
+3. Send an email **to `averis.demo@gmail.com`** from that mailbox with an SI
+   and a draft BL attached (txt, pdf, xlsx, docx all work). The IMAP poller
+   stages it in the gateway buffer. No mailbox credentials at hand? Use the
+   demo injector in the same console to stage ready-made cases instead.
+4. Approve the staged email. **Review and Reply** shows the classification,
+   the provenance badge (rule / LLM / OCR), and the seven-field SI vs BL
+   ledger with any mismatch flagged.
+5. Send the reply back. The sender receives a threaded verification receipt,
+   or a rejection letter for mismatches. Without SMTP/Resend/Gmail credentials
+   the delivery is recorded as `SIMULATED`, never faked as sent, and every
+   dispatch lands in the audit history.
+6. For the personal side, open **ShipMail** at `http://localhost:8000/shipmail/`,
+   log in with Google OAuth, and read the same threads, attachments and
+   verdicts from your own inbox.
+
+## How admission works: the source trust matrix
+
+Nothing unvetted touches the pipeline. Mail from an unregistered source never
+reaches the classifier: it is marked `UNTRUSTED_SOURCE` and quarantined in the
+gateway buffer, where it can be inspected or disposed of by an operator.
+
+Three admission checks, first match wins:
+
+1. **Registered mailbox.** The sender address appears in the matrix. Display
+   names are parsed away first (`Hans <you@gmail.com>` is read as
+   `you@gmail.com`), so a pretty From header cannot smuggle an identity past
+   the gate.
+2. **Forwarded original client.** When an operator forwards mail into the hub,
+   the original sender inside the body is what gets checked, so a forwarded
+   thread from a verified client stays verified.
+3. **Corporate domain.** The sender domain is on the partner whitelist
+   (`averis.com` and friends), which covers role mailboxes without listing
+   every address.
+
+Where entries live:
+
+| Source | Scope | Survives restart |
+|---|---|---|
+| `DEFAULT_TRUSTED_SOURCES` in `backend/app/services/trust_matrix.py` | role mailboxes only (hub intake, booking, finance, ...) | yes, in code |
+| `EXTRA_TRUSTED_SOURCES` env var | your own demo/testing mailboxes, comma-separated; same behaviour locally and on Render | yes, per environment |
+| Hub console (Secure and Gateway) | operator-added sources | yes, persisted in the database |
+
+Personal mailboxes are deliberately **not** committed to the repository
+defaults: keep them in your local `.env` or add them at runtime, and the public
+repo stays clean. Quarantine is recoverable by a human: if the attachments are
+clean, an operator can approve a trust-held email from the console and it
+enters the pipeline with a manual clearance. Malware-blocked mail can never be
+approved.
+
+## The AI engine: cloud LLM, local Ollama, deterministic rules
+
+The engine is designed so LLM capabilities extend it without rewriting it, and
+the fallback chain is cloud LLM to local Ollama to deterministic rules, so an
+AI failure is never worse than rules alone:
+
+| `AI_PROVIDER` | Behaviour |
+|---|---|
+| `rule` | deterministic classifier plus regex extraction, fully offline. Default, and what the 1.0000 score is measured with. |
+| `ollama` | a local or remote Ollama endpoint answers first, rules as fallback. No cloud key needed. |
+| `cascade` | cloud LLMs first (Gemini, Zhipu, DashScope), then Ollama, then rules. |
+| `hybrid` / `remote` | forward to an external AI microservice; `hybrid` falls back to rules on failure. |
+
+Every verdict records which engine answered, and the Review console shows it
+as a provenance badge (RULE / LLM / OCR).
+
+**How the Ollama integration works.** `OLLAMA_BASE_URL` is the only thing that
+decides where inference runs: `http://localhost:11434` for a local install, a
+LAN GPU box, or a public HTTPS endpoint (tunnel / reverse proxy / cloud GPU).
+No code change is needed to move between them. `OLLAMA_MODEL` must match the
+model name on the host (`ollama list`), and `OLLAMA_API_KEY` is sent as a
+Bearer token when an authenticating reverse proxy sits in front.
+
+Cold start is budgeted, not ignored. Three knobs in `backend/.env`:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `OLLAMA_PROBE_TIMEOUT_SECONDS` | `2` | liveness probe on `/api/tags`, quick so a warm endpoint answers instantly |
+| `OLLAMA_COLD_START_TIMEOUT_SECONDS` | `90` | when the probe times out, it retries once on this budget, so a tunnel still waking up is not reported as offline |
+| `OLLAMA_REQUEST_TIMEOUT_SECONDS` | `180` | `/api/chat` budget; loading a model into VRAM is paid here, not in the probe |
+
+A probe only escalates to the long budget after a timeout; a 404 or connection
+refusal answers immediately. The engine selector in the hub console switches
+`AI_PROVIDER` at runtime and the choice persists in the database.
+
+Why keep a local model in the loop at all: it costs nothing in model API
+bills, and images (scanned BLs, faxes) route to the vision model exactly the
+way text routes to the text model. The extraction ladder itself stays
+deterministic: text layer, tables, 300 DPI render plus OCR, and OCR output is
+escalated to a human with the transcription attached, never silently compared.
 
 ## Architecture
 
@@ -112,57 +199,29 @@ audit) is demonstrated in the hub.
 
 Everything is also a documented REST API at `/docs` (FastAPI Swagger).
 
-
-## Repository layout (and who owns what)
+## Repository layout
 
 ```
 sdoc/
-  __init__.py        exports Engine                       [AI + backend]
-  classifier.py      email classification rule chain      [AI/algorithm, backend]
-  extractor.py       txt/pdf/xlsx/docx field extraction   [AI/algorithm, backend]
-  comparator.py      field comparison + defect flags      [AI/algorithm, backend]
-  engine.py          orchestration, review overlay        [backend]
+  __init__.py        exports Engine
+  classifier.py      email classification rule chain
+  extractor.py       txt/pdf/xlsx/docx field extraction
+  comparator.py      field comparison + defect flags
+  engine.py          orchestration, review overlay
 
 backend/
   app/               FastAPI service: routers, services, models
-  web/               hub consoles UI (gateway / review / lifecycle)
+  web/               hub consoles UI (gateway / review / lifecycle / outstream)
   shipmail/          ShipMail client UI
-  requirements.txt   runtime dependencies                 [backend]
-  Dockerfile         cloud deployment                     [devops]
+  requirements.txt   runtime dependencies
+  Dockerfile         cloud deployment
 
 pipeline/
-  pipeline.py        CLI: run engine over dataset,        [backend]
-                     write submission.json
+  pipeline.py        CLI: run engine over dataset, write submission.json
 
 sdoc-hackathon-bundle/   official dataset (provided by organizers, committed
                          for convenience; contains no answers)
 ```
-
-### Work assignment map
-
-| Area | Files | Owner | Current state | Next steps |
-|---|---|---|---|---|
-| Frontend | `backend/web/`, `backend/shipmail/` | Wang | Working: hub consoles (gateway / review / lifecycle), ShipMail client with OAuth, filters, drafts | Polish UX, screenshots for slides |
-| Backend / API | `backend/app/` | Quiab | Working: REST API, review persistence, submission export, trust matrix, SMTP dispatch | Extend endpoints on frontend request, improve review flow |
-| Deployment | `backend/Dockerfile`, `backend/requirements.txt` | Loong | Dockerfile ready, not yet deployed | Push to a cloud platform, verify the public link works, keep it up during judging |
-| Algorithm (deterministic) | `sdoc/classifier.py`, `sdoc/extractor.py`, `sdoc/comparator.py` | Tee | Working: full score on local eval | Robustness testing on regenerated datasets |
-| AI integration | hooks already exist, see below | Tee (owner), Hioman (support) | Plugs into existing slots | LLM fallbacks (see "Where AI plugs in") |
-| Docs / video | README, slides, demo video | Hioman | TODO | 5 min video, slide deck, submission form |
-
-## Where AI plugs in
-
-The engine was designed so that LLM capabilities extend it without rewriting it,
-and the fallback chain is cloud LLM to local Ollama to rules, so the hybrid
-path is never worse than rules alone:
-
-1. **Classification**: the rule chain decides first; an LLM (cloud or local
-   Ollama) can be selected as the triage engine in the gateway, and every
-   verdict records its provenance (rule, LLM, or OCR) as a badge.
-2. **Extraction**: scanned or image-only PDFs route through the PDF ladder
-   (text layer, tables, 300 DPI render plus OCR). OCR output is escalated to
-   a human with the transcription attached, never silently compared.
-3. **Ollama runs locally**: keeping a model in the loop costs nothing in
-   model API bills.
 
 ## Setup
 
@@ -190,7 +249,14 @@ Configuration (optional environment variables, see `backend/.env.example`):
 |---|---|---|
 | `DATABASE_URL_ENTERPRISE` | `sqlite:///./sdoc_enterprise.db` | hub database (corpus, gateway, audits) |
 | `DATABASE_URL_OAUTH` | `sqlite:///./sdoc_oauth.db` | ShipMail database (operator Gmail + verdicts) |
-| `AI_PROVIDER` | `rule` | `rule` (offline) / `ollama` / `remote` / `hybrid` |
+| `AI_PROVIDER` | `rule` | `rule` / `ollama` / `cascade` / `hybrid` / `remote` |
+| `EXTRA_TRUSTED_SOURCES` | *(empty)* | comma-separated mailboxes added to the source trust matrix |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | where Ollama listens: local, LAN, tunnel or cloud GPU |
+| `OLLAMA_MODEL` | `qwen2.5vl:7b` | must match the model name on the Ollama host |
+| `OLLAMA_PROBE_TIMEOUT_SECONDS` | `2` | liveness probe budget |
+| `OLLAMA_COLD_START_TIMEOUT_SECONDS` | `90` | probe retry budget after a timeout |
+| `OLLAMA_REQUEST_TIMEOUT_SECONDS` | `180` | `/api/chat` budget (model load happens here) |
+| `RESEND_API_KEY` / `SMTP_*` / `IMAP_*` / `GMAIL_*` | *(empty)* | outbound (Resend, Gmail REST API or SMTP) and inbound (IMAP) email channels |
 
 ### Docker
 
@@ -209,6 +275,9 @@ docker run -p 8000:8000 shipsync
 | `/api/emails` | GET | list with `category`, `status`, `q`, `limit`, `offset` filters |
 | `/api/emails/{id}` | GET | full detail incl. 7-field SI vs BL comparison |
 | `/api/emails/{id}/review` | POST | human verdict: `confirm` or `override` |
+| `/api/emails/{id}/disposition` | POST | per-email auto/manual reply policy (outstream buffer) |
+| `/api/emails/{id}/return` | POST | draft and send the return receipt (`dry_run` to preview) |
+| `/api/v1/gateway/*` | GET/POST | quarantine buffer, approve/return staged mail, engine config, trust policies |
 | `/api/submission` | GET | merged submission.json (machine + human verdicts) |
 | `/api/attachments/{path}` | GET | serve an attachment file (path-traversal safe) |
 
@@ -227,10 +296,10 @@ The official formula: 50% end-to-end accuracy + 30% classification macro-F1 +
 Current local result via `score_cli.py`: **FINAL 1.0000** (e2e 46/46,
 macro-F1 1.000, defect-F1 1.000), and **1.0000 again** after injecting six
 kinds of meaning-preserving noise (whitespace, non-breaking spaces, blank
-lines, ALL CAPS, collapsed lines, reworded labels). 322 automated tests and
+lines, ALL CAPS, collapsed lines, reworded labels). 332 automated tests and
 UI probes gate every push; the score has never regressed.
 
-## Important note on the dataset
+## A note on the dataset
 
 This repository commits the static evaluation bundle (`sdoc-hackathon-bundle/`)
 so the project runs out of the box. The docker variant of the dataset

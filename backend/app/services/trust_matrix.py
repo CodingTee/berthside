@@ -47,6 +47,10 @@ def get_all_trusted_sources(db: Optional[Session] = None) -> Set[str]:
         sources.add(settings.imap_user.strip().lower())
     if settings.smtp_from:
         sources.add(settings.smtp_from.strip().lower())
+    if settings.extra_trusted_sources:
+        for s in settings.extra_trusted_sources.split(","):
+            if s.strip():
+                sources.add(s.strip().lower())
 
     if db is not None:
         try:
@@ -74,11 +78,19 @@ def is_source_trusted(
         (True, reason) if permitted by the trust matrix.
         (False, reason) if filtered before pipeline entry.
     """
+    import email.utils
     trusted_sources = get_all_trusted_sources(db)
 
-    sender_clean = (sender or "").strip().lower()
-    client_clean = (orig_client or "").strip().lower()
+    sender_raw = (sender or "").strip()
+    client_raw = (orig_client or "").strip()
     mb_clean = (source_mailbox or "").strip().lower()
+
+    # Extract clean email addresses (strip display names like "Hans <user@gmail.com>")
+    _, sender_addr = email.utils.parseaddr(sender_raw)
+    sender_clean = (sender_addr or sender_raw).strip().lower()
+
+    _, client_addr = email.utils.parseaddr(client_raw)
+    client_clean = (client_addr or client_raw).strip().lower()
 
     # 1. Exact match against registered matrix entries (sender or forwarded client)
     if sender_clean and sender_clean in trusted_sources:

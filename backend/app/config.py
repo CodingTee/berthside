@@ -172,6 +172,7 @@ class Settings(BaseSettings):
     imap_poll_interval_seconds: int = 10
     imap_enabled: bool = False
     auto_reply_on_verification: bool = True
+    extra_trusted_sources: str = ""  # comma-separated extra trusted emails, e.g. you@gmail.com
 
     model_config = SettingsConfigDict(
         env_file=(

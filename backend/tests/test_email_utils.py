@@ -26,7 +26,7 @@ def test_extract_original_sender():
         "From: Alice Shipper <alice@shipper-global.com>\n"
         "Date: Mon, Sep 21, 2026 at 2:00 PM\n"
         "Subject: BKG-9921 Documents\n"
-        "To: testuse1491@gmail.com\n\n"
+        "To: demo.operator@example.com\n\n"
         "Please find documents attached."
     )
     sender = extract_original_sender(body)
@@ -55,20 +55,20 @@ def test_build_enterprise_audit_receipt_always_renders_buttons_even_if_same_send
         stage_id="STG-TEST-001",
         status_desc="Verified with 0 discrepancies (Verdict: OK)",
         rep=rep,
-        orig_client="testuse1491@gmail.com",
-        sender_email="testuse1491@gmail.com",
-        target_client="testuse1491@gmail.com",
+        orig_client="demo.operator@example.com",
+        sender_email="demo.operator@example.com",
+        target_client="demo.operator@example.com",
         client_subj="Re: Shipment BKG-7788 - Document Verification Complete",
         client_reply_text="Dear Customer,\nVerification passed.",
-        mailto_link="mailto:testuse1491@gmail.com?subject=Test",
-        gmail_thread_search="https://mail.google.com/mail/u/0/#search/from%3Atestuse1491%40gmail.com",
+        mailto_link="mailto:demo.operator@example.com?subject=Test",
+        gmail_thread_search="https://mail.google.com/mail/u/0/#search/from%3Ademo.operator%40example.com",
         source_mailbox="averis.demo@gmail.com",
     )
 
     # 1. Action Dock and buttons MUST be present
     assert "One-Click Reply to Client" in html_body
     assert "Locate Exact Thread in Gmail" in html_body
-    assert "mailto:testuse1491@gmail.com?subject=Test" in html_body
+    assert "mailto:demo.operator@example.com?subject=Test" in html_body
     assert "Official Customer Notice Card" in html_body or "Shipping Document Verification Notice" in html_body
 
     # 2. Executive layout elements MUST be present

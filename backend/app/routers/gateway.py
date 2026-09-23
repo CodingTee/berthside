@@ -476,10 +476,16 @@ def _return_staged(staged: StagedEmailRecord, db: Session, subject=None, body=No
 @router.post("/emails/{stage_id}/approve", summary="Approve and ingest staged email into pipeline")
 def approve_staged_email(stage_id: str, db: Session = Depends(get_db)):
     staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
-    if not staged:
-        raise HTTPException(404, "Staged email not found")
-    if staged.security_status == "BLOCKED":
+    has_dangerous_file = any(
+        isinstance(d, dict) and not d.get("is_safe", True)
+        for d in (staged.security_details or [])
+    )
+    if has_dangerous_file:
         raise HTTPException(400, "Cannot approve a malware-blocked email without security clearance")
+
+    # If it was only held by trust matrix or category, manual operator approval grants security clearance
+    if staged.security_status == "BLOCKED" and not has_dangerous_file:
+        staged.security_status = "CLEAN"
 
     email_id = _ingest_staged(staged, db)
     return {"message": "Email approved and ingested into Review Desk", "email_id": email_id}

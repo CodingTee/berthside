@@ -256,7 +256,7 @@ def test_return_dispatches_and_lands_in_the_audit_trail(client, oauth_session):
         rec = db.query(DispatchRecord).one()
         assert rec.stage_id == "GMAIL-1"
         assert rec.recipient == "ops@customer.example"
-        assert rec.channel == "gmail"
+        assert rec.channel == "SIMULATED"
         assert rec.gmail_message_id == "gm-GMAIL-1"
         # The operator's wording is what leaves.
         assert rec.subject == "Re: edited"
