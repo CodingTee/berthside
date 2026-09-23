@@ -13,7 +13,8 @@ set to an http:// URL), which means **that path is never exercised when we
 develop against the local folder** — a silent single-point-of-failure if the
 final evaluation runs against the container instead of a folder.
 
-This script reproduces those endpoints from ``sdoc-hackathon-bundle`` so the
+This script reproduces those endpoints from the evaluation corpus
+(``backend/data/corpus``) so the
 HTTP branch can be regression-tested locally, without Docker:
 
     python scripts/serve_dataset.py            # http://127.0.0.1:8099

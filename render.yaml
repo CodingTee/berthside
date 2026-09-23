@@ -4,7 +4,7 @@
 # repo. Render reads this file and creates the service below automatically.
 #
 # The Docker build context is the REPOSITORY ROOT (not backend/), because the
-# image bakes in sdoc-hackathon-bundle/ (inbox + attachments) as well.
+# image bakes in the evaluation corpus backend/data/corpus/ as well.
 services:
   - type: web
     name: sdoc-backend

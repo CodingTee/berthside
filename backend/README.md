@@ -430,21 +430,22 @@ cannot come from two different bundles.
 
 Comparison rules are easy to argue about and impossible to settle by intuition,
 so each open question got a measuring script instead of an opinion. All of them
-only read; none of them touches source files or the database.
+only read; none of them touches source files or the database. They live in
+`scripts/oneoff/` because each was written to answer one specific question.
 
 ```bash
-python scripts/diag_reliability.py     # escalation precision/recall + every false flag listed
-python scripts/diag_port_locode.py     # how often one document prints a UN/LOCODE and the other does not
-python scripts/diag_port_lenient.py    # A/B both port rules through the official scorer (~2 min, runs the inbox twice)
-python scripts/diag_filename_fallback.py  # tier-2 naming: corpus diff + the names that must and must not resolve
+python scripts/oneoff/diag_reliability.py     # escalation precision/recall + every false flag listed
+python scripts/oneoff/diag_port_locode.py     # how often one document prints a UN/LOCODE and the other does not
+python scripts/oneoff/diag_port_lenient.py    # A/B both port rules through the official scorer (~2 min, runs the inbox twice)
+python scripts/oneoff/diag_filename_fallback.py  # tier-2 naming: corpus diff + the names that must and must not resolve
 ```
 
 One maintenance script is not a diagnostic, and it deletes rows, so it is dry
 run by default:
 
 ```bash
-python scripts/clean_ingest_pollution.py           # show what it would remove
-python scripts/clean_ingest_pollution.py --apply   # remove it, after backing it up
+python scripts/oneoff/clean_ingest_pollution.py           # show what it would remove
+python scripts/oneoff/clean_ingest_pollution.py --apply   # remove it, after backing it up
 ```
 
 It exists because `scripts/test_ingest_api.py` used to write to the real
@@ -454,14 +455,14 @@ one leftover row and folder rather than guarding against a live hazard. Both the
 database and the folder are copied to `backend/cleanup-backup-<stamp>/` and the
 copy is verified before anything is deleted.
 
-`diag_port_lenient.py` doubles as the template for any "should we relax rule X?"
+`diag_port_lenient.py` (in `scripts/oneoff/`) doubles as the template for any "should we relax rule X?"
 question: patch in the alternative predicate, score both variants with the real
 scorer, keep whichever wins. It restores the original function in a `finally`
 block, so the measured change never leaks into the working tree. This is how the
 decision to keep the strict name+LOCODE comparison was made, and it is why that
 rule is still the shipped one.
 
-`diag_filename_fallback.py` is the counterpart for "did this change anything?"
+`diag_filename_fallback.py` (also in `scripts/oneoff/`) is the counterpart for "did this change anything?"
 questions: it runs the new code and the old code over the whole corpus and
 prints the difference, which is the fastest way to show that a fallback path
 never fires where it should not.

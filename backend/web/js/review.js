@@ -371,7 +371,7 @@ function renderReviewList(hasFilters){
            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>
            <span class="big">Inbox is empty</span>
            <span>The API answered, but returned <b>0</b> emails: so the backend is reading an empty data folder, not a filter problem.</span>
-           <span class="hint">DATA_SOURCE must point at the folder that contains <b>inbox/</b> + <b>attachments/</b>.<br>Set it in <b>backend/.env</b> and restart the server:<br><b>DATA_SOURCE=&lt;project&gt;/sdoc-hackathon-bundle</b></span>
+           <span class="hint">DATA_SOURCE must point at the folder that contains <b>inbox/</b> + <b>attachments/</b>.<br>Set it in <b>backend/.env</b> and restart the server:<br><b>DATA_SOURCE=data/corpus</b></span>
            <button class="btn" onclick="loadList()">Retry</button>
          </div>`;
     return;

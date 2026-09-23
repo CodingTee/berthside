@@ -5,7 +5,7 @@ with its UN/LOCODE and the other prints the same port without it? If so, what is
 the gold verdict, and does the current rule still decide it correctly?
 
 Run:  python scripts/diag_port_locode.py
-      python scripts/diag_port_locode.py --data-source ../sdoc-hackathon-bundle
+      python scripts/diag_port_locode.py --data-source data/corpus
 
 The ground truth is resolved by scripts/sdoc_paths.py, so no absolute path is
 baked in here.

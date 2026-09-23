@@ -19,12 +19,13 @@ sdoc.db
 submission.json
 process_all_result.json
 
-# -------- datasets (never commit the hackathon bundle) --------
-# Anchored to the backend root on purpose: these are the GENERATED dataset
-# folders (scripts/prepare_data.py writes backend/data). An unanchored `data/`
-# would also swallow backend/simulated-gmail/data, which is committed static
-# demo data for the Simulated Gmail UI.
-/data/
+# -------- datasets (never commit generated data) --------
+# Anchored to the backend root: these are the GENERATED dataset folders
+# (scripts/prepare_data.py writes backend/data). The static evaluation corpus
+# in data/corpus is committed on purpose. An unanchored `data/` would also
+# swallow backend/simulated-gmail/data, committed static demo data.
+/data/*
+!/data/corpus
 /inbox/
 /attachments/
 
@@ -37,4 +38,5 @@ cleanup-backup-*/
 
 # -------- generated outputs --------
 generated_drafts/
+tmp_test/
 .grouping_*.json

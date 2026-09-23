@@ -2,7 +2,7 @@
 
 Why this exists
 ---------------
-The primary corpus (``sdoc-hackathon-bundle``, 520 emails) is what the engine is
+The primary corpus (``backend/data/corpus``, 520 emails) is what the engine is
 **scored** on, so it must never be edited. This script builds a second, much
 smaller and deliberately designed dataset whose job is to *demonstrate* the
 behaviours the future shipment-centred Dashboard needs:

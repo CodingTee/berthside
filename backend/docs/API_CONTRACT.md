@@ -12,7 +12,7 @@ Interactive docs: `/docs` · All responses: `application/json`
 
 ```json
 {"status":"ok","app_name":"SDOC Shipping Document Verification API","version":"0.1.0",
- "environment":"development","database":"sqlite","data_source":"C:/…/sdoc-hackathon-bundle",
+ "environment":"development","database":"sqlite","data_source":"<backend>/data/corpus",
  "ai_provider":"hybrid","emails_cached":520,"reports_stored":520}
 ```
 

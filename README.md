@@ -202,25 +202,18 @@ Everything is also a documented REST API at `/docs` (FastAPI Swagger).
 ## Repository layout
 
 ```
-sdoc/
-  __init__.py        exports Engine
-  classifier.py      email classification rule chain
-  extractor.py       txt/pdf/xlsx/docx field extraction
-  comparator.py      field comparison + defect flags
-  engine.py          orchestration, review overlay
-
 backend/
   app/               FastAPI service: routers, services, models
   web/               hub consoles UI (gateway / review / lifecycle / outstream)
   shipmail/          ShipMail client UI
+  tests/             pytest suite and UI probes
+  scripts/           evaluation and demo tooling (tune_eval, stress_evaluate)
+  data/corpus/       static evaluation corpus: 520 emails with SI/BL attachments
+  docs/              API contract and architecture notes
   requirements.txt   runtime dependencies
   Dockerfile         cloud deployment
 
-pipeline/
-  pipeline.py        CLI: run engine over dataset, write submission.json
-
-sdoc-hackathon-bundle/   official dataset (provided by organizers, committed
-                         for convenience; contains no answers)
+render.yaml          Render deployment config
 ```
 
 ## Setup
@@ -299,10 +292,10 @@ kinds of meaning-preserving noise (whitespace, non-breaking spaces, blank
 lines, ALL CAPS, collapsed lines, reworded labels). 332 automated tests and
 UI probes gate every push; the score has never regressed.
 
-## A note on the dataset
+## A note on the evaluation corpus
 
-This repository commits the static evaluation bundle (`sdoc-hackathon-bundle/`)
-so the project runs out of the box. The docker variant of the dataset
-(`sdoc-hackathon-docker/`) is intentionally excluded from version control via
-`.gitignore` and must never be committed: it contains evaluation material that
-is not meant to be public.
+This repository commits the static evaluation corpus (`backend/data/corpus/`,
+520 emails with SI/BL attachments) so the project runs out of the box. The
+docker variant of the dataset (`sdoc-hackathon-docker/`) is intentionally
+excluded from version control via `.gitignore` and must never be committed: it
+contains evaluation material that is not meant to be public.

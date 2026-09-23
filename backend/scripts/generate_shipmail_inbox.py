@@ -1,8 +1,8 @@
-"""Build the ShipMail static inbox from the official hackathon bundle.
+"""Build the ShipMail static inbox from the evaluation corpus.
 
 Why this exists
 ---------------
-The Dashboard reads its corpus from ``sdoc-hackathon-bundle`` (520 emails).
+The Dashboard reads its corpus from ``backend/data/corpus`` (520 emails).
 The ShipMail inbox used to ship with 5 hand-written demo emails, which made
 the two surfaces inconsistent ("Dashboard has 500+ files but Gmail has 5").
 
@@ -180,8 +180,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--bundle",
-        default=str(BACKEND_ROOT.parent / "sdoc-hackathon-bundle"),
-        help="Path to sdoc-hackathon-bundle (default: repo root/../sdoc-hackathon-bundle)",
+        default=str(BACKEND_ROOT / "data" / "corpus"),
+        help="Path to the evaluation corpus (default: backend/data/corpus)",
     )
     ap.add_argument(
         "--out",

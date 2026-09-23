@@ -27,12 +27,12 @@ class Settings(BaseSettings):
     # or the HTTP dataset server URL (e.g. http://localhost:8080).
     #
     # A relative path is resolved against BACKEND_ROOT, not the current working
-    # directory, so `../sdoc-hackathon-bundle` means the same thing whether the
+    # directory, so `data/corpus` means the same thing whether the
     # app is started by `start_backend.bat` (cwd = backend/), by
     # `python -m uvicorn` from the repo root, or from anywhere else. `.env` is
     # per-machine and git-ignored, so a relative path there is the portable
     # choice; an absolute path still works unchanged.
-    data_source: str = str(Path.home() / "Downloads" / "sdoc-hackathon-bundle")
+    data_source: str = "data/corpus"
 
     @field_validator("data_source")
     @classmethod

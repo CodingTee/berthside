@@ -1,7 +1,7 @@
 services:
   backend:
-    # Build from the REPOSITORY ROOT — the image also bakes in
-    # sdoc-hackathon-bundle/ (inbox + attachments), which lives one level up.
+    # Build from the REPOSITORY ROOT: the image also bakes in
+    # the evaluation corpus backend/data/corpus/ (inbox + attachments).
     build:
       context: ..
       dockerfile: backend/Dockerfile

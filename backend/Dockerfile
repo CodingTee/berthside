@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 #
-# IMPORTANT — build from the REPOSITORY ROOT, not from backend/:
+# IMPORTANT: build from the REPOSITORY ROOT, not from backend/:
 #     docker build -f backend/Dockerfile .
 #
 # Render:
@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY backend/ /app/
 
-COPY sdoc-hackathon-bundle/ /bundle/
+COPY backend/data/corpus/ /bundle/
 
 # Build the ShipMail static inbox from the same bundle the Dashboard uses, so
 # the two surfaces always show the same emails.

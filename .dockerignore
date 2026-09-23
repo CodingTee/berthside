@@ -1,5 +1,5 @@
 # Keep the build context small: the image only needs backend/ and
-# sdoc-hackathon-bundle/.
+# the evaluation corpus in backend/data/corpus/.
 .workbuddy/
 .git/
 .github/
@@ -12,10 +12,11 @@ sdoc-hackathon-bundle.zip
 **/venv/
 **/*.db
 **/*.sqlite*
-# Only the GENERATED dataset folder is skipped (scripts/prepare_data.py writes
-# backend/data). The ShipMail demo data (backend/shipmail/data) MUST stay in the
-# image — it is the static inbox the UI loads.
-backend/data/
+# Only the GENERATED dataset files are skipped (scripts/prepare_data.py writes
+# backend/data). The evaluation corpus (backend/data/corpus) MUST stay in the
+# image, and so must the ShipMail demo data (backend/shipmail/data).
+backend/data/*
+!backend/data/corpus
 **/_stress_sub.json
 **/stress_report.json
 **/submission.json

@@ -2,7 +2,7 @@
 """Diagnose the reliability (human-review) axis with the OFFICIAL scorer.
 
     python scripts/diag_reliability.py
-    python scripts/diag_reliability.py --data-source ../sdoc-hackathon-bundle
+    python scripts/diag_reliability.py --data-source data/corpus
 
 Prints the official escalation precision/recall (scoring.score_reliability),
 then breaks every FALSE-POSITIVE escalation down by our review_reason, so we
