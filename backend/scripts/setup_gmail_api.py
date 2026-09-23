@@ -76,19 +76,20 @@ def main():
         prompt="consent",
     )
 
-    print("\n1. Opening browser for authorization...")
-    print("If browser doesn't open automatically, visit this URL:")
-    print(auth_url)
-    print("\nWaiting for authorization callback on port 8000...")
+    print("\n1. Opening browser for authorization...", flush=True)
+    print("If browser doesn't open automatically, visit this URL:", flush=True)
+    print(auth_url, flush=True)
+    print("\nWaiting for authorization callback on port 8000...", flush=True)
 
     webbrowser.open(auth_url)
 
+    HTTPServer.allow_reuse_address = True
     server = HTTPServer(("127.0.0.1", 8000), OAuthCallbackHandler)
     while OAuthCallbackHandler.auth_code is None:
         server.handle_request()
 
     code = OAuthCallbackHandler.auth_code
-    print("\nAuthorization code received! Exchanging for token...")
+    print("\nAuthorization code received! Exchanging for token...", flush=True)
 
     flow.fetch_token(code=code)
     creds = flow.credentials
@@ -97,22 +98,36 @@ def main():
     TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
     TOKEN_FILE.write_text(creds.to_json(), encoding="utf-8")
 
-    print("\n" + "=" * 60)
-    print("SUCCESS! Token with 'gmail.send' saved to secrets/gmail_token.json")
-    print("=" * 60)
+    print("\n" + "=" * 60, flush=True)
+    print("SUCCESS! Token with 'gmail.send' saved to secrets/gmail_token.json", flush=True)
+    print("=" * 60, flush=True)
 
     client_id = creds.client_id
     client_secret = creds.client_secret
     refresh_token = creds.refresh_token
 
-    print("\n[Render Environment Configuration]")
-    print("Add these variables to Render (.env or Environment Variables):")
-    print("-" * 60)
-    print(f"GMAIL_CLIENT_ID={client_id}")
-    print(f"GMAIL_CLIENT_SECRET={client_secret}")
-    print(f"GMAIL_REFRESH_TOKEN={refresh_token}")
-    print("GMAIL_SENDER=averis.demo@gmail.com")
-    print("-" * 60)
+    # Auto update local .env and backend/.env if present
+    env_content = (
+        f"\n# ---- Gmail Official REST API (HTTPS:443) ----\n"
+        f"GMAIL_CLIENT_ID={client_id}\n"
+        f"GMAIL_CLIENT_SECRET={client_secret}\n"
+        f"GMAIL_REFRESH_TOKEN={refresh_token}\n"
+        f"GMAIL_SENDER=averis.demo@gmail.com\n"
+    )
+    for env_path in (BACKEND_DIR.parent / ".env", BACKEND_DIR / ".env"):
+        if env_path.is_file():
+            text = env_path.read_text(encoding="utf-8")
+            if "GMAIL_REFRESH_TOKEN=" not in text:
+                env_path.write_text(text.rstrip() + "\n" + env_content, encoding="utf-8")
+
+    print("\n[Render Environment Configuration]", flush=True)
+    print("Add these variables to Render (.env or Environment Variables):", flush=True)
+    print("-" * 60, flush=True)
+    print(f"GMAIL_CLIENT_ID={client_id}", flush=True)
+    print(f"GMAIL_CLIENT_SECRET={client_secret}", flush=True)
+    print(f"GMAIL_REFRESH_TOKEN={refresh_token}", flush=True)
+    print("GMAIL_SENDER=averis.demo@gmail.com", flush=True)
+    print("-" * 60, flush=True)
 
 
 if __name__ == "__main__":
