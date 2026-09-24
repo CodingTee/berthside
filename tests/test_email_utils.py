@@ -81,7 +81,7 @@ def test_build_enterprise_audit_receipt_always_renders_buttons_even_if_same_send
     assert "✅ MATCH" in html_body
 
     # 3. Plain text alternative MUST be complete
-    assert "AVERIS SHIPPING DOCUMENTATION GATEWAY" in text_body
+    assert "FEDERATED SHIPPING DOCUMENTATION GATEWAY" in text_body
     assert "SHIPMENT OVERVIEW" in text_body
     assert "FIELD-BY-FIELD AUDIT LEDGER" in text_body
     assert "Fast Client Reply Gateway" in text_body
@@ -112,7 +112,7 @@ def test_build_customer_structured_text_and_html_notice():
         target_client="shipper@client.com",
         source_mailbox="averis.demo@gmail.com",
     )
-    assert "AVERIS SHIPPING DOCUMENTATION AUDIT NOTICE" in cust_text
+    assert "FEDERATED SHIPPING DOCUMENTATION AUDIT NOTICE" in cust_text
     assert "1. SHIPMENT OVERVIEW" in cust_text
     assert "BKG-9933" in cust_text
     assert "COSCO SHIPPING / 008E" in cust_text

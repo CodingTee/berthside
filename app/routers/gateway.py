@@ -698,7 +698,7 @@ def email_channel_status():
         host = "api.resend.com (HTTPS:443)"
         port = 443
         user = "resend_api_key"
-        from_email = cfg.resend_from or "Averis BerthSide Hub <onboarding@resend.dev>"
+        from_email = cfg.resend_from or "Federated Shipping Hub <onboarding@resend.dev>"
         mode = "LIVE_RESEND"
     elif smtp_ok:
         provider = "SMTP"
@@ -1079,7 +1079,7 @@ def send_customer_notice_page(
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Customer Notice Dispatched - Averis BerthSide Gateway</title>
+  <title>Customer Notice Dispatched - Federated Gateway</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; display: flex; justify-content: center; }}
@@ -1115,7 +1115,7 @@ def send_customer_notice_page(
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Send Customer Notice - Averis BerthSide Gateway</title>
+  <title>Send Customer Notice - Federated Gateway</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; display: flex; justify-content: center; }}
@@ -1129,7 +1129,7 @@ def send_customer_notice_page(
 <body>
   <div class="container">
     <div class="header-card">
-      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#059669;margin-bottom:6px;">Averis Fast Dispatch Gateway</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#059669;margin-bottom:6px;">Federated Fast Dispatch Gateway</div>
       <h2 style="margin:0 0 10px 0;font-size:22px;">Confirm Official Customer Verification Notice</h2>
       <p style="color:#475569;font-size:14px;margin:0 0 18px 0;line-height:1.5;">
         You are about to transmit the executive document verification audit report to the client. Please confirm recipient details below:
@@ -1369,7 +1369,7 @@ def bridge_locate_and_copy(
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Averis Smart Bridge - Copying & Redirecting</title>
+  <title>Federated Smart Bridge - Copying & Redirecting</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {{

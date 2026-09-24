@@ -217,7 +217,7 @@
       `;
     }
     return `
-      <button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;font-size:11.5px;padding:4px 10px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="Send official Averis verification notice to client and CC operator">🚀 Review &amp; Reply Client</button>
+      <button class="btn btn-sm" style="background:#059669;color:#ffffff;font-weight:700;font-size:11.5px;padding:4px 10px;box-shadow:0 1px 3px rgba(5,150,105,0.25);" onclick="${stop};Gateway.dispatchToClient('${q(it.stage_id)}')" title="Send official verification notice to client and CC operator">🚀 Review &amp; Reply Client</button>
     `;
   }
 
@@ -397,7 +397,7 @@
   }
 
   async function dispatchToClient(stageId){
-    if(!confirm("Dispatch official HTML audit report directly to client with Averis verification seal and CC operator?")) return;
+    if(!confirm("Dispatch official HTML audit report directly to client with verification seal and CC operator?")) return;
     toast("🚀 Dispatching official report to client via SMTP and CCing operator...", "ok");
     try {
       const res = await fetch(`/api/v1/gateway/emails/${stageId}/dispatch-client`, { method: "POST" });

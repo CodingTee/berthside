@@ -154,7 +154,7 @@ class Settings(BaseSettings):
     # -- email channel (real IMAP inbound & SMTP / Resend outbound) --------
     # Resend.com REST API (HTTPS:443 - works seamlessly on Render.com)
     resend_api_key: str = ""
-    resend_from: str = "Averis BerthSide Hub <onboarding@resend.dev>"
+    resend_from: str = "Federated Shipping Hub <onboarding@resend.dev>"
 
     smtp_host: str = ""
     smtp_port: int = 587
