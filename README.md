@@ -1,11 +1,10 @@
 # BerthSide: Shipping Document Verification System
 
-Averis x Monash Hackathon 2026 entry. BerthSide is an enterprise hub for shipping
-operations: email comes in, gets filtered by a source trust matrix, classified,
-verified against its documents, and the sender gets an answer back, all in one
-system. It removes the weekly grind of hand-checking seven fields between the SI
-and the BL across hundreds of emails, where one missed digit holds a shipment
-at port.
+BerthSide is an enterprise hub for shipping operations: email comes in, gets
+filtered by a source trust matrix, classified, verified against its documents,
+and the sender gets an answer back, all in one system. It removes the weekly
+grind of hand-checking seven fields between the SI and the BL across hundreds
+of emails, where one missed digit holds a shipment at port.
 
 The rule-based engine achieves a perfect FINAL score of 1.0000 on the official
 local self-evaluation CLI (`score_cli.py`) over the full 520-email dataset, and
