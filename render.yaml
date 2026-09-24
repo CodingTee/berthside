@@ -9,7 +9,7 @@ services:
   - type: web
     name: berthside
     runtime: docker
-    repo: https://github.com/CodingTee/Federated-Shipping-Hub.git
+    repo: https://github.com/CodingTee/berthside.git
     branch: main
     dockerContext: .
     dockerfilePath: ./Dockerfile
