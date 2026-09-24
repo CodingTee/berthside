@@ -1,7 +1,7 @@
 """External Ingestion & Verification Router.
 
 Exposes RESTful endpoints for third-party systems (RPA, mail gateways, CRM/ERP)
-to send emails into SDOC for intelligent classification, document extraction,
+to send emails into BerthSide for intelligent classification, document extraction,
 and deterministic discrepancy checks.
 
 Endpoints:

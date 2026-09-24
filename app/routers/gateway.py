@@ -698,7 +698,7 @@ def email_channel_status():
         host = "api.resend.com (HTTPS:443)"
         port = 443
         user = "resend_api_key"
-        from_email = cfg.resend_from or "Averis SDOC Hub <onboarding@resend.dev>"
+        from_email = cfg.resend_from or "Averis BerthSide Hub <onboarding@resend.dev>"
         mode = "LIVE_RESEND"
     elif smtp_ok:
         provider = "SMTP"
@@ -1079,7 +1079,7 @@ def send_customer_notice_page(
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Customer Notice Dispatched - Averis SDOC Gateway</title>
+  <title>Customer Notice Dispatched - Averis BerthSide Gateway</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; display: flex; justify-content: center; }}
@@ -1115,7 +1115,7 @@ def send_customer_notice_page(
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Send Customer Notice - Averis SDOC Gateway</title>
+  <title>Send Customer Notice - Averis BerthSide Gateway</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; display: flex; justify-content: center; }}

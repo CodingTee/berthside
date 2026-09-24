@@ -22,7 +22,7 @@ pip install -r requirements.txt
 cp .env.example .env                                # set DATA_SOURCE
 uvicorn app.main:app --reload --port 8000
 # docs: http://localhost:8000/docs
-# Windows shortcut: double-click start_backend.bat
+# Windows shortcut: double-click start_server.bat
 ```
 
 > If pip cannot reach the default index:
@@ -97,7 +97,7 @@ curl -X POST http://localhost:8000/reviews/email_004 \
 | GET | `/ui/` | Reference client, proves Frontend ↔ Backend |
 
 Frozen contract: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) ·
-Freeze record: [`docs/MVP_FREEZE.md`](docs/MVP_FREEZE.md) ·
+Freeze record: [`docs/history/MVP_FREEZE.md`](docs/history/MVP_FREEZE.md) ·
 Architecture: [`docs/architecture.svg`](docs/architecture.svg)
 
 ### Post a review (closed loop)
@@ -123,32 +123,38 @@ python -c "from loader import Inbox; print(Inbox('http://localhost:8080').submit
 ## Layout
 
 ```  (repository root)
-├── app/
-│   ├── main.py              # FastAPI app, CORS, startup, /health, /ui
-│   ├── config.py            # env-driven settings
+├── app/                     # FastAPI package (import root)
+│   ├── main.py              # app factory, CORS, static mounts, /health
+│   ├── config.py            # env-driven settings, paths anchored to repo root
 │   ├── database.py          # engine + session (SQLite/Postgres)
-│   ├── models.py            # emails / reports / reviews tables
-│   ├── schemas.py           # Pydantic contract for P1 + P3
-│   ├── routers/             # emails.py · reports.py · reviews.py · ingest.py (external API)
-│   └── services/
-│       ├── loader.py        # official dataset loader (verbatim)
-│       ├── inbox_service.py # cached inbox access
-│       ├── classifier.py    # rule-based email categories
-│       ├── extractor.py     # label-synonym field extraction (robust)
-│       ├── comparison.py    # deterministic 7-field comparison
-│       ├── ai_service.py    # P3 integration (rule / remote / hybrid + backoff)
-│       ├── security.py      # attachment gate for the external entry points
-│       ├── ocr.py           # optional OCR fallback (switch, DPI, page cap)
-│       ├── versioning.py    # document versions per shipment
-│       └── workflow.py      # orchestration + persistence + review
-├── docs/                   # API_CONTRACT · MVP_FREEZE · architecture.svg
-├── Dockerfile · docker-compose.yml · requirements.txt · .env.example
+│   ├── models.py            # emails / reports / reviews / shipments tables
+│   ├── schemas.py           # Pydantic contracts
+│   ├── routers/             # 11 modules: emails · gateway · ingest · gmail ·
+│   │                        #   outlook · integration · shipments · reviews ·
+│   │                        #   reports · ai_assist · frontend_compat
+│   └── services/            # 30 modules, core ones:
+│       ├── loader.py        #   official dataset loader (verbatim)
+│       ├── classifier.py    #   rule-based email categories
+│       ├── extractor.py     #   label-synonym field extraction
+│       ├── comparison.py    #   deterministic 7-field comparison
+│       ├── workflow.py      #   orchestration + persistence + review
+│       ├── versioning.py    #   document versions per shipment
+│       ├── llm_gateway.py   #   LLM -> Ollama -> rules fallback chain
+│       ├── trust_matrix.py  #   per-source trust gate
+│       ├── imap_poller.py   #   mailbox ingestion
+│       └── ...              #   format parsers, OCR, dispatch, submission
+├── data/                    # corpus/ (dataset) · demo-shipments/ · *.db (runtime)
+├── web/                     # hub/ (Master Console) · shipmail/ (demo client)
+├── scripts/                 # eval · tuning · smoke · oneoff/
+├── tests/                   # pytest suite (334 passed / 3 skipped)
+├── docs/                    # ARCHITECTURE · DEVELOPMENT · API_CONTRACT + history/
+├── Dockerfile · docker-compose.yml · render.yaml · requirements.txt · .env.example
 ```
 
 ## Regression gates: run before every push
 
 ```bash
-python -m pytest tests -q          # 332 unit/integration tests (no server needed)
+python -m pytest tests -q          # 334 unit/integration tests (no server needed)
 python scripts/tune_eval.py        # score with the official scorer (expect 1.0000)
 python scripts/stress_evaluate.py  # score under 6 noise perturbations (expect 1.0)
 python scripts/smoke_test.py       # 9 E2E checks against the live API
@@ -173,7 +179,7 @@ python scripts/tune_eval.py                    # prints the official scoreboard
 python scripts/tune_eval.py --limit 40         # quick pipeline check (do not read its score)
 ```
 
-Tuning log and open questions: [`docs/MVP_FREEZE.md`](docs/MVP_FREEZE.md).
+Tuning log and open questions: [`docs/history/MVP_FREEZE.md`](docs/history/MVP_FREEZE.md).
 
 ### Where the scorer and the ground truth live
 

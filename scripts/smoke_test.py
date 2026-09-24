@@ -131,6 +131,6 @@ if __name__ == "__main__":
         sys.exit(main())
     except urllib.error.URLError as exc:
         print(f"\nCannot reach {BASE} — is the server running?\n"
-              f"  cd backend && uvicorn app.main:app --reload --port 8000\n"
+              f"  uvicorn app.main:app --reload --port 8000\n"
               f"({exc})")
         sys.exit(2)

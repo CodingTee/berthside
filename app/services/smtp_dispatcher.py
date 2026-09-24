@@ -1,4 +1,4 @@
-"""Outbound SMTP & Resend API Dispatcher for Enterprise SDOC Hub.
+"""Outbound SMTP & Resend API Dispatcher for Enterprise BerthSide Hub.
 
 Handles real email dispatch to external clients (e.g. user's private Gmail)
 with RFC-compliant thread tracking headers (In-Reply-To, References, Message-ID).
@@ -95,7 +95,7 @@ def _dispatch_via_resend(
         headers={
             "Authorization": f"Bearer {api_key.strip()}",
             "Content-Type": "application/json",
-            "User-Agent": "Averis-SDOC-Hub/1.0",
+            "User-Agent": "Averis-BerthSide-Hub/1.0",
         },
         method="POST",
     )
@@ -231,7 +231,7 @@ def _dispatch_via_gmail_api(
         headers={
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
-            "User-Agent": "Averis-SDOC-Hub/1.0",
+            "User-Agent": "Averis-BerthSide-Hub/1.0",
         },
         method="POST",
     )
@@ -343,7 +343,7 @@ def dispatch_smtp_email(
     # 2. Secondary: Resend REST API (HTTPS:443 - alternative for Render.com port limitations)
     if settings.resend_api_key and settings.resend_api_key.strip():
         # Resolve from address
-        from_addr = settings.resend_from or "Averis SDOC Hub <onboarding@resend.dev>"
+        from_addr = settings.resend_from or "Averis BerthSide Hub <onboarding@resend.dev>"
         if sender and ("@" in sender) and not settings.resend_from:
             from_addr = sender
 

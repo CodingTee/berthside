@@ -158,7 +158,7 @@ escalated to a human with the transcription attached, never silently compared.
                  +-----------+-----------------------------+-----------+
                              v                                         v
               +--------------------------+            +----------------------+
-              |  FastAPI (app/main.py)   |            |  sdoc engine         |
+              |  FastAPI (app/main.py)   |            |  BerthSide engine    |
               |  REST API, persistence,  |----------->|  classifier.py       |
               |  trust matrix, SMTP out  |  imports   |  extractor.py        |
               +--------------------------+            |  comparison.py       |
@@ -237,7 +237,7 @@ uvicorn app.main:app --reload --port 8000
 # API docs:  http://localhost:8000/docs
 ```
 
-Windows shortcut: double-click `start_backend.bat`.
+Windows shortcut: double-click `start_server.bat`.
 
 Configuration (optional environment variables, see `.env.example`):
 
@@ -299,6 +299,6 @@ UI probes gate every push; the score has never regressed.
 
 This repository commits the static evaluation corpus (`data/corpus/`,
 520 emails with SI/BL attachments) so the project runs out of the box. The
-docker variant of the dataset (`sdoc-hackathon-docker/`) is intentionally
-excluded from version control via `.gitignore` and must never be committed: it
-contains evaluation material that is not meant to be public.
+official hackathon materials (rubric, rules, problem statement) and the scoring
+bundle stay outside version control: they are evaluation material that is not
+meant to be public.

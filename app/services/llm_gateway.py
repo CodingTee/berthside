@@ -1,4 +1,4 @@
-"""Cascading LLM Gateway & Fallback Router for SDOC.
+"""Cascading LLM Gateway & Fallback Router for BerthSide.
 
 Architecture:
 - Fallback Sequence (cascade mode): Gemini -> Zhipu AI -> Alibaba DashScope -> Ollama (local) -> Rules/OCR.

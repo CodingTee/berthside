@@ -1,6 +1,6 @@
 """Security and sanitization gate for incoming attachments.
 
-Protects the SDOC verification pipeline against:
+Protects the BerthSide verification pipeline against:
 1. Executable and script payloads disguised as documents (.exe, .bat, .vbs, .scr, etc.).
 2. Double-extension spoofing (e.g., 'Draft_BL.pdf.exe').
 3. File-header / magic-bytes spoofing (PE headers 'MZ', ELF headers, Mach-O).

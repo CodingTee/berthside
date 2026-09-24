@@ -1,4 +1,4 @@
-"""Sync Outlook inbox messages through Microsoft Graph API into SDOC pipeline."""
+"""Sync Outlook inbox messages through Microsoft Graph API into BerthSide pipeline."""
 from __future__ import annotations
 
 import datetime as dt
@@ -195,7 +195,7 @@ def poll_and_process(db: Session, limit: int = 20) -> dict[str, Any]:
 
         db.commit()
 
-        # Run SDOC workflow engine (classification, extraction, 7-field comparison)
+        # Run BerthSide workflow engine (classification, extraction, 7-field comparison)
         report = workflow.process_email(db, email_id)
         db.commit()
 

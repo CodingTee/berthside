@@ -11,7 +11,7 @@ Interactive docs: `/docs` · All responses: `application/json`
 ## GET /health
 
 ```json
-{"status":"ok","app_name":"SDOC Shipping Document Verification API","version":"0.1.0",
+{"status":"ok","app_name":"BerthSide API","version":"0.1.0",
  "environment":"development","database":"sqlite","data_source":"<backend>/data/corpus",
  "ai_provider":"hybrid","emails_cached":520,"reports_stored":520}
 ```

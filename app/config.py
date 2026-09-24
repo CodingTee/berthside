@@ -16,7 +16,7 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 
 class Settings(BaseSettings):
     # -- app ---------------------------------------------------------------
-    app_name: str = "SDOC Shipping Document Verification API"
+    app_name: str = "BerthSide API"
     app_version: str = "0.1.0"
     environment: str = "development"  # development | production
     cors_origins: str = "*"  # comma-separated list; "*" allows all (dev only)
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     #
     # A relative path is resolved against BACKEND_ROOT (the repository root),
     # not the current working directory, so `data/corpus` means the same thing
-    # whether the app is started by `start_backend.bat` (cwd = repo root), by
+    # whether the app is started by `start_server.bat` (cwd = repo root), by
     # `python -m uvicorn` from the repo root, or from anywhere else. `.env` is
     # per-machine and git-ignored, so a relative path there is the portable
     # choice; an absolute path still works unchanged.
@@ -154,7 +154,7 @@ class Settings(BaseSettings):
     # -- email channel (real IMAP inbound & SMTP / Resend outbound) --------
     # Resend.com REST API (HTTPS:443 - works seamlessly on Render.com)
     resend_api_key: str = ""
-    resend_from: str = "Averis SDOC Hub <onboarding@resend.dev>"
+    resend_from: str = "Averis BerthSide Hub <onboarding@resend.dev>"
 
     smtp_host: str = ""
     smtp_port: int = 587

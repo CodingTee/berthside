@@ -1,8 +1,7 @@
-"""SDOC Shipping Document Verification — Backend API.
+"""BerthSide API: shipping document verification hub.
 
 FastAPI entry point. Run locally:
 
-    cd backend
     uvicorn app.main:app --reload --port 8000
 
 Interactive docs: http://localhost:8000/docs
@@ -532,7 +531,7 @@ def meta():
             "POST /shipments/{shipment_id}/generate-corrected-draft",
             "GET  /api/health",
             "POST /api/process",
-            "GET  /api/results           (stored results — never reprocesses)",
+            "GET  /api/results           (stored results, never reprocesses)",
             "GET  /api/results/{key}     (email_id | message_id | cache_key)",
             "POST /api/mock-customer-db/request-document",
             "POST /api/v1/analyze",

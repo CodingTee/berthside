@@ -1,4 +1,4 @@
-"""Inbound IMAP Poller for Enterprise SDOC Hub.
+"""Inbound IMAP Poller for Enterprise BerthSide Hub.
 
 Polls a designated intake mailbox (e.g. Gmail/Outlook/Enterprise mailbox via IMAP4_SSL),
 extracts customer transmissions with SI and B/L attachments, passes them through the
