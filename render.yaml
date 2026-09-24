@@ -7,9 +7,9 @@
 # the evaluation corpus data/corpus/ as well.
 services:
   - type: web
-    name: sdoc-backend
+    name: berthside
     runtime: docker
-    repo: https://github.com/chaywen/averis-hackathon-2026.git
+    repo: https://github.com/CodingTee/Federated-Shipping-Hub.git
     branch: main
     dockerContext: .
     dockerfilePath: ./Dockerfile
