@@ -2,7 +2,7 @@
 
 This is deliberately outside the verification engine. It represents an
 external customer/ERP/portal system that can return a missing document when the
-ShipSync side panel asks for it.
+BerthSide side panel asks for it.
 """
 from __future__ import annotations
 

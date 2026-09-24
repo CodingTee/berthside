@@ -78,7 +78,7 @@ def _seed(factory, email_id, *, status="MISMATCH", category="BL_COMPARISON",
             subject=f"Shipment documents for {email_id}",
             body="Please find the shipping documents attached.",
             attachments=list(attachments),
-            source_mailbox="operations@shipsync.demo",
+            source_mailbox="operations@berthside.demo",
         ))
         db.add(GmailMessageRecord(
             gmail_message_id="gm-" + email_id,

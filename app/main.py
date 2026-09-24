@@ -89,8 +89,8 @@ app.include_router(gateway.router)
 
 
 # Frontends served by this single backend (no extra Render service):
-#   /ui/       -> ShipSync Dashboard / Operations Console (existing web app)
-#   /shipmail/ -> ShipMail inbox (simulated mail client) + ShipSync side panel
+#   /ui/       -> BerthSide Dashboard / Operations Console (existing web app)
+#   /shipmail/ -> ShipMail inbox (simulated mail client) + BerthSide side panel
 WEB_DIR = Path(__file__).resolve().parent.parent / "web" / "hub"
 SHIPMAIL_DIR = Path(__file__).resolve().parent.parent / "web" / "shipmail" / "frontend"
 SHIPMAIL_DATA_DIR = Path(__file__).resolve().parent.parent / "web" / "shipmail" / "data"
@@ -212,7 +212,7 @@ async def _unhandled_error(request: Request, exc: Exception):
         status_code=500,
         content=(
             "<!doctype html><html lang=\"en\" data-theme=\"dark\"><head>"
-            "<meta charset='utf-8'><title>ShipSync error</title>"
+            "<meta charset='utf-8'><title>BerthSide error</title>"
             f"<style>{RESULT_PAGE_CSS}</style>"
             "<style>.card{max-width:680px}"
             ".card pre{white-space:pre-wrap;background:var(--bg);"
@@ -221,7 +221,7 @@ async def _unhandled_error(request: Request, exc: Exception):
             ".body .path{font-family:var(--mono);font-size:12.5px;color:var(--accent)}"
             "</style></head><body><div class='card'>"
             + RESULT_PAGE_MARK
-            + "<h1 style=\"color:var(--bad)\">ShipSync hit an error</h1>"
+            + "<h1 style=\"color:var(--bad)\">BerthSide hit an error</h1>"
             + f"<div class=\"body\">Path: <span class=\"path\">{request.url.path}</span></div>"
             + f"<pre>{tail}</pre>"
             + "<div class=\"body\" style=\"margin-top:10px\">The full traceback is in the server log.</div>"
@@ -548,7 +548,7 @@ def meta():
             "POST /ai/ambiguous-interpretation",
             "GET  /health",
             "GET  /ui/  (P1 frontend: Review Desk)",
-            "GET  /shipmail/  (ShipMail inbox + ShipSync side panel)",
+            "GET  /shipmail/  (ShipMail inbox + BerthSide side panel)",
             "GET  /api/summary, /api/emails, /api/emails/{id}, "
             "/api/emails/{id}/review, /api/review-queue, "
             "/api/attachments/{path}",

@@ -145,7 +145,7 @@ RESULT_PAGE_MARK = (
     "fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" "
     "stroke-linecap=\"round\" stroke-linejoin=\"round\">"
     "<path d=\"M3 8l9-5 9 5v8l-9 5-9-5z\"/><path d=\"M3 8l9 5 9-5M12 13v8\"/>"
-    "</svg></span>ShipSync</div>"
+    "</svg></span>BerthSide</div>"
 )
 
 RESULT_PAGE_BACK = (
@@ -706,7 +706,7 @@ def _build_shipmail_receipt(email: EmailRecord, report: ReportRecord | None):
             f"the {docs} is not attached.\n\n"
             f"Please reply in this thread with the {docs} attached. We will then compare "
             f"the shipment fields against the documents already on file.\n\n"
-            f"Best regards,\nShipSync Operations"
+            f"Best regards,\nBerthSide Operations"
         )
         return "REJECTED", subject, body
 
@@ -718,7 +718,7 @@ def _build_shipmail_receipt(email: EmailRecord, report: ReportRecord | None):
             f"The documents have been checked against each other and these fields do not "
             f"agree: {fields}.\n\n"
             f"Please confirm the correct values so the shipment can be cleared.\n\n"
-            f"Best regards,\nShipSync Operations"
+            f"Best regards,\nBerthSide Operations"
         )
         return "REJECTED", subject, body
 
@@ -728,7 +728,7 @@ def _build_shipmail_receipt(email: EmailRecord, report: ReportRecord | None):
             f"Dear Sender,\n\n"
             f"Your documents have been checked against each other and every compared field "
             f"agrees. Nothing further is required from you.\n\n"
-            f"Best regards,\nShipSync Operations"
+            f"Best regards,\nBerthSide Operations"
         )
         return "VERIFIED", subject, body
 
@@ -739,7 +739,7 @@ def _build_shipmail_receipt(email: EmailRecord, report: ReportRecord | None):
         f"Dear Sender,\n\n"
         f"More detail is required before this shipment can be verified: {reason}.\n\n"
         f"Please resend with the shipping instruction and the bill of lading attached.\n\n"
-        f"Best regards,\nShipSync Operations"
+        f"Best regards,\nBerthSide Operations"
     )
     return "REJECTED", subject, body
 

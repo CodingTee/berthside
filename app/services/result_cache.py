@@ -1,8 +1,8 @@
-"""Stored-result cache for the ShipSync integration API.
+"""Stored-result cache for the BerthSide integration API.
 
 Rule enforced here: **process once, store the result, reuse the result.**
 
-Every result produced by the existing ShipSync core (classification →
+Every result produced by the existing BerthSide core (classification →
 extraction → verification) is written to ``process_results``. The ShipMail
 side panel and the Dashboard then read that same row. Opening a page,
 refreshing it, switching emails or reopening a shipment never re-runs OCR,

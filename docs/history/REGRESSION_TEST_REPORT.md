@@ -1,4 +1,4 @@
-# ShipSync — Fixes + Real-Gmail Regression Report
+# BerthSide — Fixes + Real-Gmail Regression Report
 
 The five confirmed issues (B1, B2, B3, GET side effects, Gmail Date) are
 implemented. This round adds the **focused pytest regression test that drives the

@@ -217,7 +217,7 @@ def gateway_status(db: Session = Depends(get_db)):
 
     available_mailboxes = [
         "sdoc-hackathon-bundle@averis.com",
-        "operations@shipsync.demo",
+        "operations@berthside.demo",
         "docs.export@averis.com",
         "booking@averis.com",
         "april.shipping@averis.com",
@@ -351,7 +351,7 @@ def list_staged_emails(
     # 2. Ingested EmailRecords (Benchmark 520 stream and operational mailbox)
     is_unified = (not source_mailbox) or (source_mailbox == "ALL")
     is_bundle = source_mailbox in ("sdoc-hackathon-bundle@averis.com", "sdoc-hackathon-bundle")
-    is_ops = source_mailbox == "operations@shipsync.demo"
+    is_ops = source_mailbox == "operations@berthside.demo"
 
     ingested_items = []
     if (is_unified or is_bundle or is_ops) and (not status or status in ("ALL", "AUTO_INGESTED", "APPROVED")):

@@ -295,9 +295,9 @@ def test_api_health_contract(client):
     body = res.json()
     # Base contract the integration docs promise…
     assert body["status"] == "ok"
-    assert body["service"] == "ShipSync API"
+    assert body["service"] == "BerthSide API"
     # …plus the result-cache bookkeeping (process-once-store-reuse).
-    assert body["core"] == "existing-shipsync-core"
+    assert body["core"] == "existing-berthside-core"
     assert isinstance(body["results_cached"], int)
 
 

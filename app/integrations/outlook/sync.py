@@ -27,7 +27,7 @@ def utcnow():
 
 log = logging.getLogger(__name__)
 
-OPS_MAILBOX = "operations@shipsync.demo"
+OPS_MAILBOX = "operations@berthside.demo"
 _PAIR_TOKEN_RE = re.compile(r"(?:^|[\W_])([A-Za-z0-9]{3,4}[-_]?[0-9]{3,6})(?:[\W_]|$)", re.IGNORECASE)
 _INLINE_SI_RE = re.compile(r"shipping[\s_-]?instruction|\bsi\b", re.IGNORECASE)
 _INLINE_BL_RE = re.compile(r"bill[\s_-]?of[\s_-]?lading|draft[\s_-]?b[\/_]?l|\bb[\/_]l\b|\bbl\b", re.IGNORECASE)
@@ -115,7 +115,7 @@ def _attach_counterpart_document(
 
 
 def poll_and_process(db: Session, limit: int = 20) -> dict[str, Any]:
-    """Pull latest messages from Outlook inbox and run through ShipSync workflow."""
+    """Pull latest messages from Outlook inbox and run through BerthSide workflow."""
     messages = client.list_messages(limit=limit)
     if not messages:
         return {"polled_count": 0, "processed": []}

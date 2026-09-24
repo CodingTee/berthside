@@ -1,4 +1,4 @@
-# ShipSync — Backend & Real Gmail Verification Report
+# BerthSide — Backend & Real Gmail Verification Report
 
 **This task changed no production code.** Audit and verification only. Two probe
 scripts were added (`scripts/verify_checklist.py`, and the earlier
@@ -292,7 +292,7 @@ gap — but it is the one place where "single source of truth" is "single
 - **File / function:** `app/routers/integration.py:59`,
   `app/routers/ingest.py:174` vs `workflow.process_email`.
 - **Problem:** same verdict, different persistence depth. The ShipMail "Run
-  ShipSync" button (`shipmail/frontend/index.html:613`) uses `/api/process`.
+  BerthSide" button (`shipmail/frontend/index.html:613`) uses `/api/process`.
 - **Impact:** the demo click-through does not exercise grouping/versioning; the
   demo *dataset* loader and the corpus build both do.
 - **Fix:** point the demo button at `/emails/{id}/process`, or make `/api/process`

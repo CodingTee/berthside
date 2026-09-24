@@ -21,7 +21,7 @@ def utcnow() -> datetime:
 
 # Authoritative source mailboxes in the Enterprise Hub multi-inbox topology.
 BUNDLE_MAILBOX = "sdoc-hackathon-bundle@averis.com"
-OPS_MAILBOX = "operations@shipsync.demo"
+OPS_MAILBOX = "operations@berthside.demo"
 
 
 def infer_source_mailbox(email_id: str, sender: str | None = None) -> str:

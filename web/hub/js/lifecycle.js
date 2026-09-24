@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ShipSync Enterprise Hub · Shipment Lifecycle & Resolution Center Module
+   BerthSide Enterprise Hub · Shipment Lifecycle & Resolution Center Module
    ========================================================================== */
 
 (function(){

@@ -202,7 +202,7 @@ def test_expand_payloads_recurses_through_a_container():
 def _eml_bytes(attachments: dict[str, bytes], body: str = "Please find the SI below.\n") -> bytes:
     msg = EmailMessage()
     msg["From"] = "shipper@fastocean.com"
-    msg["To"] = "operations@shipsync.demo"
+    msg["To"] = "operations@berthside.demo"
     msg["Subject"] = "FW: SHP-008 shipping documents"
     msg.set_content(body)
     for name, data in attachments.items():
@@ -220,7 +220,7 @@ def _msg_bytes(attachments: dict[str, bytes],
         subject="FW: shipping documents",
         sender="Kelvin Tan",
         sender_address="shipper@fastocean.com",
-        to="operations@shipsync.demo",
+        to="operations@berthside.demo",
         body=body,
         attachments=[(name, data) for name, data in attachments.items()],
     )

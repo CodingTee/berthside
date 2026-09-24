@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ShipSync Master Console · Outstream Buffer Module
+   BerthSide Master Console · Outstream Buffer Module
    --------------------------------------------------------------------------
    Post-classification disposition buffer. Mirrors the Enterprise Hub's
    instream trust matrix (global + per-source auto/manual) but governs the
@@ -27,7 +27,7 @@
 
   const SRC_ROLES = {
     "sdoc-hackathon-bundle@averis.com": "Benchmark EDI / API bundle",
-    "operations@shipsync.demo": "Direct mail influx (live ops)",
+    "operations@berthside.demo": "Direct mail influx (live ops)",
     "docs.export@averis.com": "Export documentation",
     "booking@averis.com": "Booking confirmations",
     "april.shipping@averis.com": "APRIL pulp & paper BU",

@@ -1,4 +1,4 @@
-# ShipSync Architecture Audit
+# BerthSide Architecture Audit
 
 **Scope:** audit and validation only. **No production code was changed.**
 Nothing was refactored, renamed or rebuilt. Two audit scripts were added
@@ -55,7 +55,7 @@ behind `workflow.process_email`.
 
 | Surface | Call | Core reached | Shipment rows created? |
 |---|---|---|---|
-| ShipMail "Run ShipSync" button | `POST /api/process` (`shipmail/frontend/index.html:613`) | `analyze_email` → `evaluate_email` | ❌ **no** |
+| ShipMail "Run BerthSide" button | `POST /api/process` (`shipmail/frontend/index.html:613`) | `analyze_email` → `evaluate_email` | ❌ **no** |
 | ShipMail inbox / side panel read | `GET /api/results/{id}` (`index.html:588`) | none (cache read) | ❌ no |
 | ShipMail demo inbox data | static `shipmail/data/emails.json` | none | ❌ no |
 | Curated demo dataset (this repo) | `POST /api/v1/ingest` + `POST /emails/{id}/process` | `evaluate_email` **+** `_run_pipeline` | ✅ yes |
@@ -449,7 +449,7 @@ document processing beyond R6.
 | OCR (single entry) | `app/services/ai_service.py` | `document_text` (407), `ocr_pdf` call (198), `ocr_image` call (393) |
 | Comparison (single impl) | `app/services/comparison.py` | `compare`, called from `workflow.py:518/649/822`, `versioning.py:298` |
 | Shipment API | `app/routers/shipments.py` | `_shipment_summary` (44), `/shipments/overview` (79), `/shipments/by-key` (90) |
-| Demo UI call path | `backend/shipmail/frontend/index.html` | `runShipSync` (608, POST `/api/process` at 613); read at 588 |
+| Demo UI call path | `backend/shipmail/frontend/index.html` | `runBerthSide` (608, POST `/api/process` at 613); read at 588 |
 
 ## 22. Tests performed
 

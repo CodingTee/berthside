@@ -49,15 +49,15 @@ def _stage(db, stage_id, mailbox, status="STAGED", security="CLEAN"):
 def test_config_accepts_source_policies(client, db_session):
     res = client.post(
         "/api/v1/gateway/config",
-        json={"source_policies": {"operations@shipsync.demo": "manual"}},
+        json={"source_policies": {"operations@berthside.demo": "manual"}},
     )
     assert res.status_code == 200, res.text
     d = res.json()
-    assert d["source_policies"] == {"operations@shipsync.demo": "manual"}
+    assert d["source_policies"] == {"operations@berthside.demo": "manual"}
 
     # Status reflects the override.
     st = client.get("/api/v1/gateway/status").json()
-    assert st["policy"]["source_policies"] == {"operations@shipsync.demo": "manual"}
+    assert st["policy"]["source_policies"] == {"operations@berthside.demo": "manual"}
 
 
 def test_source_policies_persisted_and_queryable(client, db_session):
@@ -94,14 +94,14 @@ def test_simulate_drop_honours_per_source_policy(client, db_session):
 
 
 def test_bulk_approve_by_source_skips_blocked(client, db_session):
-    _stage(db_session, "STG-A1", "operations@shipsync.demo", status="STAGED")
-    _stage(db_session, "STG-A2", "operations@shipsync.demo", status="STAGED")
-    _stage(db_session, "STG-A3", "operations@shipsync.demo", status="STAGED", security="BLOCKED")
+    _stage(db_session, "STG-A1", "operations@berthside.demo", status="STAGED")
+    _stage(db_session, "STG-A2", "operations@berthside.demo", status="STAGED")
+    _stage(db_session, "STG-A3", "operations@berthside.demo", status="STAGED", security="BLOCKED")
     _stage(db_session, "STG-B1", "finance@averis.com", status="STAGED")
 
     res = client.post(
         "/api/v1/gateway/emails/bulk-approve",
-        json={"source_mailbox": "operations@shipsync.demo"},
+        json={"source_mailbox": "operations@berthside.demo"},
     )
     assert res.status_code == 200, res.text
     d = res.json()
@@ -121,7 +121,7 @@ def test_bulk_approve_by_source_skips_blocked(client, db_session):
 
 
 def test_bulk_approve_all_sources(client, db_session):
-    _stage(db_session, "STG-C1", "operations@shipsync.demo", status="STAGED")
+    _stage(db_session, "STG-C1", "operations@berthside.demo", status="STAGED")
     _stage(db_session, "STG-C2", "finance@averis.com", status="STAGED")
     res = client.post(
         "/api/v1/gateway/emails/bulk-approve",
@@ -132,12 +132,12 @@ def test_bulk_approve_all_sources(client, db_session):
 
 
 def test_bulk_return_by_source(client, db_session):
-    _stage(db_session, "STG-D1", "operations@shipsync.demo", status="STAGED")
-    _stage(db_session, "STG-D2", "operations@shipsync.demo", status="APPROVED")
+    _stage(db_session, "STG-D1", "operations@berthside.demo", status="STAGED")
+    _stage(db_session, "STG-D2", "operations@berthside.demo", status="APPROVED")
 
     res = client.post(
         "/api/v1/gateway/emails/bulk-return",
-        json={"source_mailbox": "operations@shipsync.demo"},
+        json={"source_mailbox": "operations@berthside.demo"},
     )
     assert res.status_code == 200, res.text
     assert res.json()["returned"] == 2
@@ -150,7 +150,7 @@ def test_bulk_return_by_source(client, db_session):
 
 def test_reapply_policy_auto_ingests_staged_of_auto_sources(client, db_session):
     # Global default is auto, so STAGED rows of non-overridden sources ingest.
-    _stage(db_session, "STG-E1", "operations@shipsync.demo", status="STAGED")
+    _stage(db_session, "STG-E1", "operations@berthside.demo", status="STAGED")
     _stage(db_session, "STG-E2", "booking@averis.com", status="STAGED")
     # Force one source manual: its STAGED row must stay put.
     client.post(

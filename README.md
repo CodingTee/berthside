@@ -1,6 +1,6 @@
-# ShipSync: Shipping Document Verification System
+# BerthSide: Shipping Document Verification System
 
-Averis x Monash Hackathon 2026 entry. ShipSync is an enterprise hub for shipping
+Averis x Monash Hackathon 2026 entry. BerthSide is an enterprise hub for shipping
 operations: email comes in, gets filtered by a source trust matrix, classified,
 verified against its documents, and the sender gets an answer back, all in one
 system. It removes the weekly grind of hand-checking seven fields between the SI
@@ -11,7 +11,7 @@ The rule-based engine achieves a perfect FINAL score of 1.0000 on the official
 local self-evaluation CLI (`score_cli.py`) over the full 520-email dataset, and
 the same 1.0000 holds under six kinds of meaning-preserving noise.
 
-## What ShipSync does
+## What BerthSide does
 
 1. **Filters before ingestion.** Mail from a sender that is not registered in
    the source trust matrix is filtered before it ever enters the pipeline.
@@ -177,7 +177,7 @@ Three clean layers:
 
 ## System surfaces (two systems, one switcher)
 
-ShipSync ships as two systems behind a single workspace switcher, both served
+BerthSide ships as two systems behind a single workspace switcher, both served
 by the same backend:
 
 * **ShipMail (`/shipmail/`)**: the personal side. A real email client with
@@ -259,8 +259,8 @@ Configuration (optional environment variables, see `.env.example`):
 Build from the repository root:
 
 ```bash
-docker build -t shipsync .
-docker run -p 8000:8000 shipsync
+docker build -t berthside .
+docker run -p 8000:8000 berthside
 ```
 
 ## API

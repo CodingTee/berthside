@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ShipSync Review Console: inbox, verdict, field diff and command palette
+   BerthSide Review Console: inbox, verdict, field diff and command palette
    ========================================================================== */
 
 (function(){

@@ -1,4 +1,4 @@
-"""Smoke test for the ShipSync integration API.
+"""Smoke test for the BerthSide integration API.
 
 Proves the "process once, store, reuse" behaviour end to end:
 
@@ -7,7 +7,7 @@ Proves the "process once, store, reuse" behaviour end to end:
     GET  /api/results/{id} -> reads the stored result, never processes
     POST /api/process with force=true -> explicit re-processing only
 
-Usage:  python scripts/smoke_shipsync_api.py [base_url]
+Usage:  python scripts/smoke_berthside_api.py [base_url]
 """
 from __future__ import annotations
 

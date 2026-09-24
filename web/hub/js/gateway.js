@@ -1,5 +1,5 @@
 /* ==========================================================================
-   ShipSync Enterprise Hub · Gateway & Quarantine Sandbox Module
+   BerthSide Enterprise Hub · Gateway & Quarantine Sandbox Module
    ========================================================================== */
 
 (function(){
@@ -16,7 +16,7 @@
 
   const SRC_ROLES = {
     "sdoc-hackathon-bundle@averis.com": "Benchmark EDI / API bundle",
-    "operations@shipsync.demo": "Direct mail influx (live ops)",
+    "operations@berthside.demo": "Direct mail influx (live ops)",
     "docs.export@averis.com": "Export documentation",
     "booking@averis.com": "Booking confirmations",
     "april.shipping@averis.com": "APRIL pulp & paper BU",

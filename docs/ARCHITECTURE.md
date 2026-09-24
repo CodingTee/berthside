@@ -1,4 +1,4 @@
-# ShipSync: Architecture and Design Notes
+# BerthSide: Architecture and Design Notes
 
 This document explains *why* the engine behaves the way it does: determinism
 rules, the noise-robustness contract, human-review behaviour, status semantics

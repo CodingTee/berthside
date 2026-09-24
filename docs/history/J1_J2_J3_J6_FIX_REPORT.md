@@ -1,7 +1,7 @@
 # J1 / J2 / J3 / J6 — Targeted Fix Report
 
 Scope: **four issues only** (port normalization, document reference extraction,
-false-merge prevention, ShipMail "Run ShipSync" persistence). J4/J5/J7/J8 were
+false-merge prevention, ShipMail "Run BerthSide" persistence). J4/J5/J7/J8 were
 **not** touched. No Dashboard / Gmail UI / demo dataset / ShipMail UI changes.
 
 ---

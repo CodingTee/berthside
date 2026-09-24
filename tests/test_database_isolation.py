@@ -49,7 +49,7 @@ def test_dual_database_physical_isolation(tmp_path):
             sender="operator@gmail.com",
             subject="Personal Test Mail",
             body="User inbox body",
-            source_mailbox="operations@shipsync.demo",
+            source_mailbox="operations@berthside.demo",
         )
         oauth_s.add(gmail_msg)
         oauth_s.add(oauth_email)

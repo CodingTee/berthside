@@ -7,9 +7,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%232dd4bf'/%3E%3Cstop offset='.52' stop-color='%2338bdf8'/%3E%3Cstop offset='1' stop-color='%236366f1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cg transform='translate(4,4)' fill='none' stroke='white' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2.5' y='5' width='19' height='14' rx='2.5'/%3E%3Cpath d='m3.5 7 8.5 6 8.5-6'/%3E%3C/g%3E%3C/svg%3E" data-page-node-id="DcIg3VSDbrevPN3NfJEHl2">
 <script>
 /* The theme is chosen before first paint so the mail console never flashes the
-   wrong surface. ShipMail and the ShipSync console are ONE product family and
+   wrong surface. ShipMail and the BerthSide console are ONE product family and
    share ONE mode: `sdoc-theme` is the canonical key every /ui/ page reads and
-   is therefore read FIRST (a mode changed inside ShipSync while this tab was
+   is therefore read FIRST (a mode changed inside BerthSide while this tab was
    closed must survive); `shipmail-theme` is kept only as this page's mirror and
    as a fallback for a browser that predates the merge. */
 (function(){try{var t=localStorage.getItem("sdoc-theme")||localStorage.getItem("shipmail-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(_){}})();
@@ -686,7 +686,7 @@ body.col-resizing,body.col-resizing *{cursor:col-resize!important;-webkit-user-s
 
    Shell: the layout of a mail client: a full-width top bar (identity, search,
    mail source, theme, account) sitting above a flat three-column body: mail
-   rail | conversation list | reading pane. The ShipSync verdict panel docks as
+   rail | conversation list | reading pane. The BerthSide verdict panel docks as
    an optional fourth column and is closed by default.
 
    "Flat" is deliberate: the columns run edge to edge and are separated by
@@ -887,7 +887,7 @@ body.resizing .mail-body{user-select:none}
    above only separates the wrappers. The rows INSIDE them had no gap at all, and the
    43px cards fused into one tall block (probe measured gaps of [0,0,0,0,0,0]). Give the
    wrappers their own column gap so the rail breathes like the Workflows nav on the
-   ShipSync rail, whose three .navlink cards are direct children of `.nav-sec{gap:8px}`.
+   BerthSide rail, whose three .navlink cards are direct children of `.nav-sec{gap:8px}`.
    Collapsed (icon-rail) mode keeps its tighter 6px from the `.mail-app.collapsed`
    block below: that selector is (1,2,0) and out-ranks this one. */
 #mailboxes,#labels{display:flex;flex-direction:column;gap:8px}
@@ -1098,7 +1098,7 @@ body.resizing .mail-body{user-select:none}
 /* the reading pane shows the attachment card exactly as the Console does */
 .att .ah{cursor:pointer}
 
-/* ---------- ShipSync verdict column ---------- */
+/* ---------- BerthSide verdict column ---------- */
 .ship-panel{display:flex;flex-direction:column;min-height:0}
 .ship-panel .sp-head{display:flex;align-items:center;gap:9px;padding:0 14px;height:52px;flex:0 0 auto;
   border-bottom:1px solid var(--border)}
@@ -1634,12 +1634,12 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
            rather than a doorway into a second product. -->
       <div class="rv-switch" id="rvSwitch" role="tablist" aria-label="Workspace mode">
         <button class="rv-sw-btn active" id="rvModeMail" type="button" role="tab" aria-selected="true"
-                data-tip="Mail" data-tip-desc="Read the mailbox: conversation list, reading pane and the ShipSync verdict" data-tip-pos="right">
+                data-tip="Mail" data-tip-desc="Read the mailbox: conversation list, reading pane and the BerthSide verdict" data-tip-pos="right">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 7.5l8.5 5.5 8.5-5.5"/></svg>
           <span>Mail</span>
         </button>
         <button class="rv-sw-btn" id="rvModeReview" type="button" role="tab" aria-selected="false"
-                data-tip="Review" data-tip-desc="Distribute the inbox, run ShipSync over a selection, and reply to the sender" data-tip-pos="right">
+                data-tip="Review" data-tip-desc="Distribute the inbox, run BerthSide over a selection, and reply to the sender" data-tip-pos="right">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.5H7.6a1.6 1.6 0 0 0-1.6 1.6v13.3a1.6 1.6 0 0 0 1.6 1.6h8.8a1.6 1.6 0 0 0 1.6-1.6V6.1a1.6 1.6 0 0 0-1.6-1.6H15"/><rect x="9" y="2.6" width="6" height="3.8" rx="1.2"/><path d="M8.9 13.6l2.1 2.1 4.1-4.4"/></svg>
           <span>Review</span>
         </button>
@@ -1707,14 +1707,14 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
       <div class="detail" id="mail" data-page-node-id="36DFRSKdxS0y5GBPm5sLJI"></div>
     </div>
 
-    <!-- SHIPSYNC VERDICT -->
+    <!-- BERTHSIDE VERDICT -->
     <div class="panel ship-panel" data-page-node-id="Sb165OuUbrdJEmbkRadFqd">
       <div class="sp-head" data-page-node-id="RSNPrUcfx8Q7BHA0JYytqR">
         <div class="mark" data-page-node-id="qsPGfIELlAWR9ZaqasdbZ6">
           <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="2CH1QiKuAQ1vk1I3F4svxw"><path d="M3 8l9-5 9 5v8l-9 5-9-5z" data-page-node-id="OUnRWNzb7gTBoTvsqKG1rJ"/><path d="M3 8l9 5 9-5M12 13v8" data-page-node-id="MiADNVNnulEMc9a0Y3dVc5"/></svg>
         </div>
         <div data-page-node-id="ollNQJITgWgpXml5ZUUSDe">
-          <div class="nm" data-page-node-id="AfgHDvZaC2sW0R7YBYGRed">ShipSync</div>
+          <div class="nm" data-page-node-id="AfgHDvZaC2sW0R7YBYGRed">BerthSide</div>
           <div class="sb" id="sideSub" data-page-node-id="lJEjcXtxgMzURhOt3YkL95">Verdict · stored result</div>
         </div>
         <span class="badge st" id="sideBadge" style="--c:var(--muted-2);margin-left:auto" data-page-node-id="BBihSOHSbnr7ZRuDpxl7hW">-</span>
@@ -1758,7 +1758,7 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
               <button class="rv-mini" id="rvSetAuto" type="button">Distribute: Auto</button>
               <button class="rv-mini" id="rvSetHold" type="button">Hold</button>
               <button class="rv-mini" id="rvSetIgnore" type="button">Ignore</button>
-              <button class="rv-mini" id="rvRun" type="button">Run ShipSync</button>
+              <button class="rv-mini" id="rvRun" type="button">Run BerthSide</button>
               <button class="rv-mini" id="rvReply" type="button">Reply to sender</button>
               <button class="rv-mini" id="rvRefresh" type="button">Refresh</button>
             </div>
@@ -1800,7 +1800,7 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
     <div class="col-grip grip-list" id="gripList" role="separator" aria-orientation="vertical"
          aria-label="Resize the conversation list" aria-controls="list" tabindex="0" data-page-node-id="Octye4DJQPHAVwxaL7qG30"><span class="col-badge" data-page-node-id="mA9q039tGJ4W85r0YWRCPx">Inbox</span></div>
     <div class="col-grip grip-ship" id="gripShip" role="separator" aria-orientation="vertical"
-         aria-label="Resize the ShipSync verdict panel" aria-controls="side" tabindex="0" data-page-node-id="9c4XFxanMIDDq99MpnezG8"><span class="col-badge" data-page-node-id="TfDMUKAlvTF9WLV5wsAchT">Verdict</span></div>
+         aria-label="Resize the BerthSide verdict panel" aria-controls="side" tabindex="0" data-page-node-id="9c4XFxanMIDDq99MpnezG8"><span class="col-badge" data-page-node-id="TfDMUKAlvTF9WLV5wsAchT">Verdict</span></div>
   </div>
 </div>
 
@@ -1878,7 +1878,7 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
       <button class="x" id="helpClose" type="button" aria-label="Close shortcuts" data-page-node-id="bT9azBrxRPftbBM6fa3CYc">&#10005;</button>
     </div>
     <div class="help-body" id="helpRows" data-page-node-id="QEVEUKMNNQPBcj5D7DEK3d"></div>
-    <div class="help-foot" data-page-node-id="HUScmg2R0Ub1GGduZgesli">Shortcuts work anywhere on this page, except while you are typing in a field. Processing is never automatic: the two ShipSync buttons in the verdict panel are the only things that ever run the pipeline.</div>
+    <div class="help-foot" data-page-node-id="HUScmg2R0Ub1GGduZgesli">Shortcuts work anywhere on this page, except while you are typing in a field. Processing is never automatic: the two BerthSide buttons in the verdict panel are the only things that ever run the pipeline.</div>
   </div>
 </div>
 
@@ -1889,7 +1889,7 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
 
 <script>
 /* =========================================================================
-   ShipMail: the mail console of ShipSync.
+   ShipMail: the mail console of BerthSide.
 
    Traffic rules:
      * Opening a mailbox reads the connected Gmail account only.
@@ -1900,14 +1900,14 @@ td.f small{display:block;font-weight:400;color:var(--muted-2);font-size:9.5px;le
        mail client instead of breaking.
      * Selecting a message renders from memory, or reads a STORED result
        (GET /api/gmail/results/{id}). Reading never triggers processing.
-     * Processing happens ONLY on an explicit "Run ShipSync" / "Re-process"
+     * Processing happens ONLY on an explicit "Run BerthSide" / "Re-process"
        (button, or the documented R shortcut). No setInterval, no polling, no
        background refresh anywhere.
    Every call above is scoped to the OAuth database. The hub's 520-email corpus
    is the Review Console's data and never appears in this workspace.
    Attachment previews are fetched on click from GET /api/gmail/attachments/{path}.
    ========================================================================= */
-const API = "";                       /* same origin as the ShipSync backend */
+const API = "";                       /* same origin as the BerthSide backend */
 
 const $  = id => document.getElementById(id);
 const esc = s => (s ?? "").toString().replace(/[&<>"']/g,
@@ -2186,7 +2186,7 @@ function allItems(){
 
 /* ------------------------------------------------------------ chrome bits */
 function stBadge(s){
-  if(!s) return '<span class="badge st" style="--c:var(--muted-2)" title="No stored ShipSync result yet">-</span>';
+  if(!s) return '<span class="badge st" style="--c:var(--muted-2)" title="No stored BerthSide result yet">-</span>';
   return '<span class="badge st '+s+'">'+esc(s.replace(/_/g," "))+'</span>';
 }
 function catBadge(c){
@@ -2204,7 +2204,7 @@ function heatOf(st){
     NEEDS_REVIEW: ["warn","var(--warn)",  "Escalated to a human reviewer"],
     SKIPPED:      ["", "var(--muted-2)",  "Not actionable: nothing to compare"]
   };
-  const [k, tone, tip] = m[st] || ["", "var(--border-strong)", "Not processed by ShipSync yet"];
+  const [k, tone, tip] = m[st] || ["", "var(--border-strong)", "Not processed by BerthSide yet"];
   return {k, tone, op: st ? (st === "SKIPPED" ? ".35" : ".85") : ".3", tip};
 }
 let toastT = null;
@@ -2308,11 +2308,11 @@ function renderEmptyDetail(){
     $("mail").innerHTML =
       '<div class="empty rich">' + I.inbox +
         '<span class="big">No mailbox connected</span>' +
-        '<span class="hint-lead">ShipMail reads a real account. Connect Gmail and your mail appears here, ready for the ShipSync verdict panel.</span>' +
+        '<span class="hint-lead">ShipMail reads a real account. Connect Gmail and your mail appears here, ready for the BerthSide verdict panel.</span>' +
         '<div class="empty-hints">' +
           hintRow("Ctrl K","Search mail &amp; commands") +
           hintRow("C","Compose a message") +
-          hintRow("V","ShipSync verdict panel") +
+          hintRow("V","BerthSide verdict panel") +
         '</div>' +
       '</div>';
     renderSideEmpty();
@@ -2321,11 +2321,11 @@ function renderEmptyDetail(){
   $("mail").innerHTML =
     '<div class="empty rich">' + I.inbox +
       '<span class="big">Select a message to inspect</span>' +
-      '<span class="hint-lead">Read the mail, then check the ShipSync verdict in the side panel: every SI ↔ BL pair is extracted, compared and signed off by a human.</span>' +
+      '<span class="hint-lead">Read the mail, then check the BerthSide verdict in the side panel: every SI ↔ BL pair is extracted, compared and signed off by a human.</span>' +
       '<div class="empty-hints">' +
         hintRow("Ctrl K","Search mail &amp; commands") +
         hintRow("C","Compose a message") +
-        hintRow("V","ShipSync verdict panel") +
+        hintRow("V","BerthSide verdict panel") +
         hintRow("[","Collapse the sidebar") +
         hintRow("Drag","Resize the column dividers") +
       '</div>' +
@@ -2383,13 +2383,13 @@ function renderMail(){
       ${isOut ? "" : `<button class="mic" type="button" data-tip="Reply" data-tip-desc="Open the composer prefilled with a reply to this sender" data-tip-pos="bottom" aria-label="Reply" onclick="openComposer('reply')">${I.reply}</button>`}
       <span class="grow"></span>
       ${shipDoc ? `
-        <button class="mic" id="shipBtn" type="button" data-tip="ShipSync verdict panel" data-tip-desc="Show or hide the ShipSync side panel for this message" data-tip-kbd="V" data-tip-pos="bottom" aria-label="Toggle the ShipSync panel"><span class="ship-ico"></span></button>
+        <button class="mic" id="shipBtn" type="button" data-tip="BerthSide verdict panel" data-tip-desc="Show or hide the BerthSide side panel for this message" data-tip-kbd="V" data-tip-pos="bottom" aria-label="Toggle the BerthSide panel"><span class="ship-ico"></span></button>
       ` : `
-        <span class="chip" style="font-size:11px;color:var(--muted);background:var(--surface-3);border:1px solid var(--border);padding:2px 8px;border-radius:4px" title="ShipSync 7-field reconciliation only applies to SI and BL documents">Category: ${cat === "INVOICE" ? "Invoice" : "Others"} · ShipSync N/A</span>
+        <span class="chip" style="font-size:11px;color:var(--muted);background:var(--surface-3);border:1px solid var(--border);padding:2px 8px;border-radius:4px" title="BerthSide 7-field reconciliation only applies to SI and BL documents">Category: ${cat === "INVOICE" ? "Invoice" : "Others"} · BerthSide N/A</span>
       `}
       <button class="mic" id="focusBtn" type="button" data-tip="Focus mode" data-tip-desc="Hide the inbox and give the message the full width" data-tip-kbd="F" data-tip-pos="bottom" aria-label="Toggle focus mode"><span class="focus-ico"></span></button>
-      ${(shipDoc && it.shipment) ? `<span class="chip mono" data-tip="Shipment" data-tip-desc="The shipment this message belongs to: open it in ShipSync to compare its documents" data-tip-pos="bottom">${esc(it.shipment)}</span>` : ""}
-      ${shipDoc ? `<span class="chip st" style="--c:${chipTone}" data-tip="ShipSync verdict" data-tip-desc="${esc(verdictLine(it))}" data-tip-pos="bottom">${esc(chipTxt)}</span>` : ""}
+      ${(shipDoc && it.shipment) ? `<span class="chip mono" data-tip="Shipment" data-tip-desc="The shipment this message belongs to: open it in BerthSide to compare its documents" data-tip-pos="bottom">${esc(it.shipment)}</span>` : ""}
+      ${shipDoc ? `<span class="chip st" style="--c:${chipTone}" data-tip="BerthSide verdict" data-tip-desc="${esc(verdictLine(it))}" data-tip-pos="bottom">${esc(chipTxt)}</span>` : ""}
     </div>
     <div class="wrap">
       <h1 class="wsubj">${esc(it.subject)}</h1>
@@ -2414,7 +2414,7 @@ function renderMail(){
 }
 function verdictLine(it){
   if(it.kind === "out") return it.draft ? "This draft has never been sent." : "Sent from this console and recorded locally.";
-  if(!it.status) return "This email has not been through ShipSync yet: open the verdict panel to run it.";
+  if(!it.status) return "This email has not been through BerthSide yet: open the verdict panel to run it.";
   if(it.status === "MISMATCH") return "fields differ between the SI and the BL: do not release without review.";
   if(it.status === "NEEDS_REVIEW") return "escalated to a human reviewer: the machine is not confident.";
   if(it.status === "SKIPPED") return "not actionable: nothing comparable in this message.";
@@ -2516,7 +2516,7 @@ function undoLast(){
   toast("Restored.");
 }
 
-/* --------------------------------------------------------- ShipSync panel */
+/* --------------------------------------------------------- BerthSide panel */
 function setShip(open, fromUser){
   if(fromUser) state.shipTouched = true;
   document.querySelector(".app").classList.toggle("ship-off", !open);
@@ -2526,7 +2526,7 @@ function isShipOpen(){ return !document.querySelector(".app").classList.contains
 function renderShipToggle(){
   const b = $("shipBtn"); if(!b) return;
   const open = isShipOpen();
-  b.dataset.tip = open ? "Hide the ShipSync panel" : "Show the ShipSync panel";
+  b.dataset.tip = open ? "Hide the BerthSide panel" : "Show the BerthSide panel";
   b.dataset.tipDesc = open ? "Give the message the full width again" : "Show the verdict, documents and required actions";
   b.setAttribute("aria-label", b.dataset.tip);
   b.querySelector(".ship-ico").innerHTML = open ? I.panelOn : I.panelOff;
@@ -2744,7 +2744,7 @@ function openDiscrepancyReply(id){
   const diffs = cmps.filter(c => !c.match && !c.missing);
   const to = it.from || "";
   const ship = it.shipment || r.shipment_id || "";
-  const subj = `[ShipSync Discrepancy Notice] Verification Mismatch for Shipment ${ship || it.subject}`;
+  const subj = `[BerthSide Discrepancy Notice] Verification Mismatch for Shipment ${ship || it.subject}`;
   let b = `Dear Customer / Carrier Partner,\n\n`;
   b += `During automated 7-field SI ↔ draft BL document verification for shipment ${ship || it.subject}, the following discrepancy was flagged:\n\n`;
   if(diffs.length){
@@ -2776,7 +2776,7 @@ function openMissingDocReply(id){
   if(!it) return;
   const to = it.from || "";
   const ship = it.shipment || it.subject || id;
-  const subj = `[ShipSync Follow-up] Missing Shipping Documents for Shipment ${ship}`;
+  const subj = `[BerthSide Follow-up] Missing Shipping Documents for Shipment ${ship}`;
   let b = `Dear Customer / Carrier Partner,\n\n`;
   b += `We are reviewing shipping documentation for shipment ${ship}, but we have not yet received the complete set of required documents (Shipping Instruction or Bill of Lading draft).\n\n`;
   b += `Please provide the missing document files as soon as possible to proceed with automated 7-field verification and timely customs filing.\n\nBest regards,\nDocumentation & Operations Desk`;
@@ -2925,7 +2925,7 @@ async function loadVerdict(id){
     sideSub(it.draft ? "Draft · never sent" : "Sent · not processed");
     $("side").innerHTML = '<div class="empty">'+I.mail+
       '<span class="big">'+(it.draft ? "This draft has not been sent" : "You sent this message")+'</span>'+
-      '<span>Only inbound customer mail is processed by ShipSync, so there is nothing to verify here.</span></div>';
+      '<span>Only inbound customer mail is processed by BerthSide, so there is nothing to verify here.</span></div>';
     if(!state.shipTouched) setShip(true);
     return;
   }
@@ -2933,17 +2933,17 @@ async function loadVerdict(id){
   if(!isShipDoc(it)){
     if(state.activeId !== id) return;
     setSideBadge(null);
-    sideSub(cat === "INVOICE" ? "Invoice · ShipSync Not Required" : "Others · ShipSync Not Required");
+    sideSub(cat === "INVOICE" ? "Invoice · BerthSide Not Required" : "Others · BerthSide Not Required");
     $("side").innerHTML = `
       <div class="empty" style="padding:28px 18px;text-align:center">
         <div style="width:48px;height:48px;border-radius:12px;background:rgba(148,163,184,0.1);display:inline-flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--muted)">
           ${cat === "INVOICE" ? I.invoice : I.others}
         </div>
-        <span class="big" style="font-size:15px;font-weight:650;display:block;margin-bottom:8px">ShipSync Not Required</span>
+        <span class="big" style="font-size:15px;font-weight:650;display:block;margin-bottom:8px">BerthSide Not Required</span>
         <span style="font-size:12.5px;color:var(--muted);line-height:1.6;display:block;max-width:280px;margin:0 auto">
           This email is classified as <b>${cat === "INVOICE" ? "Invoice (Finance / Billing)" : "Other (General Inquiries / Non-document)"}</b>.
           <br><br>
-          Per problem statement protocol, ShipSync 7-field SI ↔ BL discrepancy reconciliation is only conducted on <b>Bill of Lading (BL)</b> and <b>Shipping Instruction (SI)</b> documents.
+          Per problem statement protocol, BerthSide 7-field SI ↔ BL discrepancy reconciliation is only conducted on <b>Bill of Lading (BL)</b> and <b>Shipping Instruction (SI)</b> documents.
         </span>
       </div>`;
     if(!state.shipTouched) setShip(false);
@@ -2990,10 +2990,10 @@ function renderSideEmpty(){
   $("side").innerHTML =
     '<div class="empty rich">' + I.ship +
       '<span class="big">Nothing to verify yet</span>' +
-      '<span class="hint-lead">Open a message in the inbox and the stored ShipSync verdict appears here: the seven compared fields, the documents on file, and the actions still owed to the customer.</span>' +
+      '<span class="hint-lead">Open a message in the inbox and the stored BerthSide verdict appears here: the seven compared fields, the documents on file, and the actions still owed to the customer.</span>' +
       '<div class="empty-hints">' +
         hintRow("V","Show / hide this panel") +
-        hintRow("R","Run ShipSync on the open mail") +
+        hintRow("R","Run BerthSide on the open mail") +
         hintRow("G","Open it in the Review Console") +
         hintRow("C","Compose a message") +
       '</div>' +
@@ -3015,9 +3015,9 @@ function renderIdle(it){
       </table></div>
     </section>
     <section><h3>Action</h3>
-      <div class="sp-note">This email has not been through ShipSync yet. Processing runs once and the stored result is reused from then on.</div>
+      <div class="sp-note">This email has not been through BerthSide yet. Processing runs once and the stored result is reused from then on.</div>
       <div class="sp-btns">
-        <button class="btn primary" type="button" onclick="runShipSync(false)">Run ShipSync</button>
+        <button class="btn primary" type="button" onclick="runBerthSide(false)">Run BerthSide</button>
         <a class="btn" href="/ui/#${esc(it.shipment ? '/s/' + it.shipment : it.id)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:8px 12px">Open Shipment ➔</a>
       </div>
       <div class="sp-src" style="margin-top:10px">Nothing is processed automatically: neither opening this message nor reading it ever runs the pipeline.</div>
@@ -3159,7 +3159,7 @@ function renderVerdict(r){
     <section><h3>${I.file}Shipping Documents</h3>${docs(r)}</section>
     <section><h3>Pipeline Operations</h3>${actions(r, missing)}</section>
     <section class="sp-src-wrap"><div class="sp-src">
-      ${esc(r.cached ? "Stored result from audit database: reused, so the pipeline was not re-run." : "Freshly processed through the ShipSync core.")}
+      ${esc(r.cached ? "Stored result from audit database: reused, so the pipeline was not re-run." : "Freshly processed through the BerthSide core.")}
       <br>Processing time: <b>${esc(r.cached ? "0 ms (cached)" : Math.round(r.processing_ms||0) + " ms")}</b>
       · run <b>#${esc(r.attempts || 1)}</b>
       ${r.processed_at ? '<br>Stored at <b>'+esc(String(r.processed_at).replace("T"," ").slice(0,19))+'</b>' : ""}
@@ -3193,7 +3193,7 @@ function actions(r, missing){
     out.push('<button class="btn primary" type="button" onclick="requestDoc(\''+esc(doc)+'\')">Request '+esc(doc)+'</button>');
     out.push('<button class="btn" type="button" onclick="openComposer(\'request-'+(doc === "BL" ? "bl" : "si")+'\')">Draft the request</button>');
   }
-  out.push('<button class="btn" type="button" onclick="runShipSync(true)">Re-process (explicit)</button>');
+  out.push('<button class="btn" type="button" onclick="runBerthSide(true)">Re-process (explicit)</button>');
   return '<div class="sp-btns">' + out.join("") + '</div>';
 }
 
@@ -3213,12 +3213,12 @@ async function attachmentsFor(e){
   }
   return out;
 }
-async function runShipSync(force){
+async function runBerthSide(force){
   const it = activeItem();
   if(!it || it.kind !== "mail") return toast("Nothing inbound is open to process.");
   const e = it.raw;
   setShip(true, true);
-  showLoading(force ? "Re-processing with ShipSync…" : "ShipSync is processing this email…");
+  showLoading(force ? "Re-processing with BerthSide…" : "BerthSide is processing this email…");
   try{
     const res = await fetch(API + "/api/gmail/process", {
       method:"POST", headers:{"Content-Type":"application/json"},
@@ -3235,12 +3235,12 @@ async function runShipSync(force){
     renderVerdict(data);
     enrichStatus(e.id, data.status, data.category);
     renderKPIs(); renderRail(); renderList();
-    toast(data.cached ? "Reused the stored result: nothing re-processed." : "ShipSync processed this email.");
+    toast(data.cached ? "Reused the stored result: nothing re-processed." : "BerthSide processed this email.");
   }catch(err){
     setSideBadge(null); sideSub("Request failed");
     $("side").innerHTML = '<div class="empty">'+I.info+
-      '<span class="big">Could not reach the ShipSync API</span><span>'+esc(err.message||"Network error")+'</span>'+
-      '<button class="btn" style="margin-top:6px" type="button" onclick="runShipSync('+!!force+')">Try again</button></div>';
+      '<span class="big">Could not reach the BerthSide API</span><span>'+esc(err.message||"Network error")+'</span>'+
+      '<button class="btn" style="margin-top:6px" type="button" onclick="runBerthSide('+!!force+')">Try again</button></div>';
   }
 }
 function enrichStatus(id, status, category){
@@ -3267,7 +3267,7 @@ async function requestDoc(doc){
     attText[data.attachment.filename] = data.attachment.content_text;
     renderMail();
     toast(doc + " received, re-processing.");
-    await runShipSync(true);
+    await runBerthSide(true);
   }catch(err){
     $("side").innerHTML = '<div class="empty">'+I.info+'<span class="big">Request failed</span><span>'+esc(err.message||"")+'</span></div>';
   }
@@ -3286,12 +3286,12 @@ function openComposer(preset){
     blank: { title:"New message", to:"", subj:"", body:"" },
     reply: { title:"Reply", to, subj:(it && !/^re:/i.test(it.subject) ? "RE: " + it.subject : (it ? it.subject : "")),
              body:"\n\nOn " + (it ? it.received : "") + ", " + who + " wrote:\n" + String(e.body || "").split("\n").map(l => "> " + l).join("\n") },
-    "request-si": { title:"Request the SI", to, subj:(ship ? "[ShipSync] Missing SI: " + ship : "[ShipSync] Missing SI"),
-             body:"Hi " + (e.from_name || "there") + ",\n\nWe cannot verify the shipment" + (ship ? " " + ship : "") + " yet because the Shipping Instruction (SI) has not arrived.\nCould you send the SI as an attachment in this thread?\n\nThanks,\nShipSync operations" },
-    "request-bl": { title:"Request the BL", to, subj:(ship ? "[ShipSync] Missing BL: " + ship : "[ShipSync] Missing BL"),
-             body:"Hi " + (e.from_name || "there") + ",\n\nWe only hold the Shipping Instruction for" + (ship ? " " + ship : " this shipment") + "; the draft Bill of Lading is still missing.\nCould you attach the draft BL so we can compare the seven fields?\n\nThanks,\nShipSync operations" },
-    chase: { title:"Chase the customer", to, subj:(ship ? "[ShipSync] Awaiting your confirmation: " + ship : "[ShipSync] Awaiting your confirmation"),
-             body:"Hi " + (e.from_name || "there") + ",\n\nJust following up on the documents" + (ship ? " for " + ship : "") + ": we are still missing a reply.\nPlease confirm the details so we can clear the shipment.\n\nThanks,\nShipSync operations" }
+    "request-si": { title:"Request the SI", to, subj:(ship ? "[BerthSide] Missing SI: " + ship : "[BerthSide] Missing SI"),
+             body:"Hi " + (e.from_name || "there") + ",\n\nWe cannot verify the shipment" + (ship ? " " + ship : "") + " yet because the Shipping Instruction (SI) has not arrived.\nCould you send the SI as an attachment in this thread?\n\nThanks,\nBerthSide operations" },
+    "request-bl": { title:"Request the BL", to, subj:(ship ? "[BerthSide] Missing BL: " + ship : "[BerthSide] Missing BL"),
+             body:"Hi " + (e.from_name || "there") + ",\n\nWe only hold the Shipping Instruction for" + (ship ? " " + ship : " this shipment") + "; the draft Bill of Lading is still missing.\nCould you attach the draft BL so we can compare the seven fields?\n\nThanks,\nBerthSide operations" },
+    chase: { title:"Chase the customer", to, subj:(ship ? "[BerthSide] Awaiting your confirmation: " + ship : "[BerthSide] Awaiting your confirmation"),
+             body:"Hi " + (e.from_name || "there") + ",\n\nJust following up on the documents" + (ship ? " for " + ship : "") + ": we are still missing a reply.\nPlease confirm the details so we can clear the shipment.\n\nThanks,\nBerthSide operations" }
   }[cmpPreset] || { title:"New message", to:"", subj:"", body:"" };
   $("cmpTitle").textContent = T.title;
   $("cmpTo").value = T.to || "";
@@ -3890,9 +3890,9 @@ function renderYou(){
     '</section>' +
     '<section><h3>Action</h3>' +
       (processed
-        ? '<div class="sp-note ok">ShipSync already holds a verdict for this message.</div>'
-        : '<div class="sp-note">This email has not been through ShipSync yet. Processing runs once and the stored result is reused from then on.</div>' +
-          '<div class="sp-btns"><button class="btn primary" type="button" onclick="runShipSync(false)">Run ShipSync</button></div>') +
+        ? '<div class="sp-note ok">BerthSide already holds a verdict for this message.</div>'
+        : '<div class="sp-note">This email has not been through BerthSide yet. Processing runs once and the stored result is reused from then on.</div>' +
+          '<div class="sp-btns"><button class="btn primary" type="button" onclick="runBerthSide(false)">Run BerthSide</button></div>') +
     '</section>';
 }
 function openYou(){
@@ -4004,9 +4004,9 @@ const SHORTCUTS = [
   {section:"Read & act"},
   {keys:["\u2191","\u2193"], label:"Next / previous message", desc:"Walk the list: the highlighted message opens straight away"},
   {keys:["Enter"], label:"Open", desc:"Open the highlighted message"},
-  {keys:["V"], label:"ShipSync verdict panel", desc:"Show or hide the verdict, documents and required actions"},
+  {keys:["V"], label:"BerthSide verdict panel", desc:"Show or hide the verdict, documents and required actions"},
   {keys:["F"], label:"Focus mode", desc:"Hide the inbox and give the message the full width"},
-  {keys:["R"], label:"Run ShipSync", desc:"Explicitly process (or re-process) the open email: never automatic"},
+  {keys:["R"], label:"Run BerthSide", desc:"Explicitly process (or re-process) the open email: never automatic"},
   {section:"Mailbox"},
   {keys:["C"], label:"Compose", desc:"Write a new message"},
   {keys:["S"], label:"Star / unstar", desc:"Pin the open message to the Starred mailbox"},
@@ -4107,7 +4107,7 @@ document.addEventListener("keydown", e => {
   if(lk === "x"){ e.preventDefault(); moveMail("trash"); return; }
   if(k === "!"){ e.preventDefault(); moveMail("spam"); return; }
   if(lk === "z"){ e.preventDefault(); undoLast(); return; }
-  if(lk === "r"){ e.preventDefault(); runShipSync(true); return; }
+  if(lk === "r"){ e.preventDefault(); runBerthSide(true); return; }
 });
 /* `/` parks the caret in the topbar search box, the one piece of ShipMail
    chrome the user reaches for most often. */
@@ -4240,11 +4240,11 @@ function buildCmds(){
     {t:"Go to first mismatch", sub:firstMismatch ? firstMismatch.subject.slice(0,52) : "none in this inbox", ico:ICON2.jump, run:() => firstMismatch && openMailById(firstMismatch.id)},
     {t:"Go to first review", sub:firstReview ? firstReview.subject.slice(0,52) : "none in this inbox", ico:ICON2.jump, run:() => firstReview && openMailById(firstReview.id)},
     {t:"Go to first unread", sub:unread ? unread.subject.slice(0,52) : "inbox is fully read", ico:ICON2.mail, run:() => unread && openMailById(unread.id)},
-    {t:"Toggle ShipSync verdict panel", sub:"Show or hide the verdict for the open mail", ico:ICON2.panel, k:"V", run:toggleShip},
+    {t:"Toggle BerthSide verdict panel", sub:"Show or hide the verdict for the open mail", ico:ICON2.panel, k:"V", run:toggleShip},
     {t:"Toggle focus mode", sub:"Hide the inbox and widen the message", ico:I.focusMax, k:"F", run:toggleFocus},
     {t:"Switch theme", sub:"Currently " + curTheme() + ", switch to " + (curTheme() === "dark" ? "light" : "dark"), ico:themeIconSvg(curTheme()), k:"T", run:toggleTheme},
     {t:"Toggle sidebar", sub:"Expand / collapse the rail", ico:ICON2.rail, k:"[", run:toggleRail},
-    {t:"Run ShipSync on the open email", sub:"Explicit processing: never automatic", ico:ICON2.ship, k:"R", run:() => runShipSync(true)},
+    {t:"Run BerthSide on the open email", sub:"Explicit processing: never automatic", ico:ICON2.ship, k:"R", run:() => runBerthSide(true)},
     {t:"Reload mail", sub:"Re-read the connected mailbox", ico:ICON2.refresh, run:reloadMail},
     {t:"Mark the inbox as read", sub:"Clear every unread flag in this session", ico:I.check, run:markAllRead},
     {t:"Undo last mail action", sub:"Star, archive, spam or delete", ico:ICON2.undo, k:"Z", run:undoLast},
@@ -4460,7 +4460,7 @@ window.addEventListener("hashchange", () => {
 
 /* keep the module functions reachable from inline handlers */
 Object.assign(window, {
-  openMailById, toggleStar, moveMail, undoLast, clearFilters, reloadMail, runShipSync, requestDoc,
+  openMailById, toggleStar, moveMail, undoLast, clearFilters, reloadMail, runBerthSide, requestDoc,
   connectGmail,
   openComposer, closeComposer, toggleAtt, flashSaved, palHover, palRun, runPin
 });
@@ -4472,7 +4472,7 @@ Object.assign(window, {
      * Every call goes to /api/gmail/*, which reads and writes sdoc_oauth.db.
        The hub corpus is a different database and never shows up here.
      * Nothing runs on a timer. Processing happens only when the operator
-       presses Run ShipSync, and only for the rows they selected.
+       presses Run BerthSide, and only for the rows they selected.
      * A reply is always previewed first. The draft is fetched with dry_run,
        so the modal shows the exact text before anything is recorded.
    ========================================================================= */
@@ -4632,7 +4632,7 @@ function rvRowHtml(r){
   const st = r.status;
   const badge = st
     ? '<span class="badge st" style="--c:' + rvDot(st) + '">' + esc(st.replace(/_/g, " ")) + '</span>'
-    : '<span class="badge st" style="--c:var(--muted-2)" title="No stored ShipSync result yet">-</span>';
+    : '<span class="badge st" style="--c:var(--muted-2)" title="No stored BerthSide result yet">-</span>';
   const cat = r.category
     ? '<span class="badge cat" style="--c:var(--cat-' + esc(r.category) + ')">' + rvCat(r.category) + '</span>'
     : '<span class="badge cat" style="--c:var(--muted-2)">-</span>';
@@ -4737,13 +4737,13 @@ async function rvRun(ids){
   const one = target.length === 1;
   RV.busy = true; rvRenderSel();
   const msg = $("rvMsg");
-  if(msg){ msg.className = "rv-loading"; msg.textContent = "Running ShipSync over " + target.length + " message(s)…"; }
+  if(msg){ msg.className = "rv-loading"; msg.textContent = "Running BerthSide over " + target.length + " message(s)…"; }
   try{
     const d = await rvPost("/api/gmail/bulk-run", {email_ids: target});
     const ok = (d.results || []).filter(x => !x.error);
     const bad = (d.results || []).filter(x => x.error);
     const skip = (d.skipped || []).length;
-    toast("ShipSync processed " + ok.length + " message" + (ok.length === 1 ? "" : "s") +
+    toast("BerthSide processed " + ok.length + " message" + (ok.length === 1 ? "" : "s") +
           (bad.length ? ", " + bad.length + " failed" : "") +
           (skip ? ", " + skip + " skipped" : "") + ".");
     if(one && bad.length) toast("Could not process: " + bad[0].error);

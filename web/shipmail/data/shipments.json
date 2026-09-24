@@ -2158,25 +2158,25 @@
       "shipment_id": "SHP-001",
       "status": "INBOX",
       "subject": "SHP-001 demo shipment",
-      "from": "operations@shipsync.demo"
+      "from": "operations@berthside.demo"
     },
     {
       "shipment_id": "SHP-002",
       "status": "INBOX",
       "subject": "SHP-002 demo shipment",
-      "from": "operations@shipsync.demo"
+      "from": "operations@berthside.demo"
     },
     {
       "shipment_id": "SHP-003",
       "status": "INBOX",
       "subject": "SHP-003 demo shipment",
-      "from": "operations@shipsync.demo"
+      "from": "operations@berthside.demo"
     },
     {
       "shipment_id": "SHP-004",
       "status": "INBOX",
       "subject": "SHP-004 demo shipment",
-      "from": "operations@shipsync.demo"
+      "from": "operations@berthside.demo"
     }
   ]
 }

@@ -143,7 +143,7 @@ def build(bundle_dir: Path) -> tuple[list[dict], dict[str, dict]]:
             "shipment_id": sid,
             "from": sender,
             "from_name": friendly_name(sender),
-            "to": "operations@shipsync.demo",
+            "to": "operations@berthside.demo",
             "subject": subject,
             "snippet": (body or "").replace("\n", " ").strip()[:140],
             "received": label,
@@ -169,7 +169,7 @@ def build(bundle_dir: Path) -> tuple[list[dict], dict[str, dict]]:
             "shipment_id": demo,
             "status": "INBOX",
             "subject": f"{demo} demo shipment",
-            "from": "operations@shipsync.demo",
+            "from": "operations@berthside.demo",
         })
 
     emails.sort(key=lambda e: e["iso_date"], reverse=True)
@@ -202,7 +202,7 @@ def main() -> None:
 
     (out / "emails.json").write_text(
         json.dumps({
-            "mailbox": "operations@shipsync.demo",
+            "mailbox": "operations@berthside.demo",
             "note": "Static ShipMail inbox generated from the official hackathon "
                     "bundle. Mirrors the Dashboard corpus so both surfaces show "
                     "the same emails. Opening the inbox costs no backend work.",

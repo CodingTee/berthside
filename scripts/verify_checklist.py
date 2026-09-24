@@ -17,7 +17,7 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))
 
-_TMP = Path(tempfile.mkdtemp(prefix="shipsync-checklist-"))
+_TMP = Path(tempfile.mkdtemp(prefix="berthside-checklist-"))
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP / 'c.db'}"
 os.environ["INGEST_DIR"] = str(_TMP / "ingested")
 os.environ["DATA_SOURCE"] = str(_TMP / "empty")

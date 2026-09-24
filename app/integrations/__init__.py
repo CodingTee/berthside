@@ -1,1 +1,1 @@
-"""External input integrations for ShipSync."""
+"""External input integrations for BerthSide."""

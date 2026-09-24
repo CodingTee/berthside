@@ -18,7 +18,7 @@ DEFAULT_TRUSTED_SOURCES: Set[str] = {
     # Enterprise Hub Intake Mailboxes
     "averis.demo@gmail.com",
     "sdoc-hackathon-bundle@averis.com",
-    "operations@shipsync.demo",
+    "operations@berthside.demo",
     "docs.export@averis.com",
     "booking@averis.com",
     "april.shipping@averis.com",
@@ -29,7 +29,7 @@ DEFAULT_TRUSTED_SOURCES: Set[str] = {
 # Corporate & Partner Whitelist Domains
 DEFAULT_TRUSTED_DOMAINS: Set[str] = {
     "averis.com",
-    "shipsync.demo",
+    "berthside.demo",
     # Benchmark and test fixture domains
     "fastocean.com",
     "customercorp.com",

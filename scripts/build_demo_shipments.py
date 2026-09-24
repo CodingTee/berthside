@@ -47,7 +47,7 @@ SENDER = {
     "accounts": ("Invoicing", "ar@nordicpaper-asia.com"),
     "agent": ("Port Agent", "agent@hamoverflow.de"),
 }
-TO = "operations@shipsync.demo"
+TO = "operations@berthside.demo"
 
 
 # --------------------------------------------------------------------------- #

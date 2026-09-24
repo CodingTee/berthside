@@ -1,4 +1,4 @@
-# ShipSync: Development Guide
+# BerthSide: Development Guide
 
 How to run, verify, test, score and deploy the project. Design rationale lives
 in ARCHITECTURE.md.

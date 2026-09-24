@@ -1,4 +1,4 @@
-"""Convert Gmail API message payloads into ShipSync email payloads."""
+"""Convert Gmail API message payloads into BerthSide email payloads."""
 from __future__ import annotations
 
 import base64

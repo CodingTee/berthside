@@ -3,7 +3,7 @@
 Architecture (single source of truth):
 
     ShipMail (simulated) ─┐
-    Real Gmail            ┼─► ShipSync API ─► Existing ShipSync Core ─► Stored Result
+    Real Gmail            ┼─► BerthSide API ─► Existing BerthSide Core ─► Stored Result
     Dashboard        ┘                                                   │
                             Side Panel ◄─────────────────────────────────┘
 
@@ -49,17 +49,17 @@ router = APIRouter(prefix="/api", tags=["integration"])
 
 # --------------------------------------------------------------------- health
 @router.get("/health", response_model=ApiHealthOut,
-            summary="ShipSync API health check")
+            summary="BerthSide API health check")
 def api_health(db: Session = Depends(get_db)) -> ApiHealthOut:
     return ApiHealthOut(
-        core="existing-shipsync-core",
+        core="existing-berthside-core",
         results_cached=result_cache.count_results(db),
     )
 
 
 # -------------------------------------------------------------------- process
 @router.post("/process", response_model=EmailProcessResponse,
-             summary="Process one email through the existing ShipSync core")
+             summary="Process one email through the existing BerthSide core")
 def process_email(
     payload: EmailAnalyzeRequest,
     db: Session = Depends(get_db),
@@ -162,7 +162,7 @@ def _persist_shipment_state(db: Session, email_id: str,
     """Give a `/api/process` run its normal side effects.
 
     This is the J6 fix. The endpoint used to stop at the verdict, so a shipment
-    the ShipMail "Run ShipSync" button had just verified did not exist as far as
+    the ShipMail "Run BerthSide" button had just verified did not exist as far as
     `/shipments` was concerned: the button processed the email and the shipment
     view could not see it.
 

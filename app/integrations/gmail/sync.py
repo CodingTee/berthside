@@ -1,4 +1,4 @@
-"""Poll real Gmail and hand messages to ShipSync Core."""
+"""Poll real Gmail and hand messages to BerthSide Core."""
 from __future__ import annotations
 
 import base64
@@ -52,7 +52,7 @@ _SHIPMENT_RE = re.compile(r"\b([A-Z]{2,6}-\d{2,6})\b")
 
 
 def poll_and_process(db: Session, limit: int | None = None) -> dict[str, Any]:
-    """Fetch unseen Gmail messages and process them through ShipSync workflow."""
+    """Fetch unseen Gmail messages and process them through BerthSide workflow."""
     started = time.perf_counter()
     message_ids = client.list_message_ids(max_results=limit)
     processed = skipped = failed = 0
@@ -429,7 +429,7 @@ def _cache_sync_result(
     """Mirror a sync run into ``process_results`` (the process-once cache).
 
     The side panel reads ``GET /api/results/{email_id}``. Without this mirror
-    it would keep showing the result of an older manual "Run ShipSync" click
+    it would keep showing the result of an older manual "Run BerthSide" click
     instead of what the Gmail sync just decided. Best-effort: a cache failure
     must never fail the sync itself.
     """

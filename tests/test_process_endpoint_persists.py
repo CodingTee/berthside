@@ -1,4 +1,4 @@
-"""The ShipMail "Run ShipSync" flow must persist shipment state (J6).
+"""The ShipMail "Run BerthSide" flow must persist shipment state (J6).
 
 The button posts to `POST /api/process`. That endpoint used to stop at the
 verdict, so the shipment it had just verified was invisible to `/shipments`.
@@ -57,7 +57,7 @@ def _payload(email_id: str = "shipmail-btn-1") -> dict:
     }
 
 
-def test_run_shipsync_creates_the_shipment_that_shipments_endpoint_shows(db_session):
+def test_run_berthside_creates_the_shipment_that_shipments_endpoint_shows(db_session):
     client = TestClient(app)
     response = client.post("/api/process", json=_payload())
     assert response.status_code == 200, response.text
@@ -86,7 +86,7 @@ def test_run_shipsync_creates_the_shipment_that_shipments_endpoint_shows(db_sess
     assert [e["email_id"] for e in overview["source_emails"]] == ["shipmail-btn-1"]
 
 
-def test_pressing_run_shipsync_again_does_not_duplicate_anything(db_session):
+def test_pressing_run_berthside_again_does_not_duplicate_anything(db_session):
     client = TestClient(app)
     client.post("/api/process", json=_payload())
 

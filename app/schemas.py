@@ -482,7 +482,7 @@ class EmailIngestResponse(EmailAnalyzeResponse):
 
 class ApiHealthOut(BaseModel):
     status: str = "ok"
-    service: str = "ShipSync API"
+    service: str = "BerthSide API"
     core: Optional[str] = None
     results_cached: int = 0
     processing_enabled: bool = True

@@ -1,4 +1,4 @@
-"""Acceptance tests A–G for the ShipSync P0/P1 fixes.
+"""Acceptance tests A–G for the BerthSide P0/P1 fixes.
 
 Drives the **real** Gmail sync code path with only the Gmail API stubbed, in an
 isolated database and ingest directory. Classification, extraction, versioning
@@ -29,7 +29,7 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))
 
-_TMP = Path(tempfile.mkdtemp(prefix="shipsync-accept-"))
+_TMP = Path(tempfile.mkdtemp(prefix="berthside-accept-"))
 _DB_URL = f"sqlite:///{(_TMP / 'accept.db').as_posix()}"
 os.environ["DATABASE_URL"] = _DB_URL
 os.environ["DATABASE_URL_ENTERPRISE"] = _DB_URL

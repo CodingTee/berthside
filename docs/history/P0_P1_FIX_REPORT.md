@@ -1,4 +1,4 @@
-# ShipSync P0/P1 Fixes — Final Report
+# BerthSide P0/P1 Fixes — Final Report
 
 **No architecture was rebuilt.** The Dashboard layout, navigation and styling are
 untouched. The simulated/demo workflow is intact. Every change below is the
