@@ -85,7 +85,7 @@ def test_gmail_api_failure_falls_back_to_resend_or_smtp():
     settings.gmail_client_secret = "test_client_secret"
     settings.gmail_refresh_token = "test_refresh_token"
     settings.resend_api_key = "re_test_backup_key"
-    settings.resend_from = "Averis SDOC <onboarding@resend.dev>"
+    settings.resend_from = "Averis BerthSide Hub <onboarding@resend.dev>"
     settings.smtp_host = ""
 
     try:

@@ -97,7 +97,7 @@ def test_resend_api_dispatch_success():
     import json
     settings = get_settings()
     settings.resend_api_key = "re_test_secret_12345"
-    settings.resend_from = "Averis SDOC <onboarding@resend.dev>"
+    settings.resend_from = "Averis BerthSide Hub <onboarding@resend.dev>"
     settings.smtp_host = ""
 
     try:
@@ -129,14 +129,14 @@ def test_resend_api_dispatch_success():
             assert req.get_header("Authorization") == "Bearer re_test_secret_12345"
             assert req.get_header("Content-type") == "application/json"
             sent_payload = json.loads(req.data.decode("utf-8"))
-            assert sent_payload["from"] == "Averis SDOC <onboarding@resend.dev>"
+            assert sent_payload["from"] == "Averis BerthSide Hub <onboarding@resend.dev>"
             assert sent_payload["to"] == ["client@example.com"]
             assert sent_payload["cc"] == ["operator@example.com"]
             assert sent_payload["headers"]["In-Reply-To"] == "<msg-orig-111@example.com>"
             assert sent_payload["headers"]["References"] == "<msg-orig-111@example.com>"
     finally:
         settings.resend_api_key = ""
-        settings.resend_from = "Averis SDOC Hub <onboarding@resend.dev>"
+        settings.resend_from = "Averis BerthSide Hub <onboarding@resend.dev>"
 
 
 def test_resend_api_dispatch_error_fallback_simulated():
