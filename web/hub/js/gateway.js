@@ -141,7 +141,7 @@
   async function loadStagedEmails(){
     const selMb = document.getElementById("selMailbox");
     const mb = selMb ? selMb.value : "ALL";
-    const url = "/api/v1/gateway/emails?limit=1000" + (mb !== "ALL" ? `&source_mailbox=${encodeURIComponent(mb)}` : "");
+    const url = "/api/v1/gateway/emails?limit=2000" + (mb !== "ALL" ? `&source_mailbox=${encodeURIComponent(mb)}` : "");
     try{
       const res = await fetch(url);
       const data = await res.json();

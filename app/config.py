@@ -128,13 +128,22 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _sync_ai_settings(self) -> Settings:
-        """Sync AI_API_URL and AI_API_KEY into ollama_base_url and ai_service_url."""
+        """Sync AI_API_URL and AI_API_KEY into ai_service_url.
+
+        The ollama settings are only retargeted when AI_API_URL actually points
+        at Ollama: a remote OpenAI-compatible URL here would otherwise send the
+        ollama provider to the wrong host.
+        """
+        provider = (self.ai_provider or "").strip().lower()
+        url = (self.ai_api_url or "").lower()
+        is_ollama = provider == "ollama" or "11434" in url or "ollama" in url
+
         if self.ai_api_url:
             if not self.ai_service_url:
                 self.ai_service_url = self.ai_api_url
-            if self.ollama_base_url in ("http://localhost:11434", ""):
+            if is_ollama and self.ollama_base_url in ("http://localhost:11434", ""):
                 self.ollama_base_url = self.ai_api_url
-        if self.ai_api_key:
+        if self.ai_api_key and is_ollama:
             if not self.ollama_api_key:
                 self.ollama_api_key = self.ai_api_key
         return self

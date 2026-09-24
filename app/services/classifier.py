@@ -14,8 +14,10 @@ from dataclasses import dataclass
 SPAM_DOMAIN_HINTS = (
     "crypto", "lottery", "casino", "viagra", "loan", "prize",
     "marketing", "promo", "newsletter",
-    # throwaway / phishing infrastructure observed in the corpus
-    "mailbox", "webmail", "verify.co", "deals.biz", "logistics-deals",
+    # throwaway / phishing infrastructure observed in the corpus.
+    # Spelled as seen in the corpus: bare words like "mailbox" or "webmail"
+    # would also swallow legitimate providers (ops@mailbox.org).
+    "secure-mailbox", "webmail-verify", "verify.co", "deals.biz", "logistics-deals",
     "parcel-track", "prize-claims", "secure-mail",
 )
 SPAM_SUBJECT_HINTS = (
@@ -126,8 +128,8 @@ def classify(email: dict) -> Classification:
     # "spam" substring anywhere in the address would swallow real senders
     # (no-spam.doc@shipper.com), and the subject is already covered by the
     # word-boundary regex above.
-    domain = sender.rsplit("@", 1)[-1] if "@" in sender else ""
-    if any(h in sender for h in SPAM_DOMAIN_HINTS) or re.search(r"\bspam\b", domain):
+    domain = sender.rsplit("@", 1)[-1].strip().rstrip(">").strip().lower() if "@" in sender else ""
+    if any(h in domain for h in SPAM_DOMAIN_HINTS) or re.search(r"\bspam\b", domain):
         return Classification("SPAM", 0.95, "spam marker / domain detected")
 
     spam_score = 0

@@ -308,7 +308,7 @@ def update_gateway_config(payload: GatewayConfigIn, db: Session = Depends(get_db
 def list_staged_emails(
     source_mailbox: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
-    limit: int = Query(500, ge=1, le=1000),
+    limit: int = Query(2000, ge=1, le=2000),
     db: Session = Depends(get_db),
 ):
     # If no records exist yet (first boot), seed mock demo entries

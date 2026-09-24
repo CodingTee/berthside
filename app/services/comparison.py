@@ -93,7 +93,7 @@ def compare(si_fields: dict[str, Any], bl_fields: dict[str, Any],
     # turning a clean (7-field) shipment into a false MISMATCH/NEEDS_REVIEW.
     for f in info_fields:
         si_raw, bl_raw = si_fields.get(f), bl_fields.get(f)
-        si_v, bl_v = normalize(f, si_raw), normalize(f, bl_v)
+        si_v, bl_v = normalize(f, si_raw), normalize(f, bl_raw)
         if si_v is None and bl_v is None:
             continue  # not present in either document — nothing to show
         match = _match(f, si_v, bl_v) if (si_v is not None and bl_v is not None) else None

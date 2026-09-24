@@ -30,10 +30,17 @@ from app.config import get_settings
 log = logging.getLogger(__name__)
 
 
+def _recipient_header(value: Union[str, List[str], None]) -> str:
+    """Render recipients as an RFC compliant header value."""
+    if isinstance(value, (list, tuple, set)):
+        return ", ".join(str(v).strip() for v in value if str(v).strip())
+    return str(value).strip() if value else ""
+
+
 def _dispatch_via_resend(
     api_key: str,
     from_addr: str,
-    to_email: str,
+    to_email: Union[str, List[str]],
     subject: str,
     body: str,
     html_body: Optional[str] = None,
@@ -165,7 +172,7 @@ def _dispatch_via_gmail_api(
     client_secret: str,
     refresh_token: str,
     from_addr: str,
-    to_email: str,
+    to_email: Union[str, List[str]],
     subject: str,
     body: str,
     html_body: Optional[str] = None,
@@ -195,7 +202,7 @@ def _dispatch_via_gmail_api(
         msg = MIMEText(body, "plain", "utf-8")
 
     msg["From"] = from_addr
-    msg["To"] = to_email
+    msg["To"] = _recipient_header(to_email)
     if cc_str:
         msg["Cc"] = cc_str
     msg["Subject"] = subject
@@ -285,7 +292,7 @@ def _resolve_gmail_credentials() -> Optional[tuple[str, str, str, str]]:
 
 
 def dispatch_smtp_email(
-    to_email: str,
+    to_email: Union[str, List[str]],
     subject: str,
     body: str,
     html_body: Optional[str] = None,
@@ -405,7 +412,7 @@ def dispatch_smtp_email(
         msg = MIMEText(body, "plain", "utf-8")
 
     msg["From"] = from_addr
-    msg["To"] = to_email
+    msg["To"] = _recipient_header(to_email)
     if cc_str:
         msg["Cc"] = cc_str
     msg["Subject"] = subject
