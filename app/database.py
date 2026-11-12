@@ -77,6 +77,16 @@ def _migrate_columns(eng, session_factory) -> None:
             conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN gmail_message_id VARCHAR(128)"))
         if "error" not in de_cols:
             conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN error VARCHAR(512)"))
+        if "message_id" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN message_id VARCHAR(255)"))
+        if "delivery_state" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN delivery_state VARCHAR(32) DEFAULT 'UNKNOWN'"))
+        if "delivery_event_at" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN delivery_event_at DATETIME"))
+        if "delivery_detail" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN delivery_detail TEXT"))
+        if "trace_id" not in de_cols:
+            conn.execute(text("ALTER TABLE dispatched_emails ADD COLUMN trace_id VARCHAR(32)"))
 
         rep_cols = {row[1] for row in conn.execute(text("PRAGMA table_info(reports)")).fetchall()}
         if "classify_source" not in rep_cols:

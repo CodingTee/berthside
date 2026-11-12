@@ -418,15 +418,12 @@ def build_enterprise_audit_receipt(
         source_mailbox=source_mailbox,
     )
 
-    # 1-Click Dispatch URL for official HTML notice (direct penetration to customer)
+    # Operator links open a confirmation page; a GET must never send mail.
     if not dispatch_url:
         dispatch_url = (
             f"http://127.0.0.1:8000/api/v1/gateway/customer-notice/send"
-            f"?stage_id={stage_id}&recipient={urllib.parse.quote_plus(target_client)}&auto_send=true"
+            f"?stage_id={stage_id}&recipient={urllib.parse.quote_plus(target_client)}"
         )
-    elif "auto_send=" not in dispatch_url:
-        sep = "&" if "?" in dispatch_url else "?"
-        dispatch_url = f"{dispatch_url}{sep}auto_send=true"
 
     # Verdict Banner for internal receipt
     if is_mismatch:

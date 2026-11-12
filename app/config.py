@@ -150,6 +150,9 @@ class Settings(BaseSettings):
 
     # -- processing --------------------------------------------------------
     process_max_emails: int = 0  # 0 = no limit for POST /emails/process-all
+    # An ERROR row is retired to DEAD_LETTER once it has failed this many times,
+    # so a permanently broken email cannot spin in the retry loop forever.
+    retry_max_attempts: int = 3
     log_level: str = "INFO"
 
     # -- OCR fallback -------------------------------------------------------

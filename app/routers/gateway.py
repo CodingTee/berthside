@@ -17,7 +17,7 @@ import logging
 import threading
 import time
 from typing import Any, Dict, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import func
@@ -27,6 +27,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.models import (
     BUNDLE_MAILBOX,
+    DeliveryEventRecord,
     DispatchRecord,
     EmailRecord,
     GatewayPolicyRecord,
@@ -39,6 +40,7 @@ from app.models import (
 from app.services.llm_gateway import gateway
 from app.services.security import verify_file_safety
 from app.services import workflow
+from app.tracing import get_trace_id
 
 log = logging.getLogger(__name__)
 settings = get_settings()
@@ -995,23 +997,174 @@ class CustomerNoticeDispatchIn(BaseModel):
     custom_note: Optional[str] = None
 
 
-@router.get("/customer-notice/send", response_class=HTMLResponse, summary="1-Click Dispatch or Interactive Confirmation of Customer Audit Notice")
-def send_customer_notice_page(
-    stage_id: str = Query(..., description="Staged email record ID"),
-    recipient: Optional[str] = Query(None, description="Recipient email address"),
-    auto_send: Optional[bool] = Query(False, description="Dispatch immediately if true"),
-    db: Session = Depends(get_db),
-):
-    """Provides a 1-click gateway interface for operators to dispatch the official HTML notice to customers."""
+def _build_customer_notice(staged, rep, stage_id: str, recipient: Optional[str] = None) -> Dict[str, Any]:
+    """Render the notice once so every dispatch entry point sends identical bytes."""
     from app.services.email_utils import (
         build_customer_html_notice,
         build_customer_structured_text,
         clean_subject,
         extract_original_sender,
     )
-    from app.services.smtp_dispatcher import dispatch_smtp_email
-    import urllib.parse
 
+    target_client = recipient or extract_original_sender(staged.body) or staged.sender or "customer@example.com"
+    clean_subj = clean_subject(staged.subject or "Shipping Documents")
+    is_mismatch = (getattr(rep, "status", None) == "MISMATCH") if rep else False
+    status_desc = "Discrepancies identified" if is_mismatch else "Verified with 0 discrepancies"
+
+    text = build_customer_structured_text(
+        clean_subj=clean_subj, stage_id=stage_id, status_desc=status_desc, rep=rep,
+        target_client=target_client, source_mailbox=staged.source_mailbox,
+    )
+    html_body = build_customer_html_notice(
+        clean_subj=clean_subj, stage_id=stage_id, status_desc=status_desc, rep=rep,
+        target_client=target_client, source_mailbox=staged.source_mailbox,
+    )
+    subject = (
+        f"Re: {clean_subj} - "
+        f"{'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'}"
+        f" - Ref #{stage_id}"
+    )
+    operator_cc = None
+    if staged.sender and staged.sender.lower() != target_client.lower():
+        operator_cc = staged.sender
+    return {
+        "recipient": target_client,
+        "text": text,
+        "html": html_body,
+        "subject": subject,
+        "is_mismatch": is_mismatch,
+        "cc": operator_cc,
+    }
+
+
+def _existing_notice_dispatch(db, stage_id: str, recipient: str, subject: str):
+    """One notice per stage, recipient and subject; a replay must not resend."""
+    return (
+        db.query(DispatchRecord)
+        .filter(
+            DispatchRecord.stage_id == stage_id,
+            DispatchRecord.recipient == recipient,
+            DispatchRecord.subject == subject,
+        )
+        .order_by(DispatchRecord.id.desc())
+        .first()
+    )
+
+
+def _dispatch_customer_notice(
+    db, staged, rep, stage_id: str,
+    recipient: Optional[str] = None,
+    mark_returned: bool = False,
+) -> Dict[str, Any]:
+    """Send the notice once and persist the audit row, or report the earlier send."""
+    from app.services.smtp_dispatcher import dispatch_smtp_email
+
+    content = _build_customer_notice(staged, rep, stage_id, recipient)
+    existing = _existing_notice_dispatch(db, stage_id, content["recipient"], content["subject"])
+    if existing:
+        return {
+            "status": "DUPLICATE", "duplicate": True, "dispatch_id": existing.id,
+            "stage_id": stage_id, "recipient": content["recipient"], "cc": content["cc"],
+            "subject": content["subject"], "delivery": existing.delivery,
+            "channel": existing.channel, "content": content,
+        }
+
+    smtp_res = dispatch_smtp_email(
+        to_email=content["recipient"],
+        subject=content["subject"],
+        body=content["text"],
+        html_body=content["html"],
+        sender=settings.smtp_from or settings.imap_user,
+        cc=content["cc"],
+    )
+    rec = DispatchRecord(
+        stage_id=stage_id,
+        email_id=f"INGEST-{stage_id}",
+        source_mailbox=staged.source_mailbox,
+        recipient=content["recipient"],
+        decision="MISMATCH" if content["is_mismatch"] else "VERIFIED",
+        delivery=smtp_res.get("delivery", "SENT"),
+        subject=content["subject"],
+        channel=smtp_res.get("channel", "SMTP"),
+        message_id=smtp_res.get("message_id"),
+        delivery_state="UNKNOWN",
+        trace_id=get_trace_id(),
+    )
+    db.add(rec)
+    if mark_returned:
+        staged.status = "RETURNED"
+    db.commit()
+    return {
+        "status": "SUCCESS", "duplicate": False, "dispatch_id": rec.id,
+        "stage_id": stage_id, "recipient": content["recipient"], "cc": content["cc"],
+        "subject": content["subject"], "delivery": smtp_res.get("delivery", "SENT"),
+        "channel": smtp_res.get("channel", "SMTP"), "content": content,
+    }
+
+
+def _notice_result_page(result: Dict[str, Any]) -> str:
+    """Shared result page for a confirmed send and for a replayed confirmation."""
+    content = result["content"]
+    duplicate = result["duplicate"]
+    if duplicate:
+        badge = "Already dispatched, no duplicate sent"
+        badge_cls = "warn"
+        heading = "This notice was already sent"
+        lead = "A matching dispatch record exists, so no second email was transmitted."
+    else:
+        badge = "Official Customer Notice Dispatched Successfully"
+        badge_cls = "ok"
+        heading = "Notice Delivered to Client"
+        lead = "The executive HTML documentation notice has been transmitted to the client."
+    cc_html = (
+        f"<br>Carbon Copy (CC) to Operator: <strong>{html.escape(result['cc'])}</strong>"
+        if result["cc"] else ""
+    )
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Customer Notice Result - Federated Gateway</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; display: flex; justify-content: center; }}
+    .box {{ max-width: 680px; width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }}
+    .badge {{ display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 9999px; font-weight: 700; font-size: 14px; margin-bottom: 16px; }}
+    .badge.ok {{ background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }}
+    .badge.warn {{ background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }}
+    .btn {{ display: inline-block; background: #0f172a; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin-top: 20px; }}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="badge {badge_cls}">{html.escape(badge)}</div>
+    <h2 style="margin:0 0 10px 0;">{html.escape(heading)}</h2>
+    <p style="color:#475569;font-size:14px;line-height:1.5;">
+      {html.escape(lead)} Recipient: <strong>{html.escape(result['recipient'])}</strong>.{cc_html}<br>
+      Delivery status: <span style="font-family:monospace;font-weight:bold;">{html.escape(str(result['delivery']))}</span>.
+    </p>
+    <div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:20px;">
+      <h4 style="margin:0 0 12px 0;font-size:13px;color:#64748b;text-transform:uppercase;">Transmitted Content Preview:</h4>
+      <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+        {content['html']}
+      </div>
+    </div>
+    <div style="margin-top:24px;text-align:center;">
+      <a href="/ui/#gateway" class="btn">Return to Master Console</a>
+    </div>
+  </div>
+</body>
+</html>"""
+
+
+@router.get("/customer-notice/send", response_class=HTMLResponse, summary="Preview and confirm the official customer audit notice")
+def send_customer_notice_page(
+    stage_id: str = Query(..., description="Staged email record ID"),
+    recipient: Optional[str] = Query(None, description="Recipient email address"),
+    auto_send: Optional[bool] = Query(False, description="Legacy 1-click flag, never dispatches"),
+    db: Session = Depends(get_db),
+):
+    """Render a confirmation page; a GET must never send mail."""
     staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
     if not staged:
         return HTMLResponse(
@@ -1023,92 +1176,17 @@ def send_customer_notice_page(
         )
 
     rep = db.query(ReportRecord).filter_by(email_id=f"INGEST-{stage_id}").first()
-    target_client = recipient or extract_original_sender(staged.body) or staged.sender or "customer@example.com"
-    clean_subj = clean_subject(staged.subject or "Shipping Documents")
-    is_mismatch = (getattr(rep, "status", None) == "MISMATCH") if rep else False
-    status_desc = f"{'Discrepancies identified' if is_mismatch else 'Verified with 0 discrepancies'}"
-
-    customer_text = build_customer_structured_text(
-        clean_subj=clean_subj,
-        stage_id=stage_id,
-        status_desc=status_desc,
-        rep=rep,
-        target_client=target_client,
-        source_mailbox=staged.source_mailbox,
-    )
-    customer_html = build_customer_html_notice(
-        clean_subj=clean_subj,
-        stage_id=stage_id,
-        status_desc=status_desc,
-        rep=rep,
-        target_client=target_client,
-        source_mailbox=staged.source_mailbox,
-    )
-    customer_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'} - Ref #{stage_id}"
-
-    # If auto_send is requested (e.g. from 1-click action or confirm button)
+    notice = _build_customer_notice(staged, rep, stage_id, recipient)
+    target_client = notice["recipient"]
+    customer_html = notice["html"]
+    legacy_note = ""
     if auto_send:
-        operator_cc = None
-        if staged.sender and staged.sender.lower() != target_client.lower():
-            operator_cc = staged.sender
-
-        smtp_res = dispatch_smtp_email(
-            to_email=target_client,
-            subject=customer_subj,
-            body=customer_text,
-            html_body=customer_html,
-            sender=settings.smtp_from or settings.imap_user,
-            cc=operator_cc,
+        legacy_note = (
+            "<div style='background:#fffbeb;border:1px solid #fde68a;color:#92400e;"
+            "padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px;'>"
+            "One-click links now open a confirmation step. Nothing has been sent yet."
+            "</div>"
         )
-
-        rec = DispatchRecord(
-            stage_id=stage_id,
-            email_id=f"INGEST-{stage_id}",
-            source_mailbox=staged.source_mailbox,
-            recipient=target_client,
-            decision="MISMATCH" if is_mismatch else "VERIFIED",
-            delivery=smtp_res.get("delivery", "SENT"),
-            subject=customer_subj,
-            channel=smtp_res.get("channel", "SMTP"),
-        )
-        db.add(rec)
-        db.commit()
-
-        cc_info_html = f"<br>Carbon Copy (CC) to Operator: <strong style='color:#0f172a;'>{html.escape(operator_cc)}</strong>" if operator_cc else ""
-        success_html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Customer Notice Dispatched - Federated Gateway</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; margin: 0; padding: 24px; display: flex; justify-content: center; }}
-    .box {{ max-width: 680px; width: 100%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); }}
-    .success-badge {{ display: inline-flex; align-items: center; gap: 8px; background: #ecfdf5; color: #047857; padding: 6px 16px; border-radius: 9999px; font-weight: 700; font-size: 14px; border: 1px solid #a7f3d0; margin-bottom: 16px; }}
-    .btn {{ display: inline-block; background: #0f172a; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; margin-top: 20px; }}
-  </style>
-</head>
-<body>
-  <div class="box">
-    <div class="success-badge">✅ Official Customer Notice Dispatched Successfully!</div>
-    <h2 style="margin:0 0 10px 0;">Notice Delivered to Client</h2>
-    <p style="color:#475569;font-size:14px;line-height:1.5;">
-      The executive HTML documentation notice has been transmitted via SMTP to: <strong>{html.escape(target_client)}</strong>.{cc_info_html}<br>
-      Delivery status: <span style="font-family:monospace;font-weight:bold;color:#047857;">{html.escape(smtp_res.get('delivery', 'SENT'))}</span>.
-    </p>
-    <div style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:20px;">
-      <h4 style="margin:0 0 12px 0;font-size:13px;color:#64748b;text-transform:uppercase;">Transmitted Content Preview:</h4>
-      <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-        {customer_html}
-      </div>
-    </div>
-    <div style="margin-top:24px;text-align:center;">
-      <a href="/ui/#gateway" class="btn">Return to Master Console</a>
-    </div>
-  </div>
-</body>
-</html>"""
-        return HTMLResponse(content=success_html, status_code=200)
 
     # Interactive Confirmation Screen
     preview_html = f"""<!DOCTYPE html>
@@ -1134,9 +1212,9 @@ def send_customer_notice_page(
       <p style="color:#475569;font-size:14px;margin:0 0 18px 0;line-height:1.5;">
         You are about to transmit the executive document verification audit report to the client. Please confirm recipient details below:
       </p>
-      <form method="GET" action="/api/v1/gateway/customer-notice/send" style="display:flex;flex-direction:column;gap:12px;">
+      {legacy_note}
+      <form method="POST" action="/api/v1/gateway/customer-notice/send" style="display:flex;flex-direction:column;gap:12px;">
         <input type="hidden" name="stage_id" value="{html.escape(stage_id)}">
-        <input type="hidden" name="auto_send" value="true">
         <div>
           <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px;">Recipient Customer Email:</label>
           <input type="email" name="recipient" value="{html.escape(target_client)}" required style="width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
@@ -1185,159 +1263,150 @@ def send_customer_notice_page(
     return HTMLResponse(content=preview_html, status_code=200)
 
 
+@router.post("/customer-notice/send", response_class=HTMLResponse, summary="Confirm and dispatch the customer audit notice")
+async def send_customer_notice_submit(request: Request, db: Session = Depends(get_db)):
+    """Accept the confirmation form; a GET never reaches this path."""
+    import urllib.parse
+
+    raw = (await request.body()).decode("utf-8", "replace")
+    form = {k: v[0] for k, v in urllib.parse.parse_qs(raw, keep_blank_values=True).items()}
+    stage_id = form.get("stage_id", "")
+    recipient = form.get("recipient") or None
+
+    staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
+    if not staged:
+        return HTMLResponse(
+            content="<h2>Staged Record Not Found</h2><a href='/ui/#gateway'>Return to Gateway Console</a>",
+            status_code=404,
+        )
+    rep = db.query(ReportRecord).filter_by(email_id=f"INGEST-{stage_id}").first()
+    result = _dispatch_customer_notice(db, staged, rep, stage_id, recipient)
+    return HTMLResponse(content=_notice_result_page(result), status_code=200)
+
+
 @router.post("/customer-notice/dispatch", summary="API Dispatch Official Customer Notice via SMTP")
 def dispatch_customer_notice_api(
     payload: CustomerNoticeDispatchIn,
     db: Session = Depends(get_db),
 ):
-    """API endpoint to dispatch official customer HTML notice directly via SMTP."""
-    from app.services.email_utils import (
-        build_customer_html_notice,
-        build_customer_structured_text,
-        clean_subject,
-        extract_original_sender,
-    )
-    from app.services.smtp_dispatcher import dispatch_smtp_email
-
+    """Dispatch the notice once; a repeated call returns the earlier result."""
     staged = db.query(StagedEmailRecord).filter_by(stage_id=payload.stage_id).first()
     if not staged:
         raise HTTPException(status_code=404, detail=f"Stage record {payload.stage_id} not found")
-
     rep = db.query(ReportRecord).filter_by(email_id=f"INGEST-{payload.stage_id}").first()
-    target_client = payload.recipient or extract_original_sender(staged.body) or staged.sender or "customer@example.com"
-    clean_subj = clean_subject(staged.subject or "Shipping Documents")
-    is_mismatch = (getattr(rep, "status", None) == "MISMATCH") if rep else False
-    status_desc = f"{'Discrepancies identified' if is_mismatch else 'Verified with 0 discrepancies'}"
-
-    customer_text = build_customer_structured_text(
-        clean_subj=clean_subj,
-        stage_id=payload.stage_id,
-        status_desc=status_desc,
-        rep=rep,
-        target_client=target_client,
-        source_mailbox=staged.source_mailbox,
-    )
-    customer_html = build_customer_html_notice(
-        clean_subj=clean_subj,
-        stage_id=payload.stage_id,
-        status_desc=status_desc,
-        rep=rep,
-        target_client=target_client,
-        source_mailbox=staged.source_mailbox,
-    )
-    customer_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'} - Ref #{payload.stage_id}"
-
-    operator_cc = None
-    if staged.sender and staged.sender.lower() != target_client.lower():
-        operator_cc = staged.sender
-
-    smtp_res = dispatch_smtp_email(
-        to_email=target_client,
-        subject=customer_subj,
-        body=customer_text,
-        html_body=customer_html,
-        sender=settings.smtp_from or settings.imap_user,
-        cc=operator_cc,
-    )
-
-    rec = DispatchRecord(
-        stage_id=payload.stage_id,
-        email_id=f"INGEST-{payload.stage_id}",
-        source_mailbox=staged.source_mailbox,
-        recipient=target_client,
-        decision="MISMATCH" if is_mismatch else "VERIFIED",
-        delivery=smtp_res.get("delivery", "SENT"),
-        subject=customer_subj,
-        channel=smtp_res.get("channel", "SMTP"),
-    )
-    db.add(rec)
-    db.commit()
-
+    result = _dispatch_customer_notice(db, staged, rep, payload.stage_id, payload.recipient)
     return {
-        "status": "SUCCESS",
-        "stage_id": payload.stage_id,
-        "recipient": target_client,
-        "cc": operator_cc,
-        "delivery": smtp_res.get("delivery", "SENT"),
-        "channel": smtp_res.get("channel", "SMTP"),
+        "status": result["status"],
+        "duplicate": result["duplicate"],
+        "dispatch_id": result["dispatch_id"],
+        "stage_id": result["stage_id"],
+        "recipient": result["recipient"],
+        "cc": result["cc"],
+        "subject": result["subject"],
+        "delivery": result["delivery"],
+        "channel": result["channel"],
     }
 
 
 @router.post("/emails/{stage_id}/dispatch-client", summary="1-Click Console Direct Dispatch to Client with Operator CC")
 def console_dispatch_to_client(stage_id: str, db: Session = Depends(get_db)):
-    """Allows operators to dispatch official HTML audit report directly to customer and CC operator from the Web Console."""
-    from app.services.email_utils import (
-        build_customer_html_notice,
-        build_customer_structured_text,
-        clean_subject,
-        extract_original_sender,
-    )
-    from app.services.smtp_dispatcher import dispatch_smtp_email
-
+    """Console dispatch to the customer with the operator in CC."""
     staged = db.query(StagedEmailRecord).filter_by(stage_id=stage_id).first()
     if not staged:
         raise HTTPException(status_code=404, detail=f"Stage record {stage_id} not found")
-
     rep = db.query(ReportRecord).filter_by(email_id=f"INGEST-{stage_id}").first()
-    target_client = extract_original_sender(staged.body) or staged.sender or "customer@example.com"
-    clean_subj = clean_subject(staged.subject or "Shipping Documents")
-    is_mismatch = (getattr(rep, "status", None) == "MISMATCH") if rep else False
-    status_desc = f"{'Discrepancies identified' if is_mismatch else 'Verified with 0 discrepancies'}"
-
-    customer_text = build_customer_structured_text(
-        clean_subj=clean_subj,
-        stage_id=stage_id,
-        status_desc=status_desc,
-        rep=rep,
-        target_client=target_client,
-        source_mailbox=staged.source_mailbox,
-    )
-    customer_html = build_customer_html_notice(
-        clean_subj=clean_subj,
-        stage_id=stage_id,
-        status_desc=status_desc,
-        rep=rep,
-        target_client=target_client,
-        source_mailbox=staged.source_mailbox,
-    )
-    customer_subj = f"Re: {clean_subj} - {'B/L Document Amendment Required' if is_mismatch else 'Document Verification Complete'} - Ref #{stage_id}"
-
-    operator_cc = None
-    if staged.sender and staged.sender.lower() != target_client.lower():
-        operator_cc = staged.sender
-
-    smtp_res = dispatch_smtp_email(
-        to_email=target_client,
-        subject=customer_subj,
-        body=customer_text,
-        html_body=customer_html,
-        sender=settings.smtp_from or settings.imap_user,
-        cc=operator_cc,
-    )
-
-    rec = DispatchRecord(
-        stage_id=stage_id,
-        email_id=f"INGEST-{stage_id}",
-        source_mailbox=staged.source_mailbox,
-        recipient=target_client,
-        decision="MISMATCH" if is_mismatch else "VERIFIED",
-        delivery=smtp_res.get("delivery", "SENT"),
-        subject=customer_subj,
-        channel=smtp_res.get("channel", "SMTP"),
-    )
-    db.add(rec)
-    staged.status = "RETURNED"
-    db.commit()
-
+    result = _dispatch_customer_notice(db, staged, rep, stage_id, mark_returned=True)
+    cc_note = f" (CC: {result['cc']})" if result["cc"] else ""
     return {
-        "status": "SUCCESS",
-        "message": f"Official notice dispatched to {target_client}" + (f" (CC: {operator_cc})" if operator_cc else ""),
+        "status": result["status"],
+        "duplicate": result["duplicate"],
+        "dispatch_id": result["dispatch_id"],
+        "message": f"Official notice dispatched to {result['recipient']}" + cc_note,
+        "stage_id": result["stage_id"],
+        "recipient": result["recipient"],
+        "cc": result["cc"],
+        "subject": result["subject"],
+        "delivery": result["delivery"],
+        "channel": result["channel"],
+    }
+
+
+def _delivery_event_dict(row: DeliveryEventRecord) -> Dict[str, Any]:
+    return {
+        "id": row.id,
+        "dispatch_id": row.dispatch_id,
+        "event_type": row.event_type,
+        "recipient": row.recipient,
+        "action": row.action,
+        "status_code": row.status_code,
+        "diagnostic": row.diagnostic,
+        "message_id": row.message_id,
+        "raw_subject": row.raw_subject,
+        "trace_id": row.trace_id,
+        "received_at": row.received_at.isoformat() if row.received_at else None,
+    }
+
+
+@router.get("/delivery-receipts", summary="List inbound delivery status notifications")
+def list_delivery_receipts(
+    stage_id: Optional[str] = Query(None, description="Filter by staged email"),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    q = db.query(DeliveryEventRecord)
+    if stage_id:
+        ids = [
+            r[0] for r in db.query(DispatchRecord.id)
+            .filter(DispatchRecord.stage_id == stage_id).all()
+        ]
+        q = q.filter(DeliveryEventRecord.dispatch_id.in_(ids or [-1]))
+    rows = q.order_by(DeliveryEventRecord.id.desc()).limit(limit).all()
+    return {"count": len(rows), "events": [_delivery_event_dict(r) for r in rows]}
+
+
+@router.post("/delivery-receipts/ingest", summary="Ingest a raw RFC 3464 delivery status notification")
+async def ingest_delivery_receipt(request: Request, db: Session = Depends(get_db)):
+    """Accept a raw DSN from a webhook or an IMAP bridge."""
+    import email
+
+    from app.services.delivery_receipts import (
+        is_delivery_status_notification,
+        record_delivery_receipt,
+    )
+
+    raw = await request.body()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty message body")
+    msg = email.message_from_bytes(raw)
+    if not is_delivery_status_notification(msg):
+        raise HTTPException(status_code=400, detail="Not a delivery status notification")
+    return record_delivery_receipt(db, msg)
+
+
+@router.get("/delivery-status", summary="Current delivery state of dispatched notices")
+def delivery_status(stage_id: str = Query(...), db: Session = Depends(get_db)):
+    rows = (
+        db.query(DispatchRecord)
+        .filter(DispatchRecord.stage_id == stage_id)
+        .order_by(DispatchRecord.id.desc())
+        .all()
+    )
+    return {
         "stage_id": stage_id,
-        "recipient": target_client,
-        "cc": operator_cc,
-        "subject": customer_subj,
-        "delivery": smtp_res.get("delivery", "SENT"),
-        "channel": smtp_res.get("channel", "SMTP"),
+        "dispatches": [
+            {
+                "id": r.id,
+                "recipient": r.recipient,
+                "subject": r.subject,
+                "delivery": r.delivery,
+                "delivery_state": r.delivery_state or "UNKNOWN",
+                "delivery_event_at": r.delivery_event_at.isoformat() if r.delivery_event_at else None,
+                "delivery_detail": r.delivery_detail,
+                "message_id": r.message_id,
+                "trace_id": r.trace_id,
+            }
+            for r in rows
+        ],
     }
 
 

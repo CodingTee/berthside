@@ -60,6 +60,17 @@ def list_emails(
     return EmailListOut(total=total, limit=limit, offset=offset, emails=items)
 
 
+@router.get("/dead-letters", summary="List emails retired after exhausting retries")
+def list_dead_letters(db: Session = Depends(get_db)):
+    """Rows that failed often enough to be taken out of the retry loop.
+
+    Declared before GET /{email_id} so the literal path is not swallowed by
+    the dynamic one.
+    """
+    rows = workflow.dead_letters(db)
+    return {"count": len(rows), "dead_letters": rows}
+
+
 @router.get("/{email_id}", response_model=EmailOut, summary="Get one email")
 def get_email(email_id: str):
     email = inbox_service.get_email(email_id)
@@ -105,11 +116,27 @@ def process_all(
 def retry_failed(
     statuses: list[str] = Query(["ERROR", "NEEDS_REVIEW"]),
     limit: int = Query(0, ge=0, le=10000),
+    max_attempts: Optional[int] = Query(
+        None, ge=1, le=100, description="ERROR rows are retired at this count"),
     db: Session = Depends(get_db),
 ):
     """Visible failures + retries: re-runs the pipeline for the emails whose
-    last attempt did not produce a verdict. Idempotent — safe to call often."""
-    return workflow.retry_failed(db, statuses=statuses, limit=limit)
+    last attempt did not produce a verdict. Idempotent, safe to call often.
+
+    ERROR rows past the attempt cap are retired to DEAD_LETTER instead.
+    """
+    return workflow.retry_failed(
+        db, statuses=statuses, limit=limit, max_attempts=max_attempts)
+
+
+@router.post("/{email_id}/requeue",
+             summary="Put a dead letter back into the retry loop")
+def requeue_dead_letter(email_id: str, db: Session = Depends(get_db)):
+    """Resets a retired row to ERROR with a fresh attempts budget."""
+    result = workflow.requeue_dead_letter(db, email_id)
+    if result["status"] == "NOT_FOUND":
+        raise HTTPException(404, f"email not found: {email_id}")
+    return result
 
 
 @router.get("/{email_id}/status",

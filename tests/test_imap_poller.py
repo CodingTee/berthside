@@ -469,27 +469,19 @@ def test_customer_notice_endpoints(client, db_session):
     assert "EVER CHIC / 100W" in res_preview.text
     assert "shipper@exportcorp.com" in res_preview.text
 
-    # 2. Test 1-Click Auto Dispatch Flow
+    # 2. A legacy 1-click GET opens a confirmation page and never sends mail.
     with patch("app.services.smtp_dispatcher.dispatch_smtp_email") as mock_smtp:
-        mock_smtp.return_value = {"delivery": "SENT_SMTP", "channel": "SMTP"}
-        res_dispatch = client.get("/api/v1/gateway/customer-notice/send?stage_id=STG-NOTICE-007&auto_send=true")
-        assert res_dispatch.status_code == 200
-        assert "Official Customer Notice Dispatched Successfully" in res_dispatch.text
-        assert "shipper@exportcorp.com" in res_dispatch.text
+        res_legacy = client.get(
+            "/api/v1/gateway/customer-notice/send?stage_id=STG-NOTICE-007&auto_send=true"
+        )
+        assert res_legacy.status_code == 200
+        assert "Confirm Official Customer Verification Notice" in res_legacy.text
+        assert "One-click links now open a confirmation step" in res_legacy.text
+        assert 'method="POST"' in res_legacy.text
+        mock_smtp.assert_not_called()
+        assert db_session.query(DispatchRecord).count() == 0
 
-        mock_smtp.assert_called_once()
-        kwargs = mock_smtp.call_args[1]
-        assert kwargs["to_email"] == "shipper@exportcorp.com"
-        assert kwargs["cc"] == "operator-forwarder@test.com"
-        assert "EVER CHIC / 100W" in kwargs["html_body"]
-        assert "VERIFIED WITH 0 DISCREPANCIES" in kwargs["html_body"]
-
-        # Verify DispatchRecord saved
-        rec = db_session.query(DispatchRecord).filter_by(stage_id="STG-NOTICE-007").first()
-        assert rec is not None
-        assert rec.recipient == "shipper@exportcorp.com"
-
-        # 3. Test POST API Dispatch
+    # 3. Test POST API Dispatch
     with patch("app.services.smtp_dispatcher.dispatch_smtp_email") as mock_smtp2:
         mock_smtp2.return_value = {"delivery": "SENT_SMTP", "channel": "SMTP"}
         res_api = client.post(

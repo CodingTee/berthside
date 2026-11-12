@@ -21,6 +21,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.orm import Session
 
+from app import tracing
 from app.config import get_settings
 from app.database import OAuthSessionLocal, SessionLocal, get_db, init_db
 from app.models import EmailRecord, GatewayPolicyRecord, infer_source_mailbox
@@ -45,10 +46,7 @@ from app.routers.gmail import (
 )
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
+tracing.configure_logging()
 
 settings = get_settings()
 gmail_poll_task = None
@@ -70,7 +68,29 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+
+
+@app.middleware("http")
+async def correlation_middleware(request: Request, call_next):
+    """Tag every request with a trace id and expose it to the caller."""
+    trace = tracing.clean_id(request.headers.get("X-Request-ID")) or tracing.new_trace_id()
+    entity = tracing.clean_id(
+        request.headers.get("X-Email-ID")
+        or request.query_params.get("email_id")
+        or request.query_params.get("stage_id")
+        or ""
+    )
+    trace_token = tracing.set_trace_id(trace)
+    entity_token = tracing.set_entity_id(entity)
+    try:
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = trace
+        return response
+    finally:
+        tracing.reset_trace_id(trace_token)
+        tracing.reset_entity_id(entity_token)
 
 
 app.include_router(emails.router)

@@ -29,9 +29,14 @@ from app.models import (
     StagedEmailRecord,
     utcnow,
 )
+from app.services.delivery_receipts import (
+    is_delivery_status_notification,
+    record_delivery_receipt,
+)
 from app.services.security import verify_file_safety
 from app.services.smtp_dispatcher import dispatch_smtp_email
 from app.services import workflow
+from app.tracing import clean_id, new_trace_id, set_entity_id, set_trace_id
 
 log = logging.getLogger(__name__)
 
@@ -437,7 +442,7 @@ def _stage_and_verify_single_email(
         public_base = settings.public_base_url or "http://127.0.0.1:8000"
         dispatch_url = (
             f"{public_base.rstrip('/')}/api/v1/gateway/customer-notice/send"
-            f"?stage_id={stage_id}&recipient={urllib.parse.quote_plus(target_client)}&auto_send=true"
+            f"?stage_id={stage_id}&recipient={urllib.parse.quote_plus(target_client)}"
         )
 
         reply_body, html_body = build_enterprise_audit_receipt(
@@ -531,12 +536,14 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
             "message": "IMAP host is not configured in settings (.env).",
             "polled_count": 0,
             "processed": [],
+            "delivery_receipts": [],
         }
 
     ingest_dir = Path(settings.ingest_dir)
     ingest_dir.mkdir(parents=True, exist_ok=True)
 
     processed_stages: List[Dict[str, Any]] = []
+    delivery_receipts: List[Dict[str, Any]] = []
 
     try:
         mail = imaplib.IMAP4_SSL(settings.imap_host, settings.imap_port, timeout=20)
@@ -574,6 +581,7 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
                 "message": "Connected to IMAP. No new unread messages.",
                 "polled_count": 0,
                 "processed": [],
+                "delivery_receipts": [],
             }
 
         log.info("Found %d candidate emails to process in %s@%s", len(id_list), settings.imap_user, settings.imap_host)
@@ -585,6 +593,23 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
 
             raw_bytes = data[0][1]
             msg = email.message_from_bytes(raw_bytes)
+
+            if is_delivery_status_notification(msg):
+                dsn_mid = (msg.get("Message-ID") or "").strip()
+                dsn_subj = decode_mime_str(msg.get("Subject", "")).strip().lower()
+                if dsn_mid:
+                    _PROCESSED_MESSAGE_KEYS.add(dsn_mid)
+                if dsn_subj:
+                    _PROCESSED_MESSAGE_KEYS.add(dsn_subj)
+                receipt = record_delivery_receipt(db, msg)
+                delivery_receipts.append(receipt)
+                log.info("Delivery receipt: %s matched=%s", receipt["event_type"], receipt["matched"])
+                mail.store(num, "+FLAGS", "\\Seen")
+                continue
+
+            # One trace per polled message, keyed by its Message-ID.
+            set_trace_id(new_trace_id())
+            set_entity_id(clean_id((msg.get("Message-ID") or "").strip()) or "-")
 
             subject = decode_mime_str(msg.get("Subject", "(No Subject)"))
             raw_sender = msg.get("From", "")
@@ -676,6 +701,7 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
             "message": f"Polled and processed {len(processed_stages)} new emails.",
             "polled_count": len(processed_stages),
             "processed": processed_stages,
+            "delivery_receipts": delivery_receipts,
         }
 
     except Exception as exc:
@@ -685,4 +711,5 @@ def poll_imap_inbox(db: Session) -> Dict[str, Any]:
             "error": str(exc),
             "polled_count": 0,
             "processed": [],
+            "delivery_receipts": [],
         }

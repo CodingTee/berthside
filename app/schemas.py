@@ -14,7 +14,7 @@ EmailCategory = Literal[
     "BL_COMPARISON", "SI_REQUEST", "INVOICE_QUERY", "GENERAL", "SPAM"
 ]
 ReportStatus = Literal[
-    "OK", "MISMATCH", "NEEDS_REVIEW", "SKIPPED", "ERROR"
+    "OK", "MISMATCH", "NEEDS_REVIEW", "SKIPPED", "ERROR", "DEAD_LETTER"
 ]
 ReviewReason = Literal[
     "wrong_doc_type", "missing_attachment", "unreadable",

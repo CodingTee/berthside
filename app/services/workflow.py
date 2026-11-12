@@ -21,6 +21,7 @@ from typing import Any, Callable, Optional
 
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models import EmailRecord, ReportRecord, ReviewRecord, infer_source_mailbox
 from app.schemas import COMPARED_FIELDS
 from app.services import ai_service, doc_types, inbox_service, versioning
@@ -31,6 +32,7 @@ log = logging.getLogger(__name__)
 
 _DOC_TYPE_RE = re.compile(r"_(SI|BL)\.[a-z]+$", re.IGNORECASE)
 NON_COMPARISON_STATUS = "SKIPPED"  # classification-only emails
+DEAD_LETTER_STATUS = "DEAD_LETTER"  # retired: retries exhausted, needs a human
 
 
 # ------------------------------------------------- missing attachment: which kind?
@@ -133,21 +135,39 @@ def process_email(db: Session, email_id: str) -> ReportRecord:
 
 
 def retry_failed(db: Session, statuses: list[str] | None = None,
-                 limit: int = 0) -> dict[str, Any]:
+                 limit: int = 0, max_attempts: int | None = None) -> dict[str, Any]:
     """Re-run the pipeline for emails whose last attempt did not succeed.
 
     Retry is simply "process again": the endpoint is idempotent and the
     attempts counter increments, so a transient AI/IO failure clears itself
     on the next try while the evidence stays auditable.
+
+    An ERROR row that has burned through its attempts is retired to
+    DEAD_LETTER instead of being retried again, so one permanently broken
+    email cannot spin in the loop forever. NEEDS_REVIEW is never retired:
+    that status means a human is expected to look, not that the pipeline
+    keeps failing.
     """
+    cap = max_attempts if max_attempts is not None else get_settings().retry_max_attempts
+    cap = max(1, cap)
     targets = [s.upper() for s in (statuses or ["ERROR", "NEEDS_REVIEW"])]
     q = db.query(ReportRecord).filter(ReportRecord.status.in_(targets))
     q = q.order_by(ReportRecord.id)
     rows = q.limit(limit).all() if limit else q.all()
 
-    retried = recovered = still_failing = 0
+    retried = recovered = still_failing = dead_lettered = 0
     by_status: dict[str, int] = {}
     for row in rows:
+        if row.status == "ERROR" and (row.attempts or 0) >= cap:
+            row.status = DEAD_LETTER_STATUS
+            db.commit()
+            dead_lettered += 1
+            by_status[DEAD_LETTER_STATUS] = by_status.get(DEAD_LETTER_STATUS, 0) + 1
+            log.error(
+                "dead letter %s: %d attempts exhausted, last error: %s",
+                row.email_id, row.attempts or 0, row.error_message,
+            )
+            continue
         before = row.status
         try:
             report = process_email(db, row.email_id)
@@ -167,8 +187,48 @@ def retry_failed(db: Session, statuses: list[str] | None = None,
         "retried": retried,
         "recovered": recovered,
         "still_failing": still_failing,
+        "dead_lettered": dead_lettered,
+        "max_attempts": cap,
         "by_status": by_status,
     }
+
+
+def dead_letters(db: Session) -> list[dict[str, Any]]:
+    """Rows retired after exhausting their retries, newest failure first."""
+    rows = (
+        db.query(ReportRecord)
+        .filter(ReportRecord.status == DEAD_LETTER_STATUS)
+        .order_by(ReportRecord.updated_at.desc(), ReportRecord.id.desc())
+        .all()
+    )
+    return [
+        {
+            "email_id": row.email_id,
+            "attempts": row.attempts or 0,
+            "error_message": row.error_message,
+            "category": row.category,
+            "last_attempt_at": row.updated_at.isoformat() if row.updated_at else None,
+        }
+        for row in rows
+    ]
+
+
+def requeue_dead_letter(db: Session, email_id: str) -> dict[str, Any]:
+    """Send a retired row back into the retry loop with a fresh budget."""
+    report = db.query(ReportRecord).filter_by(email_id=email_id).first()
+    if report is None:
+        return {"email_id": email_id, "status": "NOT_FOUND"}
+    if report.status != DEAD_LETTER_STATUS:
+        return {
+            "email_id": email_id,
+            "status": "NOT_DEAD_LETTER",
+            "current_status": report.status,
+        }
+    report.status = "ERROR"
+    report.attempts = 0
+    db.commit()
+    log.warning("requeued dead letter %s", email_id)
+    return {"email_id": email_id, "status": "REQUEUED", "attempts": 0}
 
 
 def get_status(db: Session, email_id: str) -> dict[str, Any]:
@@ -180,7 +240,9 @@ def get_status(db: Session, email_id: str) -> dict[str, Any]:
                 "processing_ms": None, "reviewed": False, "updated_at": None,
                 "stage": "pending"}
 
-    if report.status == "ERROR":
+    if report.status == DEAD_LETTER_STATUS:
+        state = "DEAD"
+    elif report.status == "ERROR":
         state = "FAILED"
     elif report.status == "NEEDS_REVIEW":
         state = "NEEDS_HUMAN"
@@ -197,6 +259,8 @@ def get_status(db: Session, email_id: str) -> dict[str, Any]:
         stage = "classified (non-comparison)"
     elif report.status == "NEEDS_REVIEW":
         stage = f"escalated: {report.review_reason or 'needs review'}"
+    elif report.status == DEAD_LETTER_STATUS:
+        stage = f"dead letter after {report.attempts or 0} attempts"
     elif report.status == "ERROR":
         stage = "failed during processing"
     elif report.reviewed:

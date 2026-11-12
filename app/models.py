@@ -337,6 +337,31 @@ class DispatchRecord(Base):
     error = Column(String(512), nullable=True)  # transport failure reason, when delivery = FAILED
     created_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
+    # RFC Message-ID links an inbound DSN back to this dispatch.
+    message_id = Column(String(255), index=True, nullable=True)
+    delivery_state = Column(String(32), default="UNKNOWN")  # UNKNOWN | DELIVERED | BOUNCED | DELAYED | FAILED
+    delivery_event_at = Column(DateTime, nullable=True)
+    delivery_detail = Column(Text, nullable=True)
+    trace_id = Column(String(32), nullable=True)
+
+
+class DeliveryEventRecord(Base):
+    """Delivery status notifications matched back to an outbound dispatch."""
+    __tablename__ = "delivery_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dispatch_id = Column(Integer, index=True, nullable=True)
+    message_id = Column(String(255), index=True, nullable=True)
+    event_type = Column(String(32), nullable=False)  # DELIVERED | BOUNCED | DELAYED | FAILED
+    recipient = Column(String(255), nullable=True)
+    action = Column(String(64), nullable=True)
+    status_code = Column(String(64), nullable=True)
+    diagnostic = Column(Text, nullable=True)
+    raw_subject = Column(String(512), nullable=True)
+    raw_from = Column(String(255), nullable=True)
+    trace_id = Column(String(32), nullable=True)
+    received_at = Column(DateTime, default=utcnow)
+
 
 class OutboundApprovalRecord(Base):
     """Approval of an exact outbound snapshot; a token can be used only once."""
